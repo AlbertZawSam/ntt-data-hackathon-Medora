@@ -51,7 +51,7 @@ flowchart TB
 | `app/(patient)/care.tsx` | Description, red-flag check, need understanding, ranked results, map, request form |
 | `app/(patient)/specialists.tsx` | Specialty and language filters, nearest-first list, map, booking |
 | `app/(patient)/requests.tsx` | My requests, status, messages, cancel |
-| `app/(staff)/status.tsx` | Beds, departments, equipment, doctors; "Still correct?" check-in |
+| `app/(staff)/capacity.tsx` | Beds, departments, equipment, doctors; "Still correct?" check-in |
 | `app/(staff)/inbox.tsx` | Requests with patient details, accept, decline with reason, note, undo, messages, bookings |
 | `app/(staff)/rules.tsx` | Auto-accept rules (admins edit) |
 | `app/(doctor)/refer.tsx` | Description, onset time, live agent trace, map, decision table, confirm |

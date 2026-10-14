@@ -10,7 +10,7 @@ Work top to bottom, one task at a time (in VS Code, run the `/next-task` prompt)
   - Everyone runs `bash scripts/cost-check.sh` and `npx ampx sandbox delete` at the end of each working day.
   - _Requirements: 16.1, 16.3_
 
-- [ ] 1. Set up the project skeleton
+- [x] 1. Set up the project skeleton
   - Create folders from `AGENTS.md` section 6: `src/logic`, `src/i18n`, `src/services`, `src/state`, `src/components`, `src/ui`, `tests/unit`, `scripts`.
   - Remove the Expo starter's example tabs; add route groups `(patient)`, `(staff)`, `(doctor)` with placeholder screens.
   - Add brand theme in `src/ui/theme.ts` (green #0B6E57, saffron #F2A33A, ink #0E2A23, light and dark) and load the Bai Jamjuree font.
@@ -99,7 +99,7 @@ Work top to bottom, one task at a time (in VS Code, run the `/next-task` prompt)
 ## Milestone 5: Hospital staff screens
 
 - [ ] 14. Status board
-  - [ ] 14.1 `app/(staff)/status.tsx`: steppers for beds and NICU; pills for departments, equipment, doctors on duty.
+  - [ ] 14.1 `app/(staff)/capacity.tsx`: steppers for beds and NICU; pills for departments, equipment, doctors on duty.
   - [ ] 14.2 "Still correct?" check-in and freshness labels everywhere.
   - _Requirements: 9.1, 9.2, 9.3, 9.4_
 

@@ -1,0 +1,13 @@
+{
+  "app.name": "Medora",
+  "common.comingSoon": "เร็วๆ นี้",
+  "patient.home": "หน้าแรก",
+  "patient.care": "หาที่รักษา",
+  "patient.specialists": "แพทย์เฉพาะทาง",
+  "patient.requests": "คำขอของฉัน",
+  "staff.status": "สถานะ",
+  "staff.inbox": "กล่องคำขอ",
+  "staff.rules": "กฎการรับ",
+  "doctor.refer": "ส่งต่อผู้ป่วย",
+  "doctor.transfers": "การส่งตัว"
+}

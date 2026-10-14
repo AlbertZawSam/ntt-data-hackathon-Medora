@@ -28,7 +28,7 @@ medora/
 │   │   ├── specialists.tsx           # specialist search and booking
 │   │   └── requests.tsx              # my requests, status, messages
 │   ├── (staff)/
-│   │   ├── status.tsx                # beds, departments, equipment, on-call doctors
+│   │   ├── capacity.tsx              # beds, departments, equipment, on-call doctors
 │   │   ├── inbox.tsx                 # incoming requests: accept, decline, undo, messages
 │   │   └── rules.tsx                 # auto-accept rules (admins)
 │   └── (doctor)/

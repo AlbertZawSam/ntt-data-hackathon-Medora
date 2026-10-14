@@ -1,0 +1,13 @@
+{
+  "app.name": "Medora",
+  "common.comingSoon": "Coming soon",
+  "patient.home": "Home",
+  "patient.care": "Find care",
+  "patient.specialists": "Specialists",
+  "patient.requests": "My requests",
+  "staff.status": "Status",
+  "staff.inbox": "Inbox",
+  "staff.rules": "Rules",
+  "doctor.refer": "Refer",
+  "doctor.transfers": "Transfers"
+}
