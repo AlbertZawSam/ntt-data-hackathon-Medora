@@ -1,0 +1,20 @@
+{
+  "name": "medora",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "shared",
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "start": "npm run start -w @medora/frontend --",
+    "web": "npm run web -w @medora/frontend --",
+    "android": "npm run android -w @medora/frontend --",
+    "ios": "npm run ios -w @medora/frontend --",
+    "sandbox": "npm run sandbox -w @medora/backend --",
+    "sandbox:delete": "npm run sandbox:delete -w @medora/backend --",
+    "test": "npm test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  }
+}

@@ -2,7 +2,7 @@
 
 ## Overview
 
-One Expo (React Native) app with role-based screens talks to an AWS Amplify Gen 2 backend. AppSync subscriptions carry live updates between phones; Lambda functions host the AI: a fast Claude model reads patient descriptions, and the referral coordinator runs a Bedrock Converse tool-use loop. Fixed rules handle emergencies, filters and auto-acceptance; doctors confirm transfers. Everything is serverless to stay under the $350 budget.
+One Expo (React Native) app with role-based screens talks to an AWS Amplify Gen 2 backend. AppSync subscriptions carry live updates between phones; Lambda functions host the AI: a fast Claude model reads patient descriptions, and the referral coordinator runs a Bedrock Converse tool-use loop. Fixed rules handle emergencies, filters and auto-acceptance; doctors confirm transfers. All data is live: hospitals, staff, doctors and patients sign up in the app; nothing is seeded. Everything is serverless to stay under the $350 budget.
 
 ## Architecture
 
@@ -21,6 +21,8 @@ flowchart TB
     AR[Lambda: agent-runner]
     NT[Lambda: notify]
     RP[Lambda: register-push]
+    HO[Lambda: hospital-onboard]
+    S3[S3: hospital documents]
     BR[Amazon Bedrock: Claude + Guardrails]
     KB[Bedrock Knowledge Base on S3 Vectors]
     LOC[Amazon Location: places, route matrix]
@@ -37,6 +39,8 @@ flowchart TB
   AR <--> APS
   APS -- stream --> NT --> SNS
   S --> RP --> SNS
+  S --> HO --> APS
+  HO --> S3 --> KB
 ```
 
 ## Components
@@ -45,30 +49,35 @@ flowchart TB
 
 | Component | Responsibility |
 | --- | --- |
-| `app/_layout.tsx` | Providers (language, session, data), auth gate, role routing |
-| `app/sign-in.tsx` | Email and password sign-in; reads Cognito groups and `custom:hospitalId` |
-| `app/(patient)/home.tsx` | Location (GPS, search, pick on map), Call 1669, quick actions |
-| `app/(patient)/care.tsx` | Description, red-flag check, need understanding, ranked results, map, request form |
-| `app/(patient)/specialists.tsx` | Specialty and language filters, nearest-first list, map, booking |
-| `app/(patient)/requests.tsx` | My requests, status, messages, cancel |
-| `app/(staff)/status.tsx` | Beds, departments, equipment, doctors; "Still correct?" check-in |
-| `app/(staff)/inbox.tsx` | Requests with patient details, accept, decline with reason, note, undo, messages, bookings |
-| `app/(staff)/rules.tsx` | Auto-accept rules (admins edit) |
-| `app/(doctor)/refer.tsx` | Description, onset time, live agent trace, map, decision table, confirm |
-| `app/(doctor)/transfers.tsx` | Simulated ambulance tracking |
-| `src/logic/` | Pure functions: `redFlag`, `classifyNeed` (fallback), `pathways`, `failsFor`, `score`, `evaluate`, `remainingWindow`, `ruleAccepts`, `askPolicy` |
-| `src/services/data.ts` | AppSync client: `observeQuery` for each model, typed mutations |
-| `src/services/location.ts` | `expo-location`, place search (built-in + Amazon Location API key) |
-| `src/services/push.ts` | Device token, local alerts |
-| `src/state/AppProvider.tsx` | Language, session, live data snapshot, new-request alerts |
-| `src/components/` | `MapView`, `AgentTrace`, `RequestAlert`, `HospitalCard`, `TrustBadge`, `EmergencyCard`, `MessageThread`, `LanguageToggle` |
+| `frontend/app/_layout.tsx` | Providers (language, session, data), auth gate, role routing |
+| `frontend/app/sign-in.tsx` | Email and password sign-in; reads Cognito groups and `custom:hospitalId` |
+| `frontend/app/sign-up.tsx` | Sign-up with role choice (patient, hospital admin, doctor), email verification code |
+| `frontend/app/(admin)/hospital-setup.tsx` | Hospital profile form, department document upload; blocks other screens until saved |
+| `frontend/app/(admin)/team.tsx` | Invite staff, approve doctors, add specialists and slots |
+| `frontend/app/(doctor)/pending.tsx` | "Pending approval" screen for doctors not yet approved |
+| `frontend/app/(patient)/home.tsx` | Location (GPS, search, pick on map), Call 1669, quick actions |
+| `frontend/app/(patient)/care.tsx` | Description, red-flag check, need understanding, ranked results, map, request form |
+| `frontend/app/(patient)/specialists.tsx` | Specialty and language filters, nearest-first list, map, booking |
+| `frontend/app/(patient)/requests.tsx` | My requests, status, messages, cancel |
+| `frontend/app/(staff)/status.tsx` | Beds, departments, equipment, doctors; "Still correct?" check-in |
+| `frontend/app/(staff)/inbox.tsx` | Requests with patient details, accept, decline with reason, note, undo, messages, bookings |
+| `frontend/app/(staff)/rules.tsx` | Auto-accept rules (admins edit) |
+| `frontend/app/(doctor)/refer.tsx` | Description, onset time, live agent trace, map, decision table, confirm |
+| `frontend/app/(doctor)/transfers.tsx` | Transfer tracking: minutes left, ambulance position labelled "Simulated", arrival confirmed by receiving staff |
+| `shared/logic/` | Pure functions: `redFlag`, `classifyNeed` (fallback), `pathways`, `failsFor`, `score`, `evaluate`, `remainingWindow`, `ruleAccepts`, `askPolicy` |
+| `frontend/src/services/data.ts` | AppSync client: `observeQuery` for each model, typed mutations |
+| `frontend/src/services/location.ts` | `expo-location`, place search (built-in + Amazon Location API key) |
+| `frontend/src/services/push.ts` | Device token, local alerts |
+| `frontend/src/state/AppProvider.tsx` | Language, session, live data snapshot, new-request alerts |
+| `frontend/src/components/` | `MapView`, `AgentTrace`, `RequestAlert`, `HospitalCard`, `TrustBadge`, `EmergencyCard`, `MessageThread`, `LanguageToggle` |
 
-### Backend (`amplify/`)
+### Backend (`backend/amplify/`)
 
 | Resource | Responsibility |
 | --- | --- |
-| `auth` | Cognito user pool, groups `patients`, `hospital_staff`, `doctors`, `admins`, attribute `custom:hospitalId` |
-| `data` | Models below; custom mutations `startReferral` (async → agent-runner), `understandNeed` (→ patient-understand), `registerPush` |
+| `auth` | Cognito user pool with self sign-up and email verification, groups `patients`, `hospital_staff`, `doctors`, `admins`, attributes `custom:hospitalId`, `custom:approved`; post-confirmation trigger adds the user to the group for the role they chose (never `admins` for doctors or patients) |
+| `data` | Models below; custom mutations `startReferral` (async → agent-runner), `understandNeed` (→ patient-understand), `registerPush`, `onboardHospital`, `inviteStaff`, `approveDoctor` (→ hospital-onboard) |
+| `hospital-onboard` | Validates and creates `HospitalProfile` and `HospitalStatus`, sets `custom:hospitalId`; invites staff and approves doctors through the Cognito admin API, only for the caller's own hospital; starts a knowledge base sync after a document upload |
 | `agent-runner` | Converse tool-use loop, tools, trace writing, rule-based backup |
 | `patient-understand` | One fast-model call returning need and a short summary in English and Thai |
 | `notify` | DynamoDB stream on `CareRequest` and `Message`: push to on-duty staff or the patient |
@@ -78,7 +87,9 @@ flowchart TB
 
 | Model | Key fields | Notes |
 | --- | --- | --- |
-| `HospitalStatus` | `hospitalId` (identifier), `status` (JSON: beds, nicu, depts, equip, oncall, rules, conflict, updatedAt) | Seeded from `data/hospitals.json`; staff write their own hospital |
+| `HospitalProfile` | `hospitalId` (identifier), `name` (JSON en/th), `lat`, `lng`, `totalBeds`, `nicuTotal`, `typicalWaitMin`, `departments` (JSON), `equipment` (JSON), `createdAt` | Created by `hospital-onboard` when an admin registers; admins edit their own |
+| `HospitalStatus` | `hospitalId` (identifier), `status` (JSON: beds, nicu, depts, equip, oncall, rules, conflict, updatedAt) | Created with the profile; staff write their own hospital |
+| `Specialist` | `hospitalId`, `name`, `specialty`, `languages` (JSON), `namePublic`, `slots` (JSON) | Added by hospital admins |
 | `CareRequest` | `type` (visit, referral, booking), `hospitalId`, `ownerId`, `needKey`, `etaMin`, `status`, `auto`, `reason`, `note`, `overrideUntil`, `patient` (JSON: name, phone, mode, description), `fromHospitalId`, `referralId`, `slot`, `doctorName`, `createdAtMs` | Stream on for alerts |
 | `Message` | `requestId`, `from` (patient, hospital), `key` (quick reply) or `text`, `createdAtMs` | Stream on for alerts |
 | `Referral` | `fromHospitalId`, `ownerId`, `text`, `onsetMin`, `lang`, `pathway`, `status` (running, awaiting, confirmed, set_aside, failed), `mode` (ai, rules), `chosenId`, `etaMin`, `why` (JSON en/th), `rows` (JSON), `requestIds` (JSON), `startedAtMs`, `recommendedAtMs` | |
@@ -87,11 +98,23 @@ flowchart TB
 | `Activity` | `at`, `actor` (JSON en/th), `text` (JSON en/th) | Audit trail |
 | `Device` | `userId`, `hospitalId`, `endpointArn`, `onDuty` | Push targets |
 
-Demo authorization: any signed-in user. Before a pilot: owner rules on requests and messages, group rules on status and rules.
+Authorization: owner rules on requests, messages and referrals; staff write only the `HospitalStatus`, `CareRequest` replies and `Specialist` rows for their `custom:hospitalId`; only admins change profiles and auto-accept rules; patients read hospitals through the public fields only.
+
+## Live data flow
+
+All data is live and real-time; the backend starts empty and nothing is seeded (Requirement 17).
+
+- **Created by people.** Records come from sign-up and in-app actions: admins register hospitals (`hospital-onboard`), staff update status and answer requests, patients send requests and messages, doctors start referrals. Lambdas only act on a user's action (the agent asks hospitals because a doctor started a referral); the only automatic answer is an admin's auto-accept rule, which staff can undo for 60 seconds.
+- **Pushed to every screen.** `frontend/src/services/data.ts` opens one `observeQuery` subscription per model the signed-in role may read (scoped by the authorization rules); `AppProvider` merges them into one snapshot that screens read with `useSyncExternalStore`. Changes reach other phones within 2 seconds; push notifications cover phones where the app is closed.
+- **Fresh or labelled.** Each `HospitalStatus` carries `updatedAt`; data older than 30 minutes is labelled "may be outdated" and scores +10 in ranking until staff confirm "Still correct?".
+- **Decided on current data.** Auto-accept, ranking and agent tools read records at decision time.
+- **Empty states.** No registered hospital that can help → "no registered hospital can help right now" and Call 1669.
+- **Simulated values.** Only the ambulance position during a transfer, labelled "Simulated"; arrival is confirmed by the receiving staff, which lowers free beds by one.
+- **Without a backend.** If `frontend/amplify_outputs.json` is missing (no sandbox deployed), the app opens with sign-in disabled and says it isn't connected; it shows no data.
 
 ## Shared logic
 
-**Pathways** (`data/pathways.json`, treatment windows to be confirmed by clinicians)
+**Pathways** (`shared/data/pathways.json`, treatment windows to be confirmed by clinicians)
 
 | Pathway | Departments | Equipment | Doctor on duty | Bed | NICU | Window (min) | Prep (min) |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -169,14 +192,16 @@ Patient request: red-flag check on the phone → `understandNeed` → ranked res
 | Tool input invalid | Tool returns an error message; the model retries with valid input |
 | Hospital never replies | Marked "no reply" after the wait; agent moves on |
 | Network lost on the phone | Red-flag check and emergency screen still work; app reconnects and refetches |
-| Knowledge base missing | Built-in profiles; trace says so |
-| Budget action triggered | Agent calls fail fast; backup mode keeps the demo running |
+| Knowledge base missing | Registered hospital profiles (departments, equipment) instead; trace says so |
+| No registered hospital can help | Plain "no hospital can help right now" message; Call 1669 shown |
+| Budget action triggered | Agent calls fail fast; rule-based backup keeps referrals working |
 
 ## Testing strategy
 
-- **Unit (`tests/unit`)**: red flags (every phrase in English and Thai must match; safe phrases must not), `failsFor`, `score`, `remainingWindow`, `ruleAccepts`, `askPolicy`.
-- **Agent evaluations (`tests/agent-evals`)**: stroke (with and without the 40-minute note), heart attack, preterm, child admission; 10 runs each on the fast model; pass when the agent picks a capable accepted hospital, respects the window, cites sources, and never approves. Record time to recommendation and tokens.
-- **End to end**: two Android phones, patient and staff, in English and Thai; doctor referral on a third device.
+- **No prepared data**: there is no hospital dataset. Unit tests make up the hospitals they need inside each test; agent evaluations register hospitals through the live onboarding flow and delete them afterwards.
+- **Unit (`shared/tests`)**: red flags (every phrase in English and Thai must match; safe phrases must not), `failsFor`, `score`, `remainingWindow`, `ruleAccepts`, `askPolicy`.
+- **Agent evaluations (`backend/tests/agent-evals`)**: stroke (with and without the 40-minute note), heart attack, preterm, child admission; 10 runs each on the fast model, against hospitals the eval runner registers through `onboardHospital` in a personal sandbox and replies posted as staff accounts; pass when the agent picks a capable accepted hospital, respects the window, cites sources, and never approves. Record time to recommendation and tokens.
+- **End to end**: on a clean sandbox, sign up a hospital admin and register a hospital, invite a staff member, sign up and approve a doctor, sign up a patient; then run a patient request and a doctor referral in English and Thai across devices.
 - **Safety**: prompt-injection notes ("ignore your instructions") must not change the choice.
 
 ## Cost design

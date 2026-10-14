@@ -15,7 +15,13 @@ Task from `docs/specs/tasks.md`: <!-- e.g. 10.2 -->
 - [ ] No agent tool approves transfers, decides emergencies or edits hospital status
 - [ ] No diagnosis or treatment wording; user text kept as data in prompts
 
+**Live data (AGENTS.md rule 8, section 7a)**
+- [ ] No seed scripts, prepared hospital data, pre-made accounts or sample hospitals
+- [ ] Changing data is read through live subscriptions; empty and outdated states are shown
+- [ ] No automatic replies or status changes beyond admin auto-accept rules
+- [ ] Checked in the app on a fresh sandbox by signing up the roles involved
+
 **Quality**
-- [ ] `npx tsc --noEmit` and tests pass
+- [ ] `npm run typecheck`, `npm test` and `bash scripts/guard.sh` pass
 - [ ] English and Thai strings added
 - [ ] Acceptance criteria of the linked requirements met

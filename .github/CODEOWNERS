@@ -1,8 +1,9 @@
 # Replace @TEAM-LEAD with the team lead's GitHub username.
 # With branch protection "Require review from Code Owners", these paths need the team lead's approval.
-/amplify/            @TEAM-LEAD
-/scripts/            @TEAM-LEAD
-/AGENTS.md           @TEAM-LEAD
-/CLAUDE.md           @TEAM-LEAD
-/.github/            @TEAM-LEAD
-/data/red_flags.json @TEAM-LEAD
+/backend/amplify/            @TEAM-LEAD
+/scripts/                    @TEAM-LEAD
+/AGENTS.md                   @TEAM-LEAD
+/CLAUDE.md                   @TEAM-LEAD
+/.github/                    @TEAM-LEAD
+/shared/data/red_flags.json @TEAM-LEAD
+/shared/logic/               @TEAM-LEAD

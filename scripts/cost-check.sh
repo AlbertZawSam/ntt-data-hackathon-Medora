@@ -48,10 +48,62 @@ report "Log groups without a retention limit" "$(run logs describe-log-groups --
 report "DynamoDB tables (check they use on-demand billing)" "$(for t in $(run dynamodb list-tables --query 'TableNames[]'); do mode=$(run dynamodb describe-table --table-name "$t" --query 'Table.BillingModeSummary.BillingMode'); [ "$mode" != "PAY_PER_REQUEST" ] && echo "$t $mode"; done)"
 report "CloudFormation stacks (are old sandboxes still deployed?)" "$(run cloudformation list-stacks --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE --query 'StackSummaries[?contains(StackName, `sandbox`)].[StackName,LastUpdatedTime]')"
 
+section "Review: budget alarms"
+# Verify the medora-350-cap budget and its SNS topic exist so the team knows
+# to run create-budget-alarms.sh if they are missing.
+BUDGET_STATUS="$(aws budgets describe-budget \
+  --account-id "$(aws sts get-caller-identity --query Account --output text 2>/dev/null)" \
+  --budget-name "medora-350-cap" \
+  --query 'Budget.BudgetName' \
+  --output text 2>/dev/null || true)"
+if [ "$BUDGET_STATUS" = "medora-350-cap" ]; then
+  printf 'ok     Budget medora-350-cap exists\n'
+  # Check all five expected notifications are in place
+  NOTIFICATION_COUNT="$(aws budgets describe-notifications-for-budget \
+    --account-id "$(aws sts get-caller-identity --query Account --output text 2>/dev/null)" \
+    --budget-name "medora-350-cap" \
+    --query 'length(Notifications)' \
+    --output text 2>/dev/null || echo "0")"
+  if [ "$NOTIFICATION_COUNT" -ge 5 ] 2>/dev/null; then
+    printf 'ok     Budget has %s notification threshold(s) configured\n' "$NOTIFICATION_COUNT"
+  else
+    printf 'FOUND  Budget exists but only %s notification threshold(s) found (expected 5)\n' "$NOTIFICATION_COUNT"
+    FOUND=$((FOUND + 1))
+  fi
+else
+  printf 'FOUND  Budget medora-350-cap not found — run: bash scripts/create-budget-alarms.sh <team-email>\n'
+  FOUND=$((FOUND + 1))
+fi
+
+SNS_TOPIC_ARN="$(run sns list-topics --query "Topics[?contains(TopicArn, 'medora-budget-alerts')].TopicArn" | grep -m1 'medora-budget-alerts' || true)"
+if [ -n "$SNS_TOPIC_ARN" ]; then
+  printf 'ok     SNS topic medora-budget-alerts exists\n'
+  # Check for at least one confirmed email subscription
+  CONFIRMED_SUBS="$(aws sns list-subscriptions-by-topic \
+    --topic-arn "$SNS_TOPIC_ARN" \
+    --region "$REGION" \
+    --query "length(Subscriptions[?SubscriptionArn!='PendingConfirmation'])" \
+    --output text 2>/dev/null || echo "0")"
+  if [ "$CONFIRMED_SUBS" -ge 1 ] 2>/dev/null; then
+    printf 'ok     SNS topic has %s confirmed email subscription(s)\n' "$CONFIRMED_SUBS"
+  else
+    PENDING="$(aws sns list-subscriptions-by-topic \
+      --topic-arn "$SNS_TOPIC_ARN" \
+      --region "$REGION" \
+      --query "length(Subscriptions)" \
+      --output text 2>/dev/null || echo "0")"
+    printf 'FOUND  SNS topic medora-budget-alerts has no confirmed subscriptions (%s pending) — ask subscribers to confirm the AWS email\n' "$PENDING"
+    FOUND=$((FOUND + 1))
+  fi
+else
+  printf 'FOUND  SNS topic medora-budget-alerts not found — run: bash scripts/create-budget-alarms.sh <team-email>\n'
+  FOUND=$((FOUND + 1))
+fi
+
 section "Spend so far this month"
 START="$(date -u +%Y-%m-01)"; END="$(date -u -d '+1 day' +%Y-%m-%d 2>/dev/null || date -u -v+1d +%Y-%m-%d)"
 aws ce get-cost-and-usage --time-period "Start=$START,End=$END" --granularity MONTHLY --metrics UnblendedCost \
   --query 'ResultsByTime[0].Total.UnblendedCost.[Amount,Unit]' --output text 2>/dev/null || echo "(Cost Explorer not available to this user)"
 
 printf '\n%s finding(s). Nothing was changed. Delete or stop what you don'"'"'t need, or ask the team lead.\n' "$FOUND"
-echo "Reminder: run 'npx ampx sandbox delete' at the end of the day."
+echo "Reminder: run 'npm run sandbox:delete' at the end of the day."

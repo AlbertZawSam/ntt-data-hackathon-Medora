@@ -3,7 +3,7 @@ name: Guardrails
 on:
   pull_request:
   push:
-    branches: [main, demo]
+    branches: [main, prod]
 
 permissions:
   contents: read
@@ -36,7 +36,7 @@ jobs:
         run: npm ci
       - name: Type-check
         if: steps.app.outputs.exists == 'true'
-        run: npx tsc --noEmit
+        run: npm run typecheck
       - name: Unit tests
         if: steps.app.outputs.exists == 'true'
-        run: npm test --if-present
+        run: npm test

@@ -2,25 +2,26 @@
 
 ## Introduction
 
-Medora is a bilingual (English and Thai) mobile app that routes patients to the closest hospital in Bangkok that can treat them right now, and lets doctors place patients through an AI referral agent on Amazon Bedrock while confirming every transfer themselves. This spec covers the MVP for the NTT DATA Digital Innovation Challenge 2026: one app with role-based screens, an AWS serverless backend under a $350 budget, and synthetic data for 10 hospitals.
+Medora is a bilingual (English and Thai) mobile app that routes patients to the closest hospital in Bangkok that can treat them right now, and lets doctors place patients through an AI referral agent on Amazon Bedrock while confirming every transfer themselves. This spec covers the MVP for the NTT DATA Digital Innovation Challenge 2026: one app with role-based screens, an AWS serverless backend under a $350 budget, and live data only: patients, hospitals, staff and doctors sign up in the app and enter their own (mock) data. Nothing is pre-seeded, and no replies are generated automatically.
 
 Acceptance criteria use EARS notation (WHEN / WHILE / IF / WHERE ... THE SYSTEM SHALL ...). "The app" is the Medora mobile app; "the backend" is the AWS Amplify Gen 2 backend; "the agent" is the referral coordinator running on Amazon Bedrock.
 
-## Requirement 1: Sign-in and roles
+## Requirement 1: Sign-up, sign-in and roles
 
-**User story:** As a user, I want to sign in once and see only the screens for my role, so that patients, hospital staff and doctors each get the right tools.
+**User story:** As a user, I want to create my own account, sign in once and see only the screens for my role, so that patients, hospital staff and doctors each get the right tools.
 
-1. WHEN a user signs in with email and password THE SYSTEM SHALL authenticate them with Amazon Cognito.
-2. WHEN sign-in succeeds THE SYSTEM SHALL route a member of `doctors` to the doctor screens, a member of `hospital_staff` to the staff screens, and anyone else to the patient screens.
-3. WHERE a staff member or doctor signs in THE SYSTEM SHALL scope their screens to the hospital in their `custom:hospitalId` attribute.
-4. WHERE a staff member belongs to `admins` THE SYSTEM SHALL allow them to edit auto-accept rules.
-5. IF sign-in fails THEN THE SYSTEM SHALL show a message in the user's language without revealing whether the email exists.
+1. WHEN a user signs up with email and password THE SYSTEM SHALL create a Cognito account after email verification, with the role they chose (patient, hospital admin or doctor); staff accounts are created only by invitation (Requirement 18).
+2. WHEN a user signs in with email and password THE SYSTEM SHALL authenticate them with Amazon Cognito.
+3. WHEN sign-in succeeds THE SYSTEM SHALL route a member of `doctors` to the doctor screens, a member of `hospital_staff` to the staff screens, and anyone else to the patient screens.
+4. WHERE a staff member or doctor signs in THE SYSTEM SHALL scope their screens to the hospital in their `custom:hospitalId` attribute.
+5. WHERE a staff member belongs to `admins` THE SYSTEM SHALL allow them to edit auto-accept rules.
+6. IF sign-up or sign-in fails THEN THE SYSTEM SHALL show a message in the user's language without revealing whether the email exists.
 
 ## Requirement 2: English and Thai
 
 **User story:** As a Thai or English speaker, I want the whole app in my language, so that I can use it under stress.
 
-1. THE SYSTEM SHALL provide every user-facing string in English and Thai from `src/i18n/en.json` and `src/i18n/th.json`.
+1. THE SYSTEM SHALL provide every user-facing string in English and Thai from `frontend/src/i18n/en.json` and `frontend/src/i18n/th.json`.
 2. WHEN the user taps the language toggle THE SYSTEM SHALL switch all screens immediately and remember the choice on the device.
 3. WHEN the agent or patient assistant replies THE SYSTEM SHALL reply in the language of the user who started the request.
 4. WHEN a quick-reply message is shown THE SYSTEM SHALL display it in the reader's own language.
@@ -33,14 +34,14 @@ Acceptance criteria use EARS notation (WHEN / WHILE / IF / WHERE ... THE SYSTEM 
 2. WHEN the patient types a place name in English or Thai THE SYSTEM SHALL suggest matching places from built-in Bangkok places and Amazon Location place search.
 3. WHEN the patient taps the map in pick mode THE SYSTEM SHALL set that point as their location.
 4. IF permission is denied or the position is unavailable THEN THE SYSTEM SHALL explain this and offer place search.
-5. IF the position is outside the Bangkok demo area THEN THE SYSTEM SHALL use Siam as the location and say so.
+5. IF the position is outside the Bangkok service area THEN THE SYSTEM SHALL use Siam as the location and say so.
 6. THE SYSTEM SHALL keep the patient's location on the device and not store it in the backend except as part of a request they send.
 
 ## Requirement 4: Emergency safety check
 
 **User story:** As a patient with a possible emergency, I want to be told to call 1669 immediately, so that I don't lose time in an app.
 
-1. WHEN a patient submits a description THE SYSTEM SHALL check it against the English and Thai red-flag phrases in `data/red_flags.json` before any AI call.
+1. WHEN a patient submits a description THE SYSTEM SHALL check it against the English and Thai red-flag phrases in `shared/data/red_flags.json` before any AI call.
 2. WHEN a red flag matches THE SYSTEM SHALL show the emergency screen with a "Call 1669" button and the nearest hospital with an open emergency department, and SHALL NOT call any AI model.
 3. WHILE the device is offline THE SYSTEM SHALL still perform the red-flag check and show the emergency screen.
 4. WHEN the check runs THE SYSTEM SHALL write the result to the activity log.
@@ -135,17 +136,17 @@ Acceptance criteria use EARS notation (WHEN / WHILE / IF / WHERE ... THE SYSTEM 
 **User story:** As a referring doctor, I want to confirm the transfer in one tap and track it, so that I stay in control.
 
 1. WHEN the agent recommends a hospital THE SYSTEM SHALL show "Confirm transfer" and "Not this one" to the doctor.
-2. WHEN the doctor confirms THE SYSTEM SHALL create a transfer, notify the receiving hospital and send the ambulance crew a link by SMS (simulated in the demo).
-3. WHILE a transfer is under way THE SYSTEM SHALL show the ambulance's position on the map and the minutes left (simulated in the demo).
-4. WHEN the transfer arrives THE SYSTEM SHALL reduce the receiving hospital's free beds by one.
+2. WHEN the doctor confirms THE SYSTEM SHALL create a transfer, notify the receiving hospital and show a shareable transfer link for the ambulance crew (no SMS until an ambulance service joins).
+3. WHILE a transfer is under way THE SYSTEM SHALL show the minutes left from the route drive time and an ambulance position on the map, labelled "Simulated" until an ambulance service joins.
+4. WHEN the receiving hospital's staff confirm the patient has arrived THE SYSTEM SHALL mark the transfer arrived and reduce that hospital's free beds by one.
 
 ## Requirement 14: Knowledge base (RAG)
 
 **User story:** As a judge or doctor, I want to see that the agent's hospital choices come from documented capabilities, so that I can trust them.
 
-1. THE SYSTEM SHALL index one document per hospital department from `data/kb/` in a Bedrock knowledge base with a multilingual embedding model, no chunking and metadata (hospital ID, department).
+1. THE SYSTEM SHALL index the department documents that hospital admins upload in the app (Requirement 18) in a Bedrock knowledge base with a multilingual embedding model, no chunking and metadata (hospital ID, department).
 2. WHEN the agent searches the knowledge base THE SYSTEM SHALL show the matching hospitals and source documents in the trace.
-3. IF no knowledge base is configured THEN THE SYSTEM SHALL use built-in hospital profiles and say so in the trace.
+3. IF no knowledge base is configured THEN THE SYSTEM SHALL use the departments and equipment from the registered hospital profiles and say so in the trace.
 
 ## Requirement 15: Activity log and audit
 
@@ -163,10 +164,25 @@ Acceptance criteria use EARS notation (WHEN / WHILE / IF / WHERE ... THE SYSTEM 
 3. THE SYSTEM SHALL tag all resources with `project` and `stage`.
 4. THE team SHALL receive budget alarms at $100, $200, $280 and $320 of actual spend and at $350 of forecast spend.
 
-## Requirement 17: Demo support
+## Requirement 17: Live data only
 
-**User story:** As a presenter, I want a reliable demo, so that judges see the full flow even on poor Wi-Fi.
+**User story:** As a hospital, doctor or patient, I want Medora to show only what real users have entered, so that every result reflects someone's actual input.
 
-1. WHERE the demo stage is used THE SYSTEM SHALL provide a "Reset demo data" action for staff and doctors.
-2. WHERE "demo replies" is enabled THE SYSTEM SHALL let hospitals without an auto-accept rule reply automatically after 8 seconds with preset notes, including Rama Nine's "neurologist in surgery, free in about 40 minutes" for stroke.
-3. THE SYSTEM SHALL show the time to recommendation on each completed referral.
+1. THE SYSTEM SHALL start with no hospitals, users, requests or referrals; every record SHALL be created through sign-up or in-app actions.
+2. THE SYSTEM SHALL NOT generate hospital replies, status changes or bookings automatically, except through auto-accept rules set by a hospital admin (Requirement 11).
+3. WHEN no registered hospital can help THE SYSTEM SHALL say so plainly instead of showing sample hospitals.
+4. THE SYSTEM SHALL show the time to recommendation on each completed referral.
+5. WHEN any user creates or changes a record (hospital status, request, reply, message, referral, trace step, transfer) THE SYSTEM SHALL show the change on every other signed-in screen that displays it within 2 seconds, without a manual refresh.
+6. THE SYSTEM SHALL label any value that is simulated rather than entered by a user (the ambulance position) as "Simulated".
+
+## Requirement 18: Hospital and staff onboarding
+
+**User story:** As a hospital admin, I want to register my hospital and invite my staff, so that Medora can route patients to us.
+
+1. WHEN a hospital admin signs up THE SYSTEM SHALL add them to `hospital_staff` and `admins` and require them to complete the hospital profile before any other screen.
+2. WHEN the admin submits the hospital profile THE SYSTEM SHALL require the name in English and Thai, location (latitude and longitude inside the service area, or picked on the map), total beds (1 to 9,999), NICU cots (0 to 999), typical wait in minutes, at least one department, and the equipment available; it SHALL create the `HospitalProfile` and an initial `HospitalStatus`, and set `custom:hospitalId` on the admin's account.
+3. WHEN an admin invites a staff member by email THE SYSTEM SHALL create the account in `hospital_staff` with the admin's `custom:hospitalId`, and the staff member sets a password on first sign-in.
+4. WHEN an admin adds a specialist THE SYSTEM SHALL require a specialty, at least one language and name-display consent, and let the admin add and remove appointment slots.
+5. WHEN an admin uploads a department document (Markdown or plain text, up to 50 KB) THE SYSTEM SHALL store it under the hospital's prefix and sync the knowledge base.
+6. WHEN a doctor signs up THE SYSTEM SHALL ask which registered hospital they work at and show a "pending approval" screen until an admin of that hospital approves them; only then SHALL they reach the doctor screens.
+7. WHEN a patient signs up THE SYSTEM SHALL route them straight to the patient home screen.
