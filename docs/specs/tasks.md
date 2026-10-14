@@ -23,9 +23,9 @@ Work top to bottom, one task at a time (in VS Code, run the `/next-task` prompt)
 
 - [ ] 3. Shared logic in `src/logic/` (no React Native imports) with unit tests
   - [ ] 3.1 `types.ts`: Hospital, HospitalStatus, Pathway, CareRequest, Message, Referral, TraceStep, Transfer, Activity.
-  - [ ] 3.2 Load `data/hospitals.json`, `data/pathways.json`, `data/red_flags.json`.
-  - [ ] 3.3 `redFlags.ts`: `redFlag(text)` for English and Thai; tests for every phrase and for safe phrases. ★
-  - [ ] 3.4 `ranking.ts`: `driveEstimate`, `traffic`, `failsFor`, `score`, `evaluate`; tests.
+  - [x] 3.2 Load `data/hospitals.json`, `data/pathways.json`, `data/red_flags.json`.
+  - [x] 3.3 `redFlags.ts`: `redFlag(text)` for English and Thai; tests for every phrase and for safe phrases. ★
+  - [x] 3.4 `ranking.ts`: `driveEstimate`, `traffic`, `failsFor`, `score`, `evaluate`; tests.
   - [ ] 3.5 `timeBudget.ts`: `remainingWindow`, "too far" check, `askPolicy`; tests.
   - [ ] 3.6 `rules.ts`: `ruleAccepts(status, pathway | "visit")`; tests.
   - _Requirements: 4.1, 5.2, 5.3, 11.2, 12.3_
