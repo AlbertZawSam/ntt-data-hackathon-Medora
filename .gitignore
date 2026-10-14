@@ -7,3 +7,4 @@ amplify_outputs.json
 *.ipa
 google-services.json
 .env
+.DS_Store
