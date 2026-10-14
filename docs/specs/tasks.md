@@ -21,13 +21,13 @@ Work top to bottom, one task at a time (in VS Code, run the `/next-task` prompt)
   - [ ] 2.2 Build `LanguageToggle` and persist the choice with AsyncStorage.
   - _Requirements: 2.1, 2.2_
 
-- [ ] 3. Shared logic in `src/logic/` (no React Native imports) with unit tests
-  - [ ] 3.1 `types.ts`: Hospital, HospitalStatus, Pathway, CareRequest, Message, Referral, TraceStep, Transfer, Activity.
+- [x] 3. Shared logic in `src/logic/` (no React Native imports) with unit tests
+  - [x] 3.1 `types.ts`: Hospital, HospitalStatus, Pathway, CareRequest, Message, Referral, TraceStep, Transfer, Activity.
   - [x] 3.2 Load `data/hospitals.json`, `data/pathways.json`, `data/red_flags.json`.
   - [x] 3.3 `redFlags.ts`: `redFlag(text)` for English and Thai; tests for every phrase and for safe phrases. ★
   - [x] 3.4 `ranking.ts`: `driveEstimate`, `traffic`, `failsFor`, `score`, `evaluate`; tests.
-  - [ ] 3.5 `timeBudget.ts`: `remainingWindow`, "too far" check, `askPolicy`; tests.
-  - [ ] 3.6 `rules.ts`: `ruleAccepts(status, pathway | "visit")`; tests.
+  - [x] 3.5 `timeBudget.ts`: `remainingWindow`, "too far" check, `askPolicy`; tests.
+  - [x] 3.6 `rules.ts`: `ruleAccepts(status, pathway | "visit")`; tests.
   - _Requirements: 4.1, 5.2, 5.3, 11.2, 12.3_
 
 ## Milestone 2: AWS backend and sign-in

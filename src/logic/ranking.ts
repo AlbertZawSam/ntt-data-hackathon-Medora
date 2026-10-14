@@ -1,4 +1,5 @@
 import { scoring as defaultScoring } from './data';
+import { tooFar } from './timeBudget';
 import type { Hospital, HospitalStatus, LatLng, Pathway, Scoring } from './types';
 
 // Phone-side drive estimate and hospital ranking (design.md "Shared logic").
@@ -53,7 +54,9 @@ export type Failure =
   | { kind: 'equip'; item: string }
   | { kind: 'oncall'; item: string }
   | { kind: 'bed' }
-  | { kind: 'nicu' };
+  | { kind: 'nicu' }
+  // Drive + preparation won't fit in the treatment window (set by evaluate, not failsFor).
+  | { kind: 'tooFar' };
 
 // Every reason this hospital can't take the pathway right now; empty means it can.
 export function failsFor(status: HospitalStatus, pathway: Pathway): Failure[] {
@@ -102,7 +105,11 @@ export type Evaluation = {
   canHelp: boolean;
 };
 
-export type EvaluateOptions = DriveOptions & { scoring?: Scoring };
+export type EvaluateOptions = DriveOptions & {
+  scoring?: Scoring;
+  // Minutes left in the treatment window (timeBudget.remainingWindow); omit to skip the "too far" check.
+  remainingMin?: number | null;
+};
 
 // Hospitals that can help come first, best score first; the rest follow nearest first,
 // so the screen can explain why a closer hospital was skipped.
@@ -110,12 +117,13 @@ export function evaluate(
   hospitals: Hospital[],
   pathway: Pathway,
   origin: LatLng,
-  { scoring: s = defaultScoring, ...drive }: EvaluateOptions,
+  { scoring: s = defaultScoring, remainingMin = null, ...drive }: EvaluateOptions,
 ): Evaluation[] {
   const nowMs = drive.at.getTime();
   const rows = hospitals.map((hospital) => {
     const { km, min } = driveEstimate(origin, hospital, drive);
     const fails = failsFor(hospital.status, pathway);
+    if (tooFar(min, pathway, remainingMin)) fails.push({ kind: 'tooFar' });
     return { hospital, km, driveMin: min, score: score(hospital, pathway, min, nowMs, s), fails, canHelp: fails.length === 0 };
   });
   return rows.sort(

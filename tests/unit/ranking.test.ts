@@ -261,6 +261,30 @@ describe('evaluate', () => {
     expect(row.driveMin).toBe(24);
   });
 
+  it('marks a hospital too far when drive + preparation exceeds the time left', () => {
+    // 36 minutes' drive + 30 minutes' stroke preparation = 66.
+    const near = makeHospital('NEAR', 13.75, 100.5);
+    const far = makeHospital('FAR', 13.8, 100.5);
+    const rows = evaluate([far, near], pathways.stroke, origin, { at: NOON, remainingMin: 60 });
+    expect(rows.map((r) => [r.hospital.id, r.canHelp])).toEqual([
+      ['NEAR', true],
+      ['FAR', false],
+    ]);
+    expect(rows[1].fails).toEqual([{ kind: 'tooFar' }]);
+    expect(evaluate([far], pathways.stroke, origin, { at: NOON, remainingMin: 66 })[0].canHelp).toBe(true);
+  });
+
+  it('skips the too-far check without a time budget', () => {
+    const far = makeHospital('FAR', 13.95, 100.5);
+    expect(evaluate([far], pathways.stroke, origin, { at: NOON })[0].canHelp).toBe(true);
+    expect(evaluate([far], pathways.stroke, origin, { at: NOON, remainingMin: null })[0].canHelp).toBe(true);
+  });
+
+  it('adds too far after the status failures', () => {
+    const row = evaluate([makeHospital('A', 13.8, 100.5, { beds: 0 })], pathways.stroke, origin, { at: NOON, remainingMin: 10 })[0];
+    expect(row.fails).toEqual([{ kind: 'bed' }, { kind: 'tooFar' }]);
+  });
+
   it('breaks ties by distance, then by ID', () => {
     const list = [makeHospital('B', 13.8, 100.5), makeHospital('A', 13.8, 100.5)];
     expect(evaluate(list, pathways.stroke, origin, { at: NOON }).map((r) => r.hospital.id)).toEqual(['A', 'B']);
