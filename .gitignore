@@ -7,4 +7,23 @@ amplify_outputs.json
 *.ipa
 google-services.json
 .env
+.env*.local
 .DS_Store
+
+# Expo and Metro
+web-build/
+.metro-health-check*
+*.tsbuildinfo
+npm-debug.*
+
+# Native builds and signing keys
+/ios
+/android
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
