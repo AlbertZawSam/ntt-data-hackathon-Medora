@@ -1,0 +1,146 @@
+{
+  "_note": "Treatment windows and prep times are illustrative and must be confirmed by clinicians before use.",
+  "pathways": {
+    "stroke": {
+      "urgent": true,
+      "departments": [
+        "ed",
+        "neuro"
+      ],
+      "equipment": [
+        "ct"
+      ],
+      "onDuty": [
+        "neurologist"
+      ],
+      "needsBed": true,
+      "needsNicu": false,
+      "windowMin": 270,
+      "prepMin": 30,
+      "name": {
+        "en": "stroke care",
+        "th": "การรักษาโรคหลอดเลือดสมอง"
+      }
+    },
+    "stemi": {
+      "urgent": true,
+      "departments": [
+        "ed",
+        "cardio"
+      ],
+      "equipment": [
+        "cathlab"
+      ],
+      "onDuty": [
+        "cardiologist"
+      ],
+      "needsBed": true,
+      "needsNicu": false,
+      "windowMin": 120,
+      "prepMin": 30,
+      "name": {
+        "en": "heart attack care",
+        "th": "การรักษาหัวใจขาดเลือด"
+      }
+    },
+    "preterm": {
+      "urgent": true,
+      "departments": [
+        "obstetrics"
+      ],
+      "equipment": [],
+      "onDuty": [
+        "obstetrician"
+      ],
+      "needsBed": true,
+      "needsNicu": true,
+      "windowMin": null,
+      "prepMin": 15,
+      "name": {
+        "en": "preterm birth care",
+        "th": "การดูแลคลอดก่อนกำหนด"
+      }
+    },
+    "peds": {
+      "urgent": false,
+      "departments": [
+        "pediatrics"
+      ],
+      "equipment": [],
+      "onDuty": [
+        "pediatrician"
+      ],
+      "needsBed": true,
+      "needsNicu": false,
+      "windowMin": null,
+      "prepMin": 0,
+      "name": {
+        "en": "children's admission",
+        "th": "การรับเด็กเข้ารักษา"
+      }
+    },
+    "maternity": {
+      "urgent": true,
+      "departments": [
+        "obstetrics"
+      ],
+      "equipment": [],
+      "onDuty": [
+        "obstetrician"
+      ],
+      "needsBed": false,
+      "needsNicu": false,
+      "windowMin": null,
+      "prepMin": 0,
+      "name": {
+        "en": "pregnancy care",
+        "th": "การดูแลครรภ์"
+      }
+    },
+    "injury": {
+      "urgent": true,
+      "departments": [
+        "ed"
+      ],
+      "equipment": [],
+      "onDuty": [
+        "er"
+      ],
+      "needsBed": false,
+      "needsNicu": false,
+      "windowMin": null,
+      "prepMin": 0,
+      "prefer": "ortho",
+      "name": {
+        "en": "injury care",
+        "th": "การรักษาอาการบาดเจ็บ"
+      }
+    },
+    "general": {
+      "urgent": true,
+      "departments": [
+        "ed"
+      ],
+      "equipment": [],
+      "onDuty": [
+        "er"
+      ],
+      "needsBed": false,
+      "needsNicu": false,
+      "windowMin": null,
+      "prepMin": 0,
+      "name": {
+        "en": "urgent care",
+        "th": "การรักษาเร่งด่วน"
+      }
+    }
+  },
+  "scoring": {
+    "waitWeight": 0.2,
+    "stalePenalty": 10,
+    "unclearPenalty": 12,
+    "lowBedPenalty": 3,
+    "preferBonus": -3,
+    "staleAfterMin": 30
+  }
+}

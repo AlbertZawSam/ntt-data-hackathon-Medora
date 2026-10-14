@@ -1,0 +1,662 @@
+{
+  "_note": "Synthetic demo data. Fictional hospitals placed at real Bangkok locations. status.ageMin = minutes since staff last confirmed status at seed time.",
+  "hospitals": [
+    {
+      "id": "H01",
+      "name": {
+        "en": "Pathum Wan Medical Center",
+        "th": "ศูนย์การแพทย์ปทุมวัน"
+      },
+      "lat": 13.7445,
+      "lng": 100.53,
+      "totalBeds": 40,
+      "nicuTotal": 0,
+      "typicalWaitMin": 35,
+      "status": {
+        "beds": 6,
+        "nicu": 0,
+        "ageMin": 8,
+        "conflict": true,
+        "depts": {
+          "ed": "open",
+          "cardio": "open",
+          "ortho": "open",
+          "pediatrics": "open"
+        },
+        "equip": {
+          "ct": true,
+          "cathlab": true,
+          "mri": true
+        },
+        "oncall": {
+          "er": true,
+          "cardiologist": true,
+          "orthopedist": true,
+          "pediatrician": true
+        },
+        "rules": {
+          "visit": true,
+          "peds": true,
+          "stemi": false,
+          "minBeds": 2
+        }
+      },
+      "specialists": [
+        {
+          "name": "Dr. Pracha Wongsa",
+          "specialty": "Cardiology",
+          "languages": [
+            "Thai",
+            "English"
+          ],
+          "namePublic": true,
+          "slots": [
+            {
+              "day": "today",
+              "time": "16:30"
+            },
+            {
+              "day": "tomorrow",
+              "time": "09:00"
+            }
+          ]
+        },
+        {
+          "name": "Dr. Lin Mei",
+          "specialty": "Internal medicine",
+          "languages": [
+            "Thai",
+            "Chinese"
+          ],
+          "namePublic": true,
+          "slots": [
+            {
+              "day": "tomorrow",
+              "time": "10:30"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H02",
+      "name": {
+        "en": "Rama Nine Neuro and Heart Hospital",
+        "th": "โรงพยาบาลประสาทและหัวใจพระรามเก้า"
+      },
+      "lat": 13.757,
+      "lng": 100.566,
+      "totalBeds": 55,
+      "nicuTotal": 0,
+      "typicalWaitMin": 40,
+      "status": {
+        "beds": 3,
+        "nicu": 0,
+        "ageMin": 5,
+        "conflict": false,
+        "depts": {
+          "ed": "open",
+          "neuro": "open",
+          "cardio": "open"
+        },
+        "equip": {
+          "ct": true,
+          "cathlab": true,
+          "mri": true
+        },
+        "oncall": {
+          "er": true,
+          "neurologist": true,
+          "cardiologist": true
+        },
+        "rules": {
+          "visit": true,
+          "stroke": false,
+          "stemi": false,
+          "minBeds": 2
+        }
+      },
+      "specialists": [
+        {
+          "name": "Dr. Siriporn Chai",
+          "specialty": "Neurology",
+          "languages": [
+            "Thai",
+            "English"
+          ],
+          "namePublic": true,
+          "slots": [
+            {
+              "day": "tomorrow",
+              "time": "11:00"
+            },
+            {
+              "day": "fri",
+              "time": "15:00"
+            }
+          ]
+        },
+        {
+          "name": "Dr. Arthit Boon",
+          "specialty": "Cardiology",
+          "languages": [
+            "Thai"
+          ],
+          "namePublic": true,
+          "slots": [
+            {
+              "day": "today",
+              "time": "17:00"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H03",
+      "name": {
+        "en": "Chao Phraya Women's and Children's Hospital",
+        "th": "โรงพยาบาลแม่และเด็กเจ้าพระยา"
+      },
+      "lat": 13.7385,
+      "lng": 100.506,
+      "totalBeds": 30,
+      "nicuTotal": 12,
+      "typicalWaitMin": 15,
+      "status": {
+        "beds": 5,
+        "nicu": 3,
+        "ageMin": 6,
+        "conflict": false,
+        "depts": {
+          "ed": "open",
+          "obstetrics": "open",
+          "pediatrics": "open"
+        },
+        "equip": {
+          "ct": true
+        },
+        "oncall": {
+          "er": true,
+          "obstetrician": true,
+          "pediatrician": true
+        },
+        "rules": {
+          "visit": true,
+          "preterm": true,
+          "peds": true,
+          "minBeds": 1
+        }
+      },
+      "specialists": [
+        {
+          "name": "Dr. Napat Srisuk",
+          "specialty": "Obstetrics",
+          "languages": [
+            "Thai",
+            "English"
+          ],
+          "namePublic": true,
+          "slots": [
+            {
+              "day": "today",
+              "time": "15:30"
+            },
+            {
+              "day": "tomorrow",
+              "time": "09:30"
+            }
+          ]
+        },
+        {
+          "name": "Dr. Yuki Tanaka",
+          "specialty": "Pediatrics",
+          "languages": [
+            "Japanese",
+            "English"
+          ],
+          "namePublic": true,
+          "slots": [
+            {
+              "day": "tomorrow",
+              "time": "10:00"
+            },
+            {
+              "day": "thu",
+              "time": "14:30"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H04",
+      "name": {
+        "en": "Thonburi Riverside Hospital",
+        "th": "โรงพยาบาลธนบุรีริมน้ำ"
+      },
+      "lat": 13.722,
+      "lng": 100.485,
+      "totalBeds": 35,
+      "nicuTotal": 0,
+      "typicalWaitMin": 25,
+      "status": {
+        "beds": 8,
+        "nicu": 0,
+        "ageMin": 20,
+        "conflict": false,
+        "depts": {
+          "ed": "open",
+          "obstetrics": "open",
+          "ortho": "open"
+        },
+        "equip": {
+          "ct": true
+        },
+        "oncall": {
+          "er": true,
+          "obstetrician": true,
+          "orthopedist": true
+        },
+        "rules": {
+          "visit": true,
+          "minBeds": 2
+        }
+      },
+      "specialists": [
+        {
+          "name": "Dr. Somchai Kaew",
+          "specialty": "Orthopedics",
+          "languages": [
+            "Thai"
+          ],
+          "namePublic": true,
+          "slots": [
+            {
+              "day": "today",
+              "time": "16:00"
+            },
+            {
+              "day": "tomorrow",
+              "time": "11:30"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H05",
+      "name": {
+        "en": "Lat Phrao University Hospital",
+        "th": "โรงพยาบาลมหาวิทยาลัยลาดพร้าว"
+      },
+      "lat": 13.8065,
+      "lng": 100.576,
+      "totalBeds": 80,
+      "nicuTotal": 10,
+      "typicalWaitMin": 70,
+      "status": {
+        "beds": 4,
+        "nicu": 2,
+        "ageMin": 130,
+        "conflict": false,
+        "depts": {
+          "ed": "open",
+          "neuro": "diverting",
+          "cardio": "open",
+          "obstetrics": "open",
+          "pediatrics": "open"
+        },
+        "equip": {
+          "ct": true,
+          "cathlab": true,
+          "mri": true
+        },
+        "oncall": {
+          "er": true,
+          "neurologist": true,
+          "cardiologist": true,
+          "obstetrician": true,
+          "pediatrician": true
+        },
+        "rules": {
+          "minBeds": 2
+        }
+      },
+      "specialists": [
+        {
+          "name": "Dr. Emma Clarke",
+          "specialty": "Dermatology",
+          "languages": [
+            "English"
+          ],
+          "namePublic": true,
+          "slots": [
+            {
+              "day": "today",
+              "time": "18:00"
+            },
+            {
+              "day": "tomorrow",
+              "time": "16:00"
+            }
+          ]
+        },
+        {
+          "name": "Dr. Ploy Rattana",
+          "specialty": "Neurology",
+          "languages": [
+            "Thai"
+          ],
+          "namePublic": true,
+          "slots": [
+            {
+              "day": "fri",
+              "time": "10:00"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H06",
+      "name": {
+        "en": "Asok Urgent Care Clinic",
+        "th": "คลินิกเร่งด่วนอโศก"
+      },
+      "lat": 13.7385,
+      "lng": 100.562,
+      "totalBeds": 10,
+      "nicuTotal": 0,
+      "typicalWaitMin": 20,
+      "status": {
+        "beds": 3,
+        "nicu": 0,
+        "ageMin": 12,
+        "conflict": false,
+        "depts": {
+          "ed": "open",
+          "ortho": "open"
+        },
+        "equip": {},
+        "oncall": {
+          "er": true,
+          "orthopedist": true
+        },
+        "rules": {
+          "visit": true,
+          "minBeds": 1
+        }
+      },
+      "specialists": [
+        {
+          "name": "Dr. Mark Ellis",
+          "specialty": "Orthopedics",
+          "languages": [
+            "English"
+          ],
+          "namePublic": true,
+          "slots": [
+            {
+              "day": "today",
+              "time": "17:30"
+            },
+            {
+              "day": "tomorrow",
+              "time": "08:30"
+            }
+          ]
+        },
+        {
+          "name": "Dr. Kittipong Rak",
+          "specialty": "Internal medicine",
+          "languages": [
+            "Thai",
+            "English"
+          ],
+          "namePublic": true,
+          "slots": [
+            {
+              "day": "today",
+              "time": "15:00"
+            }
+          ]
+        },
+        {
+          "name": "",
+          "specialty": "Dermatology",
+          "languages": [
+            "Thai",
+            "English"
+          ],
+          "namePublic": false,
+          "slots": [
+            {
+              "day": "tomorrow",
+              "time": "13:00"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H07",
+      "name": {
+        "en": "Bang Na Heart and Stroke Institute",
+        "th": "สถาบันหัวใจและหลอดเลือดสมองบางนา"
+      },
+      "lat": 13.669,
+      "lng": 100.604,
+      "totalBeds": 25,
+      "nicuTotal": 0,
+      "typicalWaitMin": 30,
+      "status": {
+        "beds": 4,
+        "nicu": 0,
+        "ageMin": 9,
+        "conflict": false,
+        "depts": {
+          "ed": "open",
+          "neuro": "open",
+          "cardio": "open"
+        },
+        "equip": {
+          "ct": true,
+          "cathlab": true,
+          "mri": true
+        },
+        "oncall": {
+          "er": true,
+          "neurologist": true,
+          "cardiologist": true
+        },
+        "rules": {
+          "visit": true,
+          "stroke": true,
+          "stemi": true,
+          "minBeds": 1
+        }
+      },
+      "specialists": [
+        {
+          "name": "Dr. Anucha Thong",
+          "specialty": "Neurology",
+          "languages": [
+            "Thai",
+            "English"
+          ],
+          "namePublic": true,
+          "slots": [
+            {
+              "day": "tomorrow",
+              "time": "15:00"
+            }
+          ]
+        },
+        {
+          "name": "Dr. Maria Santos",
+          "specialty": "Cardiology",
+          "languages": [
+            "English"
+          ],
+          "namePublic": true,
+          "slots": [
+            {
+              "day": "today",
+              "time": "16:00"
+            },
+            {
+              "day": "thu",
+              "time": "09:00"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H08",
+      "name": {
+        "en": "Chatuchak Children's Hospital",
+        "th": "โรงพยาบาลเด็กจตุจักร"
+      },
+      "lat": 13.815,
+      "lng": 100.554,
+      "totalBeds": 28,
+      "nicuTotal": 0,
+      "typicalWaitMin": 20,
+      "status": {
+        "beds": 7,
+        "nicu": 0,
+        "ageMin": 14,
+        "conflict": false,
+        "depts": {
+          "ed": "open",
+          "pediatrics": "open"
+        },
+        "equip": {
+          "ct": true
+        },
+        "oncall": {
+          "er": true,
+          "pediatrician": true
+        },
+        "rules": {
+          "visit": true,
+          "peds": true,
+          "minBeds": 2
+        }
+      },
+      "specialists": [
+        {
+          "name": "Dr. Kanokwan Dee",
+          "specialty": "Pediatrics",
+          "languages": [
+            "Thai",
+            "English"
+          ],
+          "namePublic": true,
+          "slots": [
+            {
+              "day": "today",
+              "time": "14:30"
+            },
+            {
+              "day": "tomorrow",
+              "time": "09:00"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H09",
+      "name": {
+        "en": "Silom General Hospital",
+        "th": "โรงพยาบาลสีลม"
+      },
+      "lat": 13.727,
+      "lng": 100.529,
+      "totalBeds": 45,
+      "nicuTotal": 0,
+      "typicalWaitMin": 30,
+      "status": {
+        "beds": 5,
+        "nicu": 0,
+        "ageMin": 7,
+        "conflict": false,
+        "depts": {
+          "ed": "open",
+          "neuro": "open",
+          "cardio": "open",
+          "ortho": "open"
+        },
+        "equip": {
+          "ct": true,
+          "mri": true
+        },
+        "oncall": {
+          "er": true,
+          "neurologist": false,
+          "cardiologist": true,
+          "orthopedist": true
+        },
+        "rules": {
+          "visit": true,
+          "minBeds": 2
+        }
+      },
+      "specialists": [
+        {
+          "name": "Dr. Wanida Suk",
+          "specialty": "Dermatology",
+          "languages": [
+            "Thai"
+          ],
+          "namePublic": true,
+          "slots": [
+            {
+              "day": "tomorrow",
+              "time": "09:30"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "H10",
+      "name": {
+        "en": "Don Mueang Community Hospital",
+        "th": "โรงพยาบาลชุมชนดอนเมือง"
+      },
+      "lat": 13.912,
+      "lng": 100.599,
+      "totalBeds": 30,
+      "nicuTotal": 0,
+      "typicalWaitMin": 20,
+      "status": {
+        "beds": 9,
+        "nicu": 0,
+        "ageMin": 25,
+        "conflict": false,
+        "depts": {
+          "ed": "open",
+          "ortho": "open",
+          "obstetrics": "open"
+        },
+        "equip": {
+          "ct": true
+        },
+        "oncall": {
+          "er": true,
+          "orthopedist": true,
+          "obstetrician": true
+        },
+        "rules": {
+          "visit": true,
+          "minBeds": 2
+        }
+      },
+      "specialists": []
+    }
+  ]
+}

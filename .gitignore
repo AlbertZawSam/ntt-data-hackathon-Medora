@@ -1,0 +1,9 @@
+node_modules/
+.expo/
+dist/
+.amplify/
+amplify_outputs.json
+*.apk
+*.ipa
+google-services.json
+.env

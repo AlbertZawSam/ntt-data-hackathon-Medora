@@ -1,0 +1,9 @@
+{
+  "chat.useAgentsMdFile": true,
+  "github.copilot.chat.codeGeneration.useInstructionFiles": true,
+  "chat.promptFiles": true,
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "editor.formatOnSave": true,
+  "files.exclude": { "**/.amplify": true },
+  "search.exclude": { "**/node_modules": true, "**/.amplify": true, "data/kb": true }
+}

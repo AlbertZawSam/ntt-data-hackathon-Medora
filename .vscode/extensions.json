@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    "amazonwebservices.aws-toolkit-vscode",
+    "expo.vscode-expo-tools",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "github.copilot-chat",
+    "anthropic.claude-code"
+  ]
+}

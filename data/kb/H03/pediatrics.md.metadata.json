@@ -1,0 +1,8 @@
+{
+  "metadataAttributes": {
+    "hospital_id": "H03",
+    "department": "pediatrics",
+    "synthetic": true,
+    "nicu_level": 3
+  }
+}

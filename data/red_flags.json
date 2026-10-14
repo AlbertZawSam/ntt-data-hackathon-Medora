@@ -1,0 +1,107 @@
+{
+  "_note": "Fixed emergency rules checked before any AI. To be reviewed by a Thai-speaking clinician. Matching is case-insensitive substring or regular expression.",
+  "flags": [
+    {
+      "key": "chest",
+      "label": {
+        "en": "chest pain",
+        "th": "อาการเจ็บหน้าอก"
+      },
+      "patterns": [
+        "chest pain",
+        "chest tightness",
+        "pain in my chest",
+        "pain in the chest",
+        "เจ็บหน้าอก",
+        "แน่นหน้าอก"
+      ]
+    },
+    {
+      "key": "breathing",
+      "label": {
+        "en": "trouble breathing",
+        "th": "อาการหายใจลำบาก"
+      },
+      "patterns": [
+        "can't breathe",
+        "cannot breathe",
+        "cant breathe",
+        "difficulty breathing",
+        "short of breath",
+        "หายใจไม่ออก",
+        "หายใจลำบาก"
+      ]
+    },
+    {
+      "key": "conscious",
+      "label": {
+        "en": "loss of consciousness",
+        "th": "การหมดสติ"
+      },
+      "patterns": [
+        "unconscious",
+        "passed out",
+        "unresponsive",
+        "fainted",
+        "หมดสติ",
+        "ไม่รู้สึกตัว"
+      ]
+    },
+    {
+      "key": "stroke",
+      "label": {
+        "en": "possible stroke signs",
+        "th": "อาการคล้ายโรคหลอดเลือดสมอง"
+      },
+      "patterns": [
+        "face droop",
+        "slurred",
+        "sudden weakness",
+        "stroke",
+        "ปากเบี้ยว",
+        "พูดไม่ชัด",
+        "อ่อนแรงครึ่งซีก"
+      ]
+    },
+    {
+      "key": "bleeding",
+      "label": {
+        "en": "heavy bleeding",
+        "th": "เลือดออกมาก"
+      },
+      "patterns": [
+        "heavy bleeding",
+        "bleeding heavily",
+        "won't stop bleeding",
+        "wont stop bleeding",
+        "เลือดออกมาก",
+        "เลือดไหลไม่หยุด"
+      ]
+    },
+    {
+      "key": "seizure",
+      "label": {
+        "en": "a seizure",
+        "th": "อาการชัก"
+      },
+      "patterns": [
+        "seizure",
+        "convuls",
+        "ชัก"
+      ]
+    }
+  ],
+  "safeExamples": [
+    "I'm 30 weeks pregnant with mild cramps",
+    "My 6-year-old has a 39°C fever",
+    "Twisted my ankle, it's swollen",
+    "ข้อเท้าแพลง บวมมาก",
+    "ลูกอายุ 6 ขวบ มีไข้ 39 องศา"
+  ],
+  "emergencyExamples": [
+    "Chest pain spreading to my left arm",
+    "เจ็บหน้าอกร้าวไปที่แขนซ้าย",
+    "My father's face is drooping and his speech is slurred",
+    "หายใจไม่ออก"
+  ]
+}

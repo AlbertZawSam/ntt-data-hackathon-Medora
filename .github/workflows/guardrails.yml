@@ -1,0 +1,42 @@
+name: Guardrails
+
+on:
+  pull_request:
+  push:
+    branches: [main, demo]
+
+permissions:
+  contents: read
+
+jobs:
+  cost-and-safety:
+    name: Cost and safety rules
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check AGENTS.md rules
+        run: bash scripts/guard.sh
+
+  build:
+    name: Type-check and tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skip until the app exists
+        id: app
+        run: |
+          if [ -f package.json ]; then echo "exists=true" >> "$GITHUB_OUTPUT"; else echo "No package.json yet; skipping."; fi
+      - uses: actions/setup-node@v4
+        if: steps.app.outputs.exists == 'true'
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install
+        if: steps.app.outputs.exists == 'true'
+        run: npm ci
+      - name: Type-check
+        if: steps.app.outputs.exists == 'true'
+        run: npx tsc --noEmit
+      - name: Unit tests
+        if: steps.app.outputs.exists == 'true'
+        run: npm test --if-present
