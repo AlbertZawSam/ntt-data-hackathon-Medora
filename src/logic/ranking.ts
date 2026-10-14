@@ -1,5 +1,5 @@
 import { scoring as defaultScoring } from './data';
-import { tooFar } from './timeBudget';
+import { tooFar, type Window } from './timeBudget';
 import type { Hospital, HospitalStatus, LatLng, Pathway, Scoring } from './types';
 
 // Phone-side drive estimate and hospital ranking (design.md "Shared logic").
@@ -107,8 +107,8 @@ export type Evaluation = {
 
 export type EvaluateOptions = DriveOptions & {
   scoring?: Scoring;
-  // Minutes left in the treatment window (timeBudget.remainingWindow); omit to skip the "too far" check.
-  remainingMin?: number | null;
+  // Treatment window from timeBudget.remainingWindow; omit to skip the "too far" check.
+  window?: Window | null;
 };
 
 // Hospitals that can help come first, best score first; the rest follow nearest first,
@@ -117,13 +117,13 @@ export function evaluate(
   hospitals: Hospital[],
   pathway: Pathway,
   origin: LatLng,
-  { scoring: s = defaultScoring, remainingMin = null, ...drive }: EvaluateOptions,
+  { scoring: s = defaultScoring, window = null, ...drive }: EvaluateOptions,
 ): Evaluation[] {
   const nowMs = drive.at.getTime();
   const rows = hospitals.map((hospital) => {
     const { km, min } = driveEstimate(origin, hospital, drive);
     const fails = failsFor(hospital.status, pathway);
-    if (tooFar(min, pathway, remainingMin)) fails.push({ kind: 'tooFar' });
+    if (tooFar(min, pathway, window)) fails.push({ kind: 'tooFar' });
     return { hospital, km, driveMin: min, score: score(hospital, pathway, min, nowMs, s), fails, canHelp: fails.length === 0 };
   });
   return rows.sort(

@@ -11,6 +11,7 @@ import {
   score,
   traffic,
 } from '../../src/logic/ranking';
+import { remainingWindow } from '../../src/logic/timeBudget';
 import type { Hospital, HospitalStatus, PathwayKey } from '../../src/logic/types';
 
 // A time in Bangkok (UTC+7) on a fixed day.
@@ -265,23 +266,30 @@ describe('evaluate', () => {
     // 36 minutes' drive + 30 minutes' stroke preparation = 66.
     const near = makeHospital('NEAR', 13.75, 100.5);
     const far = makeHospital('FAR', 13.8, 100.5);
-    const rows = evaluate([far, near], pathways.stroke, origin, { at: NOON, remainingMin: 60 });
+    const rows = evaluate([far, near], pathways.stroke, origin, { at: NOON, window: remainingWindow(pathways.stroke, 210) });
     expect(rows.map((r) => [r.hospital.id, r.canHelp])).toEqual([
       ['NEAR', true],
       ['FAR', false],
     ]);
     expect(rows[1].fails).toEqual([{ kind: 'tooFar' }]);
-    expect(evaluate([far], pathways.stroke, origin, { at: NOON, remainingMin: 66 })[0].canHelp).toBe(true);
+    expect(evaluate([far], pathways.stroke, origin, { at: NOON, window: remainingWindow(pathways.stroke, 204) })[0].canHelp).toBe(true);
   });
 
   it('skips the too-far check without a time budget', () => {
     const far = makeHospital('FAR', 13.95, 100.5);
     expect(evaluate([far], pathways.stroke, origin, { at: NOON })[0].canHelp).toBe(true);
-    expect(evaluate([far], pathways.stroke, origin, { at: NOON, remainingMin: null })[0].canHelp).toBe(true);
+    expect(evaluate([far], pathways.stroke, origin, { at: NOON, window: null })[0].canHelp).toBe(true);
+  });
+
+  it('skips the too-far check once the window has passed', () => {
+    const far = makeHospital('FAR', 13.95, 100.5);
+    const rows = evaluate([far], pathways.stroke, origin, { at: NOON, window: remainingWindow(pathways.stroke, 300) });
+    expect(rows[0]).toMatchObject({ canHelp: true, fails: [] });
   });
 
   it('adds too far after the status failures', () => {
-    const row = evaluate([makeHospital('A', 13.8, 100.5, { beds: 0 })], pathways.stroke, origin, { at: NOON, remainingMin: 10 })[0];
+    const window = remainingWindow(pathways.stroke, 260);
+    const row = evaluate([makeHospital('A', 13.8, 100.5, { beds: 0 })], pathways.stroke, origin, { at: NOON, window })[0];
     expect(row.fails).toEqual([{ kind: 'bed' }, { kind: 'tooFar' }]);
   });
 

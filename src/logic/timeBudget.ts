@@ -19,9 +19,10 @@ export function remainingWindow(pathway: Pathway, onsetMin?: number | null): Win
 }
 
 // A hospital is too far when drive + preparation won't fit in the time left.
-export function tooFar(driveMin: number, pathway: Pathway, remainingMin: number | null): boolean {
-  if (remainingMin === null) return false;
-  return driveMin + pathway.prepMin > remainingMin;
+// Once the window has passed, no hospital is too far: the patient still needs one that can treat them.
+export function tooFar(driveMin: number, pathway: Pathway, window: Window | null): boolean {
+  if (!window || window.remainingMin === null || window.expired) return false;
+  return driveMin + pathway.prepMin > window.remainingMin;
 }
 
 export type AskPolicy = { count: number; waitSec: number };

@@ -34,22 +34,30 @@ describe('remainingWindow', () => {
 });
 
 describe('tooFar', () => {
+  const left = (remainingMin: number) => ({ remainingMin, expired: false });
+
   it('fails when drive plus preparation is over the time left', () => {
     // Stroke preparation is 30 minutes.
-    expect(tooFar(40, stroke, 70)).toBe(false);
-    expect(tooFar(40, stroke, 69)).toBe(true);
+    expect(tooFar(40, stroke, left(70))).toBe(false);
+    expect(tooFar(40, stroke, left(69))).toBe(true);
   });
 
   it('allows a drive that exactly fits', () => {
-    expect(tooFar(45, stemi, 75)).toBe(false);
+    expect(tooFar(45, stemi, left(75))).toBe(false);
   });
 
   it('never fails when there is no window', () => {
-    expect(tooFar(500, preterm, null)).toBe(false);
+    expect(tooFar(500, preterm, remainingWindow(preterm, 30))).toBe(false);
+    expect(tooFar(500, stroke, null)).toBe(false);
   });
 
-  it('fails every hospital once the window has passed', () => {
-    expect(tooFar(0, stemi, remainingWindow(stemi, 130).remainingMin)).toBe(true);
+  it('never fails once the window has passed, so the patient still gets a hospital', () => {
+    expect(tooFar(500, stemi, remainingWindow(stemi, 130))).toBe(false);
+    expect(tooFar(500, stemi, remainingWindow(stemi, 120))).toBe(false);
+  });
+
+  it('still applies with one minute left', () => {
+    expect(tooFar(0, stemi, remainingWindow(stemi, 119))).toBe(true);
   });
 });
 
