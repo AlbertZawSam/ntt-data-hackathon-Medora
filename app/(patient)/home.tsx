@@ -4,12 +4,11 @@ import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, Te
 
 import { Call1669Button } from '@/components/Call1669Button';
 import { MapView } from '@/components/MapView';
-import type { StringKey } from '@/i18n/t';
 import { hospitals } from '@/logic/data';
 import type { Place } from '@/logic/types';
-import { getGpsLocation, searchLocation } from '@/services/location';
+import { searchLocation } from '@/services/location';
 import { useT } from '@/state/language';
-import { useLocationLabel, usePatientLocation } from '@/state/patientLocation';
+import { useLocateMe, useLocationLabel, usePatientLocation } from '@/state/patientLocation';
 import { fonts, minTouch, radius, spacing, useTheme } from '@/ui/theme';
 
 // Patient home (task 8.3): set a location by GPS, search or the map; call 1669; start Find care
@@ -17,15 +16,12 @@ import { fonts, minTouch, radius, spacing, useTheme } from '@/ui/theme';
 
 const SEARCH_DELAY_MS = 300;
 
-type Notice = { key: StringKey; settings?: boolean } | null;
-
 export default function HomeScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const { t, tr, lang } = useT();
   const { location, setLocation } = usePatientLocation();
-  const [locating, setLocating] = useState(false);
-  const [notice, setNotice] = useState<Notice>(null);
+  const { locate, locating, notice, setNotice } = useLocateMe();
   const [picking, setPicking] = useState(false);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Place[] | null>(null);
@@ -46,20 +42,9 @@ export default function HomeScreen() {
     };
   }, [query, lang, location.point]);
 
-  const locateMe = async () => {
-    setLocating(true);
-    setNotice(null);
+  const locateMe = () => {
     setPicking(false);
-    const result = await getGpsLocation();
-    setLocating(false);
-    if (result.kind === 'ok') {
-      setLocation({ point: result.point, source: 'gps', outside: result.outside });
-      if (result.outside) setNotice({ key: 'location.outside' });
-    } else if (result.kind === 'denied') {
-      setNotice({ key: 'location.denied', settings: !result.canAskAgain });
-    } else {
-      setNotice({ key: 'location.unavailable' });
-    }
+    locate();
   };
 
   const choosePlace = (place: Place) => {

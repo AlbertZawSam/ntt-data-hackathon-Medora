@@ -29,7 +29,7 @@ type Result =
 export default function CareScreen() {
   const { colors } = useTheme();
   const { t, tr, lang } = useT();
-  const { location } = usePatientLocation();
+  const { location, setLastNeed } = usePatientLocation();
   const locationLabel = useLocationLabel();
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -51,6 +51,7 @@ export default function CareScreen() {
 
     setBusy(true);
     const { need } = await understandNeed(description);
+    setLastNeed(need);
     const now = new Date();
     setResult({ kind: 'ranked', need, from, nowMs: now.getTime(), rows: evaluate(hospitals, pathways[need], from, { at: now }) });
     setBusy(false);

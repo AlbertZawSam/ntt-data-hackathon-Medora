@@ -91,8 +91,8 @@ Work top to bottom, one task at a time (in VS Code, run the `/next-task` prompt)
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 2.4_
 
 - [ ] 13. Find a specialist
-  - [ ] 13.1 `app/(patient)/specialists.tsx`: location row with "Use my location", suggested specialty from the last Find care need, specialty and language filters.
-  - [ ] 13.2 Nearest-first list (then soonest slot), drive time and distance, "Nearest to you" badge, map with route to the nearest.
+  - [x] 13.1 `app/(patient)/specialists.tsx`: location row with "Use my location", suggested specialty from the last Find care need, specialty and language filters.
+  - [x] 13.2 Nearest-first list (then soonest slot), drive time and distance, "Nearest to you" badge, map with route to the nearest.
   - [ ] 13.3 One-tap booking with a slot lock; hidden names where not consented.
   - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6_
 
