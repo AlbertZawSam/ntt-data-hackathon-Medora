@@ -23,5 +23,13 @@
   "emergency.noneOpen": "No open emergency department found nearby. Call 1669.",
   "location.denied": "Location permission is off. Search for a place or pick it on the map instead.",
   "location.unavailable": "We couldn't get your position. Search for a place or pick it on the map instead.",
-  "location.outside": "You seem to be outside the Bangkok demo area, so we're using Siam as your location."
+  "location.outside": "You seem to be outside the Bangkok demo area, so we're using Siam as your location.",
+  "map.label": "Map of Bangkok",
+  "map.simplified": "Simplified map",
+  "map.river": "Chao Phraya River",
+  "map.you": "You are here",
+  "map.zoomIn": "Zoom in",
+  "map.zoomOut": "Zoom out",
+  "map.showAll": "Show all",
+  "map.pickHint": "Tap the map to set your location"
 }

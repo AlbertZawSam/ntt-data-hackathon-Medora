@@ -14,6 +14,10 @@ const light = {
   onAccent: '#0E2A23',
   danger: '#C62828',
   onDanger: '#FFFFFF',
+  // Offline map.
+  land: '#EEF3F1',
+  water: '#A9D3E6',
+  grid: '#DCE5E1',
 };
 
 export type Colors = typeof light;
@@ -31,6 +35,9 @@ const dark: Colors = {
   onAccent: '#0E2A23',
   danger: '#EF5350',
   onDanger: '#0E2A23',
+  land: '#0B211B',
+  water: '#1D4A5E',
+  grid: '#173A31',
 };
 
 export const colors = { light, dark };
