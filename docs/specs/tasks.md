@@ -99,7 +99,7 @@ Work top to bottom, one task at a time (in VS Code, run the `/next-task` prompt)
 ## Milestone 5: Hospital staff screens
 
 - [ ] 14. Status board
-  - [ ] 14.1 `app/(staff)/capacity.tsx`: steppers for beds and NICU; pills for departments, equipment, doctors on duty.
+  - [x] 14.1 `app/(staff)/capacity.tsx`: steppers for beds and NICU; pills for departments, equipment, doctors on duty.
   - [ ] 14.2 "Still correct?" check-in and freshness labels everywhere.
   - _Requirements: 9.1, 9.2, 9.3, 9.4_
 
