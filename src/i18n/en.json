@@ -12,5 +12,13 @@
   "doctor.transfers": "Transfers",
   "lang.label": "Language",
   "lang.english": "English",
-  "lang.thai": "Thai"
+  "lang.thai": "Thai",
+  "emergency.title": "This may be an emergency",
+  "emergency.reason": "You mentioned {flag}. Call 1669 now; don't wait for the app.",
+  "emergency.call": "Call 1669",
+  "emergency.callHint": "Calls the national emergency medical service",
+  "emergency.callFailed": "This device can't make calls. Dial 1669 from a phone.",
+  "emergency.nearest": "Nearest open emergency department",
+  "emergency.trip": "{km} km · about {min} min by car",
+  "emergency.noneOpen": "No open emergency department found nearby. Call 1669."
 }

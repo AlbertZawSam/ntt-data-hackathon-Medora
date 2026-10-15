@@ -67,7 +67,7 @@ Work top to bottom, one task at a time (in VS Code, run the `/next-task` prompt)
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6_
 
 - [ ] 9. Emergency check ★
-  - [ ] 9.1 `EmergencyCard`: red full-width card, "Call 1669" (`tel:1669`), nearest open emergency department.
+  - [x] 9.1 `EmergencyCard`: red full-width card, "Call 1669" (`tel:1669`), nearest open emergency department.
   - [ ] 9.2 Run `redFlag` on submit before anything else; log the check; verify offline with airplane mode.
   - _Requirements: 4.1, 4.2, 4.3, 4.4_
 

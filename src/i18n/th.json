@@ -12,5 +12,13 @@
   "doctor.transfers": "การส่งตัว",
   "lang.label": "ภาษา",
   "lang.english": "อังกฤษ",
-  "lang.thai": "ไทย"
+  "lang.thai": "ไทย",
+  "emergency.title": "อาจเป็นเหตุฉุกเฉิน",
+  "emergency.reason": "คุณระบุว่ามี{flag} โปรดโทร 1669 ทันที ไม่ต้องรอแอป",
+  "emergency.call": "โทร 1669",
+  "emergency.callHint": "โทรหาหน่วยบริการการแพทย์ฉุกเฉินแห่งชาติ",
+  "emergency.callFailed": "อุปกรณ์นี้โทรออกไม่ได้ โปรดโทร 1669 จากโทรศัพท์",
+  "emergency.nearest": "ห้องฉุกเฉินที่เปิดอยู่ใกล้ที่สุด",
+  "emergency.trip": "{km} กม. · ขับรถประมาณ {min} นาที",
+  "emergency.noneOpen": "ไม่พบห้องฉุกเฉินที่เปิดอยู่ใกล้คุณ โปรดโทร 1669"
 }
