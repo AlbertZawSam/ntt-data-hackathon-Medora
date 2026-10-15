@@ -1,7 +1,17 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
-import { defaultLang, parseLang, setLang as setActiveLang, type Lang } from '@/i18n/t';
+import {
+  defaultLang,
+  parseLang,
+  setLang as setActiveLang,
+  translate,
+  tr,
+  type Bi,
+  type Lang,
+  type Params,
+  type StringKey,
+} from '@/i18n/t';
 
 export const LANG_STORAGE_KEY = 'medora.lang';
 
@@ -10,7 +20,7 @@ type LanguageContextValue = { lang: Lang; setLang: (next: Lang) => void };
 const LanguageContext = createContext<LanguageContextValue>({ lang: defaultLang, setLang: () => {} });
 
 // Holds the chosen language, restores it on launch and saves every change.
-// Components that show text call useLanguage() so they re-render when the language changes.
+// Components that show text get their strings from useT() so they re-render when the language changes.
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(defaultLang);
   const [restored, setRestored] = useState(false);
@@ -47,4 +57,18 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
 export function useLanguage() {
   return useContext(LanguageContext);
+}
+
+// Strings for the current language. t and tr change identity with the language, so
+// memoized render output (React Compiler) is recomputed when the user switches.
+export function useT() {
+  const { lang } = useLanguage();
+  return useMemo(
+    () => ({
+      lang,
+      t: (key: StringKey, params?: Params) => translate(lang, key, params),
+      tr: (text: Bi) => tr(text, lang),
+    }),
+    [lang],
+  );
 }

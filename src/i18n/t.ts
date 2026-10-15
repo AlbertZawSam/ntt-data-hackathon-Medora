@@ -37,8 +37,15 @@ export function format(template: string, params?: Params): string {
   );
 }
 
+export function translate(forLang: Lang, key: StringKey, params?: Params): string {
+  return format(strings[forLang][key], params);
+}
+
+// For code outside React (logging, Lambda). Components use useT() from '@/state/language':
+// the React Compiler memoizes render output, and a component that reads the language
+// only through this module variable would keep showing the old language.
 export function t(key: StringKey, params?: Params): string {
-  return format(strings[lang][key], params);
+  return translate(lang, key, params);
 }
 
 // Picks the reader's language from stored bilingual text; falls back to English if Thai is empty.

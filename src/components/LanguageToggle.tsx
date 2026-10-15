@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { languages, t, type Lang } from '@/i18n/t';
-import { useLanguage } from '@/state/language';
+import { languages, type Lang } from '@/i18n/t';
+import { useLanguage, useT } from '@/state/language';
 import { fonts, minTouch, radius, spacing, useTheme } from '@/ui/theme';
 
 // Each language is named in its own script so it can be found whichever language is active.
@@ -10,6 +10,7 @@ const labels: Record<Lang, string> = { en: 'EN', th: 'ไทย' };
 export function LanguageToggle() {
   const { colors } = useTheme();
   const { lang, setLang } = useLanguage();
+  const { t } = useT();
 
   return (
     <View

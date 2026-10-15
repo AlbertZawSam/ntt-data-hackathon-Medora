@@ -2,8 +2,8 @@ import { Tabs } from 'expo-router/js-tabs';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 
 import { LanguageToggle } from '@/components/LanguageToggle';
-import { t, type StringKey } from '@/i18n/t';
-import { useLanguage } from '@/state/language';
+import type { StringKey } from '@/i18n/t';
+import { useT } from '@/state/language';
 import { fonts, minTouch, useTheme } from '@/ui/theme';
 
 export type RoleTab = {
@@ -15,7 +15,7 @@ export type RoleTab = {
 // Bottom tabs for one role group: (patient), (staff) or (doctor).
 export function RoleTabs({ tabs }: { tabs: RoleTab[] }) {
   const { colors } = useTheme();
-  useLanguage(); // re-render tab titles when the language changes
+  const { t } = useT();
   return (
     <Tabs
       screenOptions={{

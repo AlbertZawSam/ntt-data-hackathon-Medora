@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import en from '../../src/i18n/en.json';
 import th from '../../src/i18n/th.json';
-import { format, getLang, parseLang, setLang, t, tr } from '../../src/i18n/t';
+import { format, getLang, parseLang, setLang, t, tr, translate } from '../../src/i18n/t';
 
 beforeEach(() => setLang('en'));
 
@@ -26,6 +26,14 @@ describe('t', () => {
     expect(t('patient.home')).toBe('Home');
     setLang('th');
     expect(t('patient.home')).toBe(th['patient.home']);
+  });
+});
+
+describe('translate', () => {
+  it('uses the language it is given, not the current one', () => {
+    setLang('en');
+    expect(translate('th', 'patient.home')).toBe(th['patient.home']);
+    expect(translate('en', 'patient.home')).toBe('Home');
   });
 });
 
