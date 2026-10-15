@@ -31,5 +31,22 @@
   "map.zoomIn": "ขยาย",
   "map.zoomOut": "ย่อ",
   "map.showAll": "แสดงทั้งหมด",
-  "map.pickHint": "แตะแผนที่เพื่อกำหนดตำแหน่งของคุณ"
+  "map.pickHint": "แตะแผนที่เพื่อกำหนดตำแหน่งของคุณ",
+  "home.locationTitle": "ตำแหน่งของคุณ",
+  "home.sourceDefault": "สยาม จนกว่าคุณจะกำหนดตำแหน่ง",
+  "home.sourceGps": "ตำแหน่งปัจจุบัน",
+  "home.sourcePick": "จุดที่เลือกบนแผนที่",
+  "home.useMyLocation": "ใช้ตำแหน่งของฉัน",
+  "home.locating": "กำลังหาตำแหน่งของคุณ…",
+  "home.pickOnMap": "เลือกบนแผนที่",
+  "home.cancelPick": "ยกเลิก",
+  "home.openSettings": "เปิดการตั้งค่า",
+  "home.searchPlaceholder": "ค้นหาสถานที่เป็นภาษาไทยหรืออังกฤษ",
+  "home.noResults": "ไม่พบสถานที่",
+  "home.call1669": "ฉุกเฉิน? โทร 1669",
+  "home.findCare": "หาที่รักษาตอนนี้",
+  "home.findCareHint": "โรงพยาบาลที่รักษาคุณได้ตอนนี้",
+  "home.findSpecialist": "หาแพทย์เฉพาะทาง",
+  "home.findSpecialistHint": "นัดพบแพทย์ใกล้คุณ",
+  "home.disclaimer": "Medora ไม่ให้คำแนะนำทางการแพทย์ กรณีฉุกเฉินโทร 1669"
 }

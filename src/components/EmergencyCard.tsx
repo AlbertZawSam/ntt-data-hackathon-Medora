@@ -1,12 +1,12 @@
-import { useState } from 'react';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
+import { Call1669Button } from '@/components/Call1669Button';
 import { hospitals as seededHospitals } from '@/logic/data';
 import { nearestOpenEmergency } from '@/logic/emergency';
 import type { RedFlagMatch } from '@/logic/redFlags';
 import type { Hospital, LatLng } from '@/logic/types';
 import { useT } from '@/state/language';
-import { fonts, minTouch, radius, spacing, useTheme } from '@/ui/theme';
+import { fonts, radius, spacing, useTheme } from '@/ui/theme';
 
 type Props = {
   match: RedFlagMatch;
@@ -20,13 +20,7 @@ type Props = {
 export function EmergencyCard({ match, from, hospitals = seededHospitals }: Props) {
   const { colors } = useTheme();
   const { t, tr } = useT();
-  const [callFailed, setCallFailed] = useState(false);
   const nearest = nearestOpenEmergency(from, hospitals, new Date());
-
-  const call = () => {
-    setCallFailed(false);
-    Linking.openURL('tel:1669').catch(() => setCallFailed(true));
-  };
 
   return (
     <View style={[styles.card, { backgroundColor: colors.danger }]}>
@@ -35,14 +29,7 @@ export function EmergencyCard({ match, from, hospitals = seededHospitals }: Prop
         <Text style={[styles.body, { color: colors.onDanger }]}>{t('emergency.reason', { flag: tr(match.label) })}</Text>
       </View>
 
-      <Pressable
-        onPress={call}
-        accessibilityRole="button"
-        accessibilityHint={t('emergency.callHint')}
-        style={({ pressed }) => [styles.call, { backgroundColor: colors.onDanger, opacity: pressed ? 0.85 : 1 }]}>
-        <Text style={[styles.callText, { color: colors.danger }]}>{t('emergency.call')}</Text>
-      </Pressable>
-      {callFailed && <Text style={[styles.body, { color: colors.onDanger }]}>{t('emergency.callFailed')}</Text>}
+      <Call1669Button variant="inverse" />
 
       <View style={[styles.nearest, { borderTopColor: colors.onDanger }]}>
         {nearest ? (
@@ -65,14 +52,6 @@ const styles = StyleSheet.create({
   card: { alignSelf: 'stretch', borderRadius: radius.md, padding: spacing.md, gap: spacing.md },
   title: { fontFamily: fonts.bold, fontSize: 22, lineHeight: 32 },
   body: { fontFamily: fonts.regular, fontSize: 16, lineHeight: 26, marginTop: spacing.xs },
-  call: {
-    minHeight: minTouch + 12,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.md,
-  },
-  callText: { fontFamily: fonts.bold, fontSize: 20 },
   nearest: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: spacing.md },
   label: { fontFamily: fonts.medium, fontSize: 14 },
   hospital: { fontFamily: fonts.semiBold, fontSize: 18, marginTop: spacing.xs },

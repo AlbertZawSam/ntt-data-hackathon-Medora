@@ -31,5 +31,22 @@
   "map.zoomIn": "Zoom in",
   "map.zoomOut": "Zoom out",
   "map.showAll": "Show all",
-  "map.pickHint": "Tap the map to set your location"
+  "map.pickHint": "Tap the map to set your location",
+  "home.locationTitle": "Your location",
+  "home.sourceDefault": "Siam, until you set your location",
+  "home.sourceGps": "Current location",
+  "home.sourcePick": "Point picked on the map",
+  "home.useMyLocation": "Use my location",
+  "home.locating": "Finding you…",
+  "home.pickOnMap": "Pick on map",
+  "home.cancelPick": "Cancel",
+  "home.openSettings": "Open settings",
+  "home.searchPlaceholder": "Search a place in English or Thai",
+  "home.noResults": "No places found",
+  "home.call1669": "Emergency? Call 1669",
+  "home.findCare": "Find care now",
+  "home.findCareHint": "Hospitals that can treat you right now",
+  "home.findSpecialist": "Find a specialist",
+  "home.findSpecialistHint": "Book a doctor near you",
+  "home.disclaimer": "Medora doesn't give medical advice. In an emergency, call 1669."
 }
