@@ -32,6 +32,12 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 140
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Medora uses your location to find hospitals near you. It stays on your phone."
+        }
       ]
     ],
     "experiments": {

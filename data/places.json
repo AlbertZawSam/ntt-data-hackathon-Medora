@@ -1,0 +1,27 @@
+{
+  "_note": "Built-in Bangkok places for offline search (requirement 3.2). Approximate public landmark coordinates; no hospitals.",
+  "places": [
+    { "id": "siam", "name": { "en": "Siam", "th": "สยาม" }, "aliases": ["siam paragon", "สยามพารากอน"], "lat": 13.7466, "lng": 100.5347 },
+    { "id": "victory", "name": { "en": "Victory Monument", "th": "อนุสาวรีย์ชัยสมรภูมิ" }, "aliases": ["อนุสาวรีย์ชัย"], "lat": 13.7649, "lng": 100.5383 },
+    { "id": "chatuchak", "name": { "en": "Chatuchak Weekend Market", "th": "ตลาดนัดจตุจักร" }, "aliases": ["jatujak", "จตุจักร"], "lat": 13.7999, "lng": 100.5508 },
+    { "id": "mochit", "name": { "en": "Mo Chit", "th": "หมอชิต" }, "lat": 13.8026, "lng": 100.5538 },
+    { "id": "bangsue", "name": { "en": "Bang Sue Grand Station", "th": "สถานีกลางบางซื่อ" }, "aliases": ["krung thep aphiwat", "กรุงเทพอภิวัฒน์", "บางซื่อ"], "lat": 13.804, "lng": 100.54 },
+    { "id": "asok", "name": { "en": "Asok", "th": "อโศก" }, "aliases": ["asoke", "terminal 21", "เทอร์มินอล 21"], "lat": 13.737, "lng": 100.5603 },
+    { "id": "silom", "name": { "en": "Silom", "th": "สีลม" }, "aliases": ["sala daeng", "ศาลาแดง"], "lat": 13.729, "lng": 100.534 },
+    { "id": "lumphini", "name": { "en": "Lumphini Park", "th": "สวนลุมพินี" }, "aliases": ["lumpini", "ลุมพินี"], "lat": 13.7314, "lng": 100.5414 },
+    { "id": "thonglor", "name": { "en": "Thong Lo", "th": "ทองหล่อ" }, "aliases": ["thonglor", "thong lor"], "lat": 13.733, "lng": 100.583 },
+    { "id": "onnut", "name": { "en": "On Nut", "th": "อ่อนนุช" }, "lat": 13.7056, "lng": 100.601 },
+    { "id": "rama9", "name": { "en": "Rama 9", "th": "พระราม 9" }, "aliases": ["rama ix", "พระราม๙"], "lat": 13.757, "lng": 100.565 },
+    { "id": "culturalcentre", "name": { "en": "Thailand Cultural Centre", "th": "ศูนย์วัฒนธรรมแห่งประเทศไทย" }, "aliases": ["ratchada", "รัชดา", "ศูนย์วัฒนธรรม"], "lat": 13.766, "lng": 100.57 },
+    { "id": "ladphrao", "name": { "en": "Lat Phrao", "th": "ลาดพร้าว" }, "aliases": ["ladprao", "lad phrao"], "lat": 13.806, "lng": 100.573 },
+    { "id": "grandpalace", "name": { "en": "Grand Palace", "th": "พระบรมมหาราชวัง" }, "aliases": ["wat phra kaew", "วัดพระแก้ว"], "lat": 13.75, "lng": 100.4913 },
+    { "id": "khaosan", "name": { "en": "Khao San Road", "th": "ถนนข้าวสาร" }, "aliases": ["khaosan", "ข้าวสาร"], "lat": 13.759, "lng": 100.4974 },
+    { "id": "hualamphong", "name": { "en": "Hua Lamphong", "th": "หัวลำโพง" }, "lat": 13.7373, "lng": 100.517 },
+    { "id": "yaowarat", "name": { "en": "Chinatown (Yaowarat)", "th": "เยาวราช" }, "aliases": ["chinatown", "ไชน่าทาวน์"], "lat": 13.74, "lng": 100.51 },
+    { "id": "iconsiam", "name": { "en": "ICONSIAM", "th": "ไอคอนสยาม" }, "aliases": ["icon siam"], "lat": 13.7266, "lng": 100.5103 },
+    { "id": "wongwianyai", "name": { "en": "Wongwian Yai", "th": "วงเวียนใหญ่" }, "lat": 13.7255, "lng": 100.495 },
+    { "id": "bangna", "name": { "en": "Bang Na", "th": "บางนา" }, "aliases": ["bangna"], "lat": 13.668, "lng": 100.6045 },
+    { "id": "dmk", "name": { "en": "Don Mueang Airport", "th": "ท่าอากาศยานดอนเมือง" }, "aliases": ["don muang", "dmk", "ดอนเมือง", "สนามบินดอนเมือง"], "lat": 13.9126, "lng": 100.6068 },
+    { "id": "bkk", "name": { "en": "Suvarnabhumi Airport", "th": "ท่าอากาศยานสุวรรณภูมิ" }, "aliases": ["bkk", "สุวรรณภูมิ", "สนามบินสุวรรณภูมิ"], "lat": 13.69, "lng": 100.7501 }
+  ]
+}

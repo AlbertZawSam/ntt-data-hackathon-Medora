@@ -61,7 +61,7 @@ Work top to bottom, one task at a time (in VS Code, run the `/next-task` prompt)
 ## Milestone 4: Patient screens
 
 - [ ] 8. Location and home
-  - [ ] 8.1 `src/services/location.ts`: GPS with permission handling, Bangkok bounds check, built-in places search, Amazon Location place search when a key is set.
+  - [x] 8.1 `src/services/location.ts`: GPS with permission handling, Bangkok bounds check, built-in places search, Amazon Location place search when a key is set.
   - [ ] 8.2 `MapView` component: offline SVG map of Bangkok (pins, routes, pick mode, zoom); MapLibre with Amazon Location tiles later in a development build.
   - [ ] 8.3 `app/(patient)/home.tsx`: location card, search, pick on map, Call 1669, Find care and Find a specialist buttons.
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6_

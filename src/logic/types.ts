@@ -5,6 +5,9 @@ export type Bi = { en: string; th: string };
 
 export type LatLng = { lat: number; lng: number };
 
+// A searchable place: built-in landmarks, or a result from Amazon Location.
+export type Place = LatLng & { id: string; name: Bi; aliases?: string[] };
+
 export type DeptState = 'open' | 'diverting';
 
 export type HospitalStatus = {
