@@ -35,6 +35,10 @@
   "devDependencies": {
     "@aws-amplify/backend": "^1.25.1",
     "@aws-amplify/backend-cli": "^1.10.0",
+    "@aws-sdk/client-appsync": "^3.1152.0",
+    "@aws-sdk/client-cognito-identity-provider": "^3.1152.0",
+    "@aws-sdk/client-dynamodb": "^3.1152.0",
+    "@aws-sdk/lib-dynamodb": "^3.1152.0",
     "@types/node": "^22.20.5",
     "@types/react": "~19.2.2",
     "aws-cdk-lib": "^2.268.0",
@@ -51,7 +55,10 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "users": "node scripts/create-test-users.mjs",
+    "seed": "node scripts/seed.mjs",
+    "reset-demo": "node scripts/reset-demo.mjs"
   },
   "private": true
 }
