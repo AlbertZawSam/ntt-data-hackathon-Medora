@@ -9,7 +9,7 @@ import { hospitals } from '@/logic/data';
 import type { Place } from '@/logic/types';
 import { getGpsLocation, searchLocation } from '@/services/location';
 import { useT } from '@/state/language';
-import { usePatientLocation } from '@/state/patientLocation';
+import { useLocationLabel, usePatientLocation } from '@/state/patientLocation';
 import { fonts, minTouch, radius, spacing, useTheme } from '@/ui/theme';
 
 // Patient home (task 8.3): set a location by GPS, search or the map; call 1669; start Find care
@@ -69,11 +69,7 @@ export default function HomeScreen() {
     setNotice(null);
   };
 
-  const sourceText =
-    location.source === 'search' && location.place ? tr(location.place.name)
-    : location.source === 'gps' ? t(location.outside ? 'home.sourceDefault' : 'home.sourceGps')
-    : location.source === 'pick' ? t('home.sourcePick')
-    : t('home.sourceDefault');
+  const sourceText = useLocationLabel();
 
   const card = [styles.card, { backgroundColor: colors.surface, borderColor: colors.border }];
 
@@ -181,7 +177,7 @@ export default function HomeScreen() {
         <Text style={[styles.actionHint, { color: colors.onAccent }]}>{t('home.findSpecialistHint')}</Text>
       </Pressable>
 
-      <Text style={[styles.disclaimer, { color: colors.textMuted }]}>{t('home.disclaimer')}</Text>
+      <Text style={[styles.disclaimer, { color: colors.textMuted }]}>{t('common.disclaimer')}</Text>
     </ScrollView>
   );
 }

@@ -2,6 +2,7 @@ import { createContext, useContext, useMemo, useState, type ReactNode } from 're
 
 import { SIAM } from '@/logic/places';
 import type { LatLng, Place } from '@/logic/types';
+import { useT } from '@/state/language';
 
 // The patient's chosen location, shared by Home, Find care and Find a specialist.
 // Held in memory only: it never leaves the phone except inside a request (requirement 3.6).
@@ -32,4 +33,14 @@ export function PatientLocationProvider({ children }: { children: ReactNode }) {
 
 export function usePatientLocation() {
   return useContext(PatientLocationContext);
+}
+
+// How the screens name the current location.
+export function useLocationLabel(): string {
+  const { location } = usePatientLocation();
+  const { t, tr } = useT();
+  if (location.source === 'search' && location.place) return tr(location.place.name);
+  if (location.source === 'gps' && !location.outside) return t('home.sourceGps');
+  if (location.source === 'pick') return t('home.sourcePick');
+  return t('home.sourceDefault');
 }

@@ -73,9 +73,9 @@ Work top to bottom, one task at a time (in VS Code, run the `/next-task` prompt)
 
 - [ ] 10. Find care
   - [ ] 10.1 `amplify/functions/patient-understand`: fast-model call returning `{need, summary_en, summary_th}` (JSON only); custom mutation `understandNeed`; keyword fallback on the phone.
-  - [ ] 10.2 `app/(patient)/care.tsx`: description with sample chips, steps shown as a short trace, ranked "can help" and "can't help" lists, freshness badges, simple labels only.
-  - [ ] 10.3 Map with routes to the top three and the skipped-nearest explanation.
-  - [ ] 10.4 Disclaimer on screen.
+  - [x] 10.2 `app/(patient)/care.tsx`: description with sample chips, steps shown as a short trace, ranked "can help" and "can't help" lists, freshness badges, simple labels only.
+  - [x] 10.3 Map with routes to the top three and the skipped-nearest explanation.
+  - [x] 10.4 Disclaimer on screen.
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7_
 
 - [ ] 11. Request to hospital and my requests

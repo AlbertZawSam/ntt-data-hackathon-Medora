@@ -12,7 +12,8 @@ import { fonts, minTouch, radius, spacing, useTheme, type Colors } from '@/ui/th
 // lines between points; road routes come with Amazon Location in a development build.
 
 export type MapTone = 'primary' | 'danger' | 'muted';
-export type MapPin = { id: string; point: LatLng; label: string; tone?: MapTone; selected?: boolean };
+// crossed marks a hospital that can't help (requirement 5.4).
+export type MapPin = { id: string; point: LatLng; label: string; tone?: MapTone; selected?: boolean; crossed?: boolean };
 export type MapRoute = { id: string; from: LatLng; to: LatLng; tone?: MapTone };
 
 type Props = {
@@ -153,7 +154,7 @@ export function MapView({ pins = [], routes = [], user, pickMode = false, onPick
               {pins.map((pin) => {
                 const { x, y } = at(pin.point);
                 const color = toneColor(pin.tone, colors);
-                const dot = pin.selected ? 20 : 14;
+                const dot = pin.selected ? 20 : pin.crossed ? 16 : 14;
                 return (
                   <Pressable
                     key={pin.id}
@@ -162,7 +163,13 @@ export function MapView({ pins = [], routes = [], user, pickMode = false, onPick
                     accessibilityRole={onPinPress ? 'button' : undefined}
                     accessibilityLabel={pin.label}
                     style={[styles.pin, { left: x - minTouch / 2, top: y - minTouch / 2 }]}>
-                    <View style={{ width: dot, height: dot, borderRadius: dot / 2, backgroundColor: color, borderColor: colors.surface, borderWidth: 2 }} />
+                    <View
+                      style={[
+                        styles.dot,
+                        { width: dot, height: dot, borderRadius: dot / 2, backgroundColor: color, borderColor: colors.surface },
+                      ]}>
+                      {pin.crossed && <Text style={[styles.cross, { color: colors.surface }]}>×</Text>}
+                    </View>
                   </Pressable>
                 );
               })}
@@ -202,6 +209,8 @@ export function MapView({ pins = [], routes = [], user, pickMode = false, onPick
 const styles = StyleSheet.create({
   frame: { alignSelf: 'stretch', borderRadius: radius.md, borderWidth: 1, overflow: 'hidden' },
   pin: { position: 'absolute', width: minTouch, height: minTouch, alignItems: 'center', justifyContent: 'center' },
+  dot: { borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  cross: { fontFamily: fonts.bold, fontSize: 12, lineHeight: 12 },
   pinLabelBox: { position: 'absolute', width: LABEL_WIDTH, alignItems: 'center' },
   pinLabel: {
     maxWidth: LABEL_WIDTH,
