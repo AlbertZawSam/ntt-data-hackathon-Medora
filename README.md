@@ -34,8 +34,8 @@ medora/
 │   │   └── (doctor)/                 # pending approval, AI referral, transfers
 │   ├── src/
 │   │   ├── i18n/                     # en.json, th.json, t.ts
-│   │   ├── services/                 # the only layer that talks to AWS: auth (data, location, push, agent later)
-│   │   ├── state/                    # AppProvider: language, session, live data snapshot
+│   │   ├── services/                 # the only AWS layer: Amplify, auth, live AppSync data
+│   │   ├── state/                    # AppProvider: language, session, useSyncExternalStore data snapshot
 │   │   ├── components/               # LanguageToggle, ScreenStub (more arrive with each screen)
 │   │   └── ui/                       # theme, Button, Field, FormScreen
 │   ├── assets/                       # icon, splash
@@ -46,11 +46,12 @@ medora/
 │   └── amplify/
 │       ├── backend.ts                # stack wiring, cost tags, app-client limits
 │       ├── auth/                     # Cognito groups + post-confirmation trigger
-│       ├── data/                     # (next) models: HospitalStatus, CareRequest, Message, Referral, ...
-│       └── functions/                # (later) agent-runner, patient-understand, hospital-onboard, notify, register-push
+│       ├── data/resource.ts          # AppSync models and hospital/owner-scoped authorization
+│       └── functions/
+│           └── agent-runner/         # bounded Bedrock referral coordinator + fixed-rule backup
 │
 ├── shared/                           # @medora/shared: pure TypeScript used by the app and Lambda
-│   ├── logic/                        # redFlags, ranking, timeBudget, rules, session, types
+│   ├── logic/                        # redFlags, ranking, timeBudget, rules, referral, session, types
 │   ├── data/                         # pathways.json, red_flags.json (rules)
 │   └── tests/                        # unit and property tests for logic/
 │
@@ -62,6 +63,24 @@ medora/
 ```
 
 Shared code is imported by package name, e.g. `import { redFlag } from '@medora/shared/logic/redFlags'`.
+
+## Current architecture
+
+The implemented path is deliberately live-data only:
+
+- Amplify Data defines `HospitalProfile`, `HospitalStatus`, `Specialist`, `CareRequest`, `Message`, `Referral`, `TraceStep`, `Transfer`, `Activity`, and `Device`. Hospital-scoped rows compare `hospitalId` with the signed-in user's protected `custom:hospitalId` claim; patient-owned rows compare `ownerId` with `sub`.
+- `frontend/src/services/data.ts` opens AppSync `observeQuery` subscriptions for every model a role may read. `AppProvider` exposes their one immutable snapshot through `useSyncExternalStore`. Empty records stay empty; no demo hospitals, replies, or fallback records are created.
+- A doctor creates a `Referral` and calls the asynchronous `startReferral` mutation. The app observes `Referral` and `TraceStep` rows for its live trace and recommendation.
+- `agent-runner` gives Bedrock only six tools: `assess_case`, `search_knowledge_base`, `ask_hospitals`, `check_replies`, `recommend`, and `report_no_placement`. Fixed shared rules calculate eligibility, treatment windows, and auto-acceptance. The agent cannot approve a transfer, classify emergencies, or change hospital status.
+- The coordinator has an eight-model-turn cap, a 120-second model-work budget, and an eight-run daily cap per doctor. It uses a labelled fixed-rule backup when Bedrock is unavailable or cannot produce a valid recommendation.
+
+The remaining role screens, onboarding functions, patient-understanding Lambda, knowledge-base ingestion, notifications, and transfer confirmation are tracked as unticked tasks in `docs/specs/tasks.md`; they are not represented as working features yet.
+
+### Enable the Bedrock path before deploying
+
+The referral handler is compiled and defaults to the safe rule-based path until a team lead configures the environment and IAM. Set `MODEL_ID_FAST`; set `MODEL_ID_STRONG` for `prod`; optionally set `GUARDRAIL_ID`, `GUARDRAIL_VERSION`, `KB_ID`, and `ROUTE_CALCULATOR_NAME`. The team lead must grant the Lambda only `bedrock:InvokeModel`, `bedrock:Retrieve`, and `geo:CalculateRouteMatrix` for the configured resources. This repository deliberately does not make IAM-policy changes from an agent.
+
+There is no idle cost from Lambda, on-demand DynamoDB, AppSync, Bedrock, or Amazon Location. Lambda/DynamoDB/AppSync are charged by execution, requests, and storage; Bedrock by tokens and Knowledge Base/Location by their retrieval or route use. Configure the existing budget alarms before a deployment.
 
 ## Getting started
 

@@ -150,5 +150,21 @@
   "auth.error.network": "ไม่มีการเชื่อมต่อ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่",
   "doctor.pending.checkAgain": "ตรวจสอบอีกครั้ง",
   "app.name": "Medora",
-  "auth.error.noBackend": "แอปยังไม่ได้เชื่อมต่อกับระบบหลังบ้าน กรุณาติดตั้ง sandbox ด้วย `npm run sandbox` แล้วเริ่ม Expo ใหม่"
+  "auth.error.noBackend": "แอปยังไม่ได้เชื่อมต่อกับระบบหลังบ้าน กรุณาติดตั้ง sandbox ด้วย `npm run sandbox` แล้วเริ่ม Expo ใหม่",
+  "doctor.refer.agentBadge": "เอเจนต์ส่งต่อด้วย AI",
+  "doctor.refer.agentPrinciple": "เอเจนต์ช่วยประสานงาน คุณเป็นผู้ตัดสินใจและยืนยันการโอนย้ายทุกครั้ง",
+  "doctor.refer.onsetHint": "ไม่จำเป็น ระบุจำนวนนาทีตั้งแต่เริ่มมีอาการหากทราบ",
+  "doctor.refer.startHint": "เอเจนต์จะสอบถามโรงพยาบาลที่ลงทะเบียนตามสถานะปัจจุบัน และไม่สามารถยืนยันการโอนย้ายได้",
+  "doctor.refer.running": "กำลังค้นหาที่รับผู้ป่วย…",
+  "doctor.refer.awaiting": "คำแนะนำพร้อมรอการยืนยันจากคุณ",
+  "doctor.refer.failed": "ยังไม่พบที่รับผู้ป่วย",
+  "doctor.refer.noTrace": "รายการติดตามสดจะแสดงที่นี่หลังเริ่มส่งต่อ",
+  "doctor.refer.traceTitle": "รายการติดตามสดจากเอเจนต์",
+  "doctor.refer.recommendationTitle": "โรงพยาบาลที่แนะนำ",
+  "doctor.refer.noHospital": "ขณะนี้ไม่มีโรงพยาบาลที่ลงทะเบียนซึ่งสามารถช่วยได้",
+  "doctor.refer.timeToRecommendation": "เวลาถึงคำแนะนำ: {{seconds}} วินาที",
+  "doctor.refer.startError": "ไม่สามารถเริ่มการส่งต่อได้ กรุณาลองอีกครั้ง",
+  "doctor.refer.enterDescription": "กรุณากรอกคำอธิบายผู้ป่วยก่อนเริ่มการส่งต่อ",
+  "doctor.refer.invalidOnset": "กรอกจำนวนเต็มเป็นนาที หรือเว้นช่องเวลาเริ่มอาการว่างไว้",
+  "doctor.refer.backup": "สำรองด้วยกฎ"
 }

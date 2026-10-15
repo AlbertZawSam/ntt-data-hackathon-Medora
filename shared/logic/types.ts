@@ -141,6 +141,8 @@ export interface CareRequest {
 export interface Message {
   id: string;
   requestId: string;
+  ownerId: string;
+  hospitalId: string;
   from: 'patient' | 'hospital';
   key?: string;
   text?: string;
@@ -164,21 +166,32 @@ export interface Referral {
   pathway?: string;
   status: ReferralStatus;
   mode: 'ai' | 'rules';
+  chosenId?: string;
+  chosenName?: Bi;
+  etaMin?: number;
+  /** Bilingual recommendation or no-placement explanation. */
+  why?: Bi;
+  /** Sanitised decision rows for the doctor UI, never raw status data. */
+  rows?: unknown[];
+  requestIds: string[];
+  startedAtMs: number;
   recommendationEn?: string;
   recommendationTh?: string;
   recommendedAtMs?: number;
   elapsedSec?: number;
-  createdAtMs: number;
+  /** @deprecated use startedAtMs for referrals. */
+  createdAtMs?: number;
 }
 
 export interface TraceStep {
   id: string;
   referralId: string;
-  tool: string;
-  input: string;
-  output: string;
-  rulesBased: boolean;
-  createdAtMs: number;
+  /** Hospital that owns this doctor-only trace. */
+  hospitalId: string;
+  n: number;
+  kind: string;
+  title: Bi;
+  detail: Bi;
 }
 
 export type TransferStatus = 'in_progress' | 'arrived' | 'cancelled';
@@ -199,9 +212,10 @@ export interface Transfer {
 
 export interface Activity {
   id: string;
-  en: string;
-  th: string;
-  actor: { en: string; th: string };
+  hospitalId?: string;
+  ownerId?: string;
+  actor: Bi;
+  text: Bi;
   createdAt: string; // ISO UTC
 }
 
@@ -216,15 +230,16 @@ export interface Device {
 
 export interface HospitalProfile {
   id: string;
-  nameEn: string;
-  nameTh: string;
+  hospitalId: string;
+  name: Bi;
   lat: number;
   lng: number;
   totalBeds: number;
   nicuTotal: number;
-  depts: string[];
-  equip: string[];
-  createdAt: string;
+  typicalWaitMin: number;
+  departments: string[];
+  equipment: string[];
+  createdAt?: string;
 }
 
 export interface Specialist {

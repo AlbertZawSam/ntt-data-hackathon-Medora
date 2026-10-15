@@ -49,8 +49,8 @@ Live data only: nothing is seeded and no replies are generated automatically. Ev
 
 ## Milestone 3: Hospital onboarding and live updates
 
-- [ ] 6. Data models
-  - [ ] 6.1 `backend/amplify/data/resource.ts`: `HospitalProfile`, `HospitalStatus`, `Specialist`, `CareRequest`, `Message`, `Referral`, `TraceStep`, `Transfer`, `Activity`, `Device` as in design.md, with the authorization rules in design.md.
+- [x] 6. Data models
+  - [x] 6.1 `backend/amplify/data/resource.ts`: `HospitalProfile`, `HospitalStatus`, `Specialist`, `CareRequest`, `Message`, `Referral`, `TraceStep`, `Transfer`, `Activity`, `Device` as in design.md, with the authorization rules in design.md.
   - _Requirements: 9.1, 15.1, 17.1_
 
 - [ ] 6a. Hospital onboarding ★
@@ -61,10 +61,10 @@ Live data only: nothing is seeded and no replies are generated automatically. Ev
   - [ ] 6a.5 Empty states: patient and doctor screens say "no registered hospital can help right now" when the list is empty.
   - _Requirements: 17.1, 17.3, 18.1 to 18.7_
 
-- [ ] 7. Live data service
-  - [ ] 7.1 `frontend/src/services/data.ts`: `observeQuery` subscriptions for each model into one snapshot (changes visible on other phones within 2 seconds); typed create and update helpers; no seed or sample records.
-  - [ ] 7.2 `frontend/src/state/AppProvider.tsx`: `useSyncExternalStore` over the snapshot; session; language.
-  - [ ] 7.3 Activity logger helper writing bilingual entries.
+- [x] 7. Live data service
+  - [x] 7.1 `frontend/src/services/data.ts`: `observeQuery` subscriptions for each model into one snapshot (changes visible on other phones within 2 seconds); typed create and update helpers; no seed or sample records.
+  - [x] 7.2 `frontend/src/state/AppProvider.tsx`: `useSyncExternalStore` over the snapshot; session; language.
+  - [x] 7.3 Activity logger helper writing bilingual entries.
   - _Requirements: 9.2, 15.1_
 
 ## Milestone 4: Patient screens
@@ -124,12 +124,12 @@ Live data only: nothing is seeded and no replies are generated automatically. Ev
   - Request Claude model access in the Bedrock console; set `MODEL_ID_FAST` and `MODEL_ID_STRONG` (inference profile IDs where required); create a Guardrail (deny diagnosis and treatment advice, mask personal data) and set `GUARDRAIL_ID`.
   - _Requirements: 12.8_
 
-- [ ] 17. `agent-runner` Lambda ★
-  - [ ] 17.1 Resource: async custom mutation `startReferral`, timeout 300 s, IAM for Bedrock, Knowledge Base retrieve, Location route matrix.
-  - [ ] 17.2 `tools.ts`: `assess_case` (pathway, window, route-matrix drive times, filters, scoring), `ask_hospitals` (parallel requests, auto-accept, wait), `check_replies`, `recommend` (accepted only, withdraw others), `report_no_placement`; validate every input.
-  - [ ] 17.3 `prompt.ts`: system prompt per design.md; descriptions and notes inside delimited data blocks.
-  - [ ] 17.4 `handler.ts`: Converse loop (max 8 turns, 120 s), trace writing, reasoning steps, timing (`startedAtMs`, `recommendedAtMs`).
-  - [ ] 17.5 Rule-based backup path with a labeled trace.
+- [-] 17. `agent-runner` Lambda ★
+  - [-] 17.1 Resource: async custom mutation `startReferral`, timeout 300 s, IAM for Bedrock, Knowledge Base retrieve, Location route matrix. _The resource and mutation are implemented; the team lead must attach the narrowly scoped IAM permissions before deploying, per AGENTS.md._
+  - [x] 17.2 `tools.ts`: `assess_case` (pathway, window, route-matrix drive times, filters, scoring), `ask_hospitals` (parallel requests, auto-accept, wait), `check_replies`, `recommend` (accepted only, withdraw others), `report_no_placement`; validate every input.
+  - [x] 17.3 `prompt.ts`: system prompt per design.md; descriptions and notes inside delimited data blocks.
+  - [x] 17.4 `handler.ts`: Converse loop (max 8 turns, 120 s), trace writing, reasoning steps, timing (`startedAtMs`, `recommendedAtMs`).
+  - [x] 17.5 Rule-based backup path with a labeled trace.
   - _Requirements: 12.1 to 12.10, 16.2_
 
 - [ ] 18. Doctor screens

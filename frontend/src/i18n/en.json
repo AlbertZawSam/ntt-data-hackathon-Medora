@@ -150,5 +150,21 @@
   "auth.error.network": "No connection. Check your internet and try again.",
   "doctor.pending.checkAgain": "Check again",
   "app.name": "Medora",
-  "auth.error.noBackend": "The app isn't connected to a backend yet. Deploy a sandbox with `npm run sandbox`, then restart Expo."
+  "auth.error.noBackend": "The app isn't connected to a backend yet. Deploy a sandbox with `npm run sandbox`, then restart Expo.",
+  "doctor.refer.agentBadge": "AI referral agent",
+  "doctor.refer.agentPrinciple": "The agent coordinates. You decide and confirm every transfer.",
+  "doctor.refer.onsetHint": "Optional. Enter minutes since symptoms started when known.",
+  "doctor.refer.startHint": "The agent will ask registered hospitals using their current status. It cannot confirm a transfer.",
+  "doctor.refer.running": "Finding a placement…",
+  "doctor.refer.awaiting": "Recommendation ready for your confirmation",
+  "doctor.refer.failed": "No placement found yet",
+  "doctor.refer.noTrace": "The live trace will appear here after the referral starts.",
+  "doctor.refer.traceTitle": "Live agent trace",
+  "doctor.refer.recommendationTitle": "Recommended hospital",
+  "doctor.refer.noHospital": "No registered hospital can help right now.",
+  "doctor.refer.timeToRecommendation": "Time to recommendation: {{seconds}} seconds",
+  "doctor.refer.startError": "The referral could not be started. Please try again.",
+  "doctor.refer.enterDescription": "Enter a patient description before starting the referral.",
+  "doctor.refer.invalidOnset": "Enter a whole number of minutes, or leave onset blank.",
+  "doctor.refer.backup": "Rule-based backup"
 }

@@ -7,6 +7,7 @@ import React from 'react';
 import { setActiveLang, translate, type Lang, type Params, type StringKey } from '../i18n/t';
 import type { Session } from '@medora/shared/logic/session';
 import { getSession, signOut as authSignOut } from '../services/auth';
+import { liveData, type DataSnapshot } from '../services/data';
 
 const LANG_STORAGE_KEY = 'medora.lang';
 
@@ -19,6 +20,8 @@ interface AppContextValue {
   /** Re-reads the session; `force` fetches new tokens after the backend changed groups or attributes. */
   refreshSession: (force?: boolean) => Promise<Session | null>;
   signOut: () => Promise<void>;
+  /** Live AppSync snapshot. It remains empty when no backend is configured or a role has no records. */
+  data: DataSnapshot;
 }
 
 const AppContext = React.createContext<AppContextValue>({
@@ -28,12 +31,14 @@ const AppContext = React.createContext<AppContextValue>({
   session: null,
   refreshSession: async () => null,
   signOut: async () => undefined,
+  data: liveData.getSnapshot(),
 });
 
 export function AppProvider({ children }: { children: React.ReactNode }): React.JSX.Element {
   const [lang, setLangState] = React.useState<Lang>('en');
   const [ready, setReady] = React.useState(false);
   const [session, setSession] = React.useState<Session | null>(null);
+  const data = React.useSyncExternalStore(liveData.subscribe, liveData.getSnapshot, liveData.getSnapshot);
 
   React.useEffect(() => {
     const loadLang = AsyncStorage.getItem(LANG_STORAGE_KEY)
@@ -59,6 +64,11 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
     setSession(null);
   }, []);
 
+  React.useEffect(() => {
+    liveData.start(session);
+    return () => liveData.stop();
+  }, [session]);
+
   const setLang = React.useCallback((next: Lang) => {
     setActiveLang(next);
     setLangState(next);
@@ -66,8 +76,8 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
   }, []);
 
   const value = React.useMemo(
-    () => ({ lang, setLang, ready, session, refreshSession, signOut }),
-    [lang, setLang, ready, session, refreshSession, signOut],
+    () => ({ lang, setLang, ready, session, refreshSession, signOut, data }),
+    [lang, setLang, ready, session, refreshSession, signOut, data],
   );
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

@@ -1,14 +1,15 @@
 import React from 'react';
-import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { StyleSheet, Text, TextInput, View, type StyleProp, type TextInputProps, type TextStyle } from 'react-native';
 import { fonts, fontSizes, radii, spacing, useTheme } from './theme';
 
 interface Props extends Omit<TextInputProps, 'style' | 'placeholder'> {
   label: string;
   hint?: string;
+  inputStyle?: StyleProp<TextStyle>;
 }
 
 /** Labelled text input; the label doubles as the accessibility label. */
-export function Field({ label, hint, ...input }: Props): React.JSX.Element {
+export function Field({ label, hint, inputStyle, ...input }: Props): React.JSX.Element {
   const theme = useTheme();
   return (
     <View style={styles.wrap}>
@@ -17,7 +18,7 @@ export function Field({ label, hint, ...input }: Props): React.JSX.Element {
         {...input}
         accessibilityLabel={label}
         placeholderTextColor={theme.textMuted}
-        style={[styles.input, { color: theme.text, backgroundColor: theme.surface, borderColor: theme.border }]}
+        style={[styles.input, { color: theme.text, backgroundColor: theme.surface, borderColor: theme.border }, inputStyle]}
       />
       {hint ? <Text style={[styles.hint, { color: theme.textMuted }]}>{hint}</Text> : null}
     </View>
