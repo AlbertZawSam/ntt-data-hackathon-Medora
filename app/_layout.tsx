@@ -10,6 +10,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
+import { LanguageProvider } from '@/state/language';
 import { useTheme } from '@/ui/theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -45,9 +46,11 @@ export default function RootLayout() {
   };
 
   return (
-    <ThemeProvider value={navTheme}>
-      <StatusBar style={dark ? 'light' : 'dark'} />
-      <Stack screenOptions={{ headerShown: false }} />
-    </ThemeProvider>
+    <LanguageProvider>
+      <ThemeProvider value={navTheme}>
+        <StatusBar style={dark ? 'light' : 'dark'} />
+        <Stack screenOptions={{ headerShown: false }} />
+      </ThemeProvider>
+    </LanguageProvider>
   );
 }

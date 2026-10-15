@@ -9,5 +9,8 @@
   "staff.inbox": "กล่องคำขอ",
   "staff.rules": "กฎการรับ",
   "doctor.refer": "ส่งต่อผู้ป่วย",
-  "doctor.transfers": "การส่งตัว"
+  "doctor.transfers": "การส่งตัว",
+  "lang.label": "ภาษา",
+  "lang.english": "อังกฤษ",
+  "lang.thai": "ไทย"
 }

@@ -16,9 +16,9 @@ Work top to bottom, one task at a time (in VS Code, run the `/next-task` prompt)
   - Add brand theme in `src/ui/theme.ts` (green #0B6E57, saffron #F2A33A, ink #0E2A23, light and dark) and load the Bai Jamjuree font.
   - _Requirements: 2.1_
 
-- [ ] 2. Bilingual strings
-  - [ ] 2.1 Create `src/i18n/en.json`, `src/i18n/th.json` and `src/i18n/t.ts` with `t(key, params)` and a `Bi` type (`{en, th}`) for stored bilingual text.
-  - [ ] 2.2 Build `LanguageToggle` and persist the choice with AsyncStorage.
+- [x] 2. Bilingual strings
+  - [x] 2.1 Create `src/i18n/en.json`, `src/i18n/th.json` and `src/i18n/t.ts` with `t(key, params)` and a `Bi` type (`{en, th}`) for stored bilingual text.
+  - [x] 2.2 Build `LanguageToggle` and persist the choice with AsyncStorage.
   - _Requirements: 2.1, 2.2_
 
 - [x] 3. Shared logic in `src/logic/` (no React Native imports) with unit tests

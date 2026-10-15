@@ -9,5 +9,8 @@
   "staff.inbox": "Inbox",
   "staff.rules": "Rules",
   "doctor.refer": "Refer",
-  "doctor.transfers": "Transfers"
+  "doctor.transfers": "Transfers",
+  "lang.label": "Language",
+  "lang.english": "English",
+  "lang.thai": "Thai"
 }
