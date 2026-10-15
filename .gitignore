@@ -33,3 +33,7 @@ npm-debug.*
 
 expo-env.d.ts
 # @end expo-cli
+
+# amplify
+amplify_outputs*
+amplifyconfiguration*

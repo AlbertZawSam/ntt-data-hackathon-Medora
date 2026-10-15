@@ -33,9 +33,9 @@ Work top to bottom, one task at a time (in VS Code, run the `/next-task` prompt)
 ## Milestone 2: AWS backend and sign-in
 
 - [ ] 4. Add Amplify Gen 2
-  - [ ] 4.1 Run `npm create amplify@latest` in the project root; keep `amplify/` at the root.
-  - [ ] 4.2 `amplify/auth/resource.ts`: email sign-in, groups `patients`, `hospital_staff`, `doctors`, `admins`, attribute `custom:hospitalId`.
-  - [ ] 4.3 Tag stacks `project=medora`, `stage=${AWS_BRANCH ?? "dev"}` in `amplify/backend.ts`.
+  - [x] 4.1 Run `npm create amplify@latest` in the project root; keep `amplify/` at the root.
+  - [x] 4.2 `amplify/auth/resource.ts`: email sign-in, groups `patients`, `hospital_staff`, `doctors`, `admins`, attribute `custom:hospitalId`.
+  - [x] 4.3 Tag stacks `project=medora`, `stage=${AWS_BRANCH ?? "dev"}` in `amplify/backend.ts`.
   - [ ] 4.4 Deploy with `npx ampx sandbox --outputs-out-dir .`; confirm `amplify_outputs.json` is created and ignored by Git.
   - _Requirements: 1.1, 16.1, 16.3_
 
