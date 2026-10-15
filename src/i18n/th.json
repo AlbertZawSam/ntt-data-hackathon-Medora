@@ -138,5 +138,22 @@
   "status.down": "ใช้งานไม่ได้",
   "status.onDuty": "อยู่เวร",
   "status.offDuty": "ไม่อยู่เวร",
-  "status.tapToChange": "แตะรายการเพื่อเปลี่ยนสถานะ"
+  "status.tapToChange": "แตะรายการเพื่อเปลี่ยนสถานะ",
+  "quick.runningLate": "จะไปถึงช้ากว่าที่แจ้ง",
+  "quick.whereDoIGo": "ไปถึงแล้วต้องไปที่ไหน",
+  "quick.pleaseCall": "กรุณาโทรหาฉัน",
+  "quick.emergencyEntrance": "กรุณามาที่ทางเข้าห้องฉุกเฉิน",
+  "quick.bringId": "กรุณานำบัตรประชาชนมาด้วย",
+  "quick.wellCall": "เราจะโทรหาคุณเร็วๆ นี้",
+  "quick.ready": "เราพร้อมรับคุณแล้ว",
+  "quick.shortWait": "อาจต้องรอสักครู่",
+  "messages.title": "ข้อความ",
+  "messages.empty": "ยังไม่มีข้อความ",
+  "messages.placeholder": "เขียนข้อความ",
+  "messages.send": "ส่ง",
+  "messages.count": "{count}/{max}",
+  "messages.closed": "การสนทนานี้ปิดแล้ว",
+  "messages.you": "คุณ",
+  "messages.patient": "ผู้ป่วย",
+  "messages.hospital": "โรงพยาบาล"
 }

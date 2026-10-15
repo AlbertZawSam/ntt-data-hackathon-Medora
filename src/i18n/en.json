@@ -138,5 +138,22 @@
   "status.down": "Down",
   "status.onDuty": "On duty",
   "status.offDuty": "Not on duty",
-  "status.tapToChange": "Tap an item to change it."
+  "status.tapToChange": "Tap an item to change it.",
+  "quick.runningLate": "I'm running late",
+  "quick.whereDoIGo": "Where should I go when I arrive?",
+  "quick.pleaseCall": "Please call me",
+  "quick.emergencyEntrance": "Please come to the emergency entrance",
+  "quick.bringId": "Please bring your ID card",
+  "quick.wellCall": "We'll call you shortly",
+  "quick.ready": "We're ready for you",
+  "quick.shortWait": "There may be a short wait",
+  "messages.title": "Messages",
+  "messages.empty": "No messages yet.",
+  "messages.placeholder": "Write a message",
+  "messages.send": "Send",
+  "messages.count": "{count}/{max}",
+  "messages.closed": "This conversation is closed.",
+  "messages.you": "You",
+  "messages.patient": "Patient",
+  "messages.hospital": "Hospital"
 }

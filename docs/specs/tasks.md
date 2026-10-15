@@ -85,8 +85,8 @@ Work top to bottom, one task at a time (in VS Code, run the `/next-task` prompt)
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6_
 
 - [ ] 12. Messages ★
-  - [ ] 12.1 `MessageThread` component: bubbles, quick replies (stored as keys), free text up to 300 characters.
-  - [ ] 12.2 Patient quick replies: running late, where do I go, please call me. Hospital quick replies: emergency entrance, bring ID card, we'll call you, we're ready, short wait.
+  - [x] 12.1 `MessageThread` component: bubbles, quick replies (stored as keys), free text up to 300 characters.
+  - [x] 12.2 Patient quick replies: running late, where do I go, please call me. Hospital quick replies: emergency entrance, bring ID card, we'll call you, we're ready, short wait.
   - [ ] 12.3 Close threads when a request ends.
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 2.4_
 
