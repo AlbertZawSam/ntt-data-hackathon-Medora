@@ -48,7 +48,7 @@ Work top to bottom, one task at a time (in VS Code, run the `/next-task` prompt)
 ## Milestone 3: Hospital data with live updates
 
 - [ ] 6. Data models
-  - [ ] 6.1 `amplify/data/resource.ts`: `HospitalStatus`, `CareRequest`, `Message`, `Referral`, `TraceStep`, `Transfer`, `Activity`, `Device` as in design.md.
+  - [x] 6.1 `amplify/data/resource.ts`: `HospitalStatus`, `CareRequest`, `Message`, `Referral`, `TraceStep`, `Transfer`, `Activity`, `Device` as in design.md.
   - [ ] 6.2 `scripts/seed.mjs`: write starting status for 10 hospitals from `data/hospitals.json`; `scripts/reset-demo.mjs` to clear requests, referrals, traces and messages.
   - _Requirements: 9.1, 15.1, 17.1_
 

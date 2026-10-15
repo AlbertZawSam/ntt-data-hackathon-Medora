@@ -2,9 +2,11 @@ import { defineBackend } from '@aws-amplify/backend';
 import { Tags } from 'aws-cdk-lib';
 
 import { auth } from './auth/resource';
+import { data } from './data/resource';
 
 const backend = defineBackend({
   auth,
+  data,
 });
 
 // Every resource carries project and stage tags so Cost Explorer shows spend per stage.
