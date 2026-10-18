@@ -1,6 +1,12 @@
 ## What changed
 
-Task from `docs/specs/tasks.md`: <!-- e.g. 10.2 -->
+Task from `docs/specs/tasks.md`: <!-- e.g. 7.2 (P0) -->
+Root cause served: <!-- RC1 readiness / RC2 distance only / RC3 guessing or phoning / RC4 language and specialists -->
+App: <!-- Medora / Medora for Hospitals / backend -->
+
+## How to check it
+
+<!-- Roles to sign in as, steps to follow -->
 
 ## Checklist
 
@@ -10,16 +16,19 @@ Task from `docs/specs/tasks.md`: <!-- e.g. 10.2 -->
 - [ ] New resources tagged `project=medora` and `stage`
 - [ ] Smallest sizing that works (Lambda ≤ 512 MB unless explained)
 
-**Safety (AGENTS.md section 4)**
-- [ ] Emergency check still runs before any AI call
-- [ ] No agent tool approves transfers, decides emergencies or edits hospital status
-- [ ] No diagnosis or treatment wording; user text kept as data in prompts
+**Models and region (AGENTS.md section 4a)**
+- [ ] Everything in us-east-1
+- [ ] Only Amazon Nova and Titan, direct model IDs from `MODEL_ID_*` / `EMBEDDING_MODEL_ID`
 
-**Live data (AGENTS.md rule 8, section 7a)**
-- [ ] No seed scripts, prepared hospital data, pre-made accounts or sample hospitals
-- [ ] Changing data is read through live subscriptions; empty and outdated states are shown
-- [ ] No automatic replies or status changes beyond admin auto-accept rules
-- [ ] Checked in the app on a fresh sandbox by signing up the roles involved
+**Safety (AGENTS.md section 4)**
+- [ ] Emergency check still runs on the phone and in the safety-gate Lambda before any AI call
+- [ ] No agent tool approves transfers, decides emergencies or edits hospital status
+- [ ] No diagnosis or treatment wording; user text kept as data in prompts; synthetic data only
+
+**Security (AGENTS.md sections 4b and 4c, docs/roles.md)**
+- [ ] Role rights enforced on the server (AppSync rules or Lambda checks), not only in screens
+- [ ] Bedrock IAM names ARNs; Lambdas log IDs and statuses only
+- [ ] `roles-security-reviewer` (Claude Code) or `/safety-review` run for sign-in, role, AppSync or IAM changes
 
 **Quality**
 - [ ] `npm run typecheck`, `npm test` and `bash scripts/guard.sh` pass

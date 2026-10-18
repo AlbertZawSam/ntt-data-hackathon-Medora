@@ -1,6 +1,6 @@
 # backend/amplify/
 
-AWS Amplify Gen 2 backend (region `ap-southeast-1`). Every resource is tagged `project=medora` and `stage=dev|prod`.
+AWS Amplify Gen 2 backend (region `us-east-1`; `npm run sandbox` sets it). Every resource is tagged `project=medora` and `stage=dev|demo`. Target design: `docs/specs/design.md` and `docs/architecture.md` (two user pools, Step Functions, Amazon Nova); the files below are the current state.
 
 | Path | What it is | Idle cost | Per use |
 | --- | --- | --- | --- |

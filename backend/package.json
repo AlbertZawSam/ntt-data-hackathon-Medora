@@ -4,8 +4,8 @@
   "private": true,
   "description": "AWS Amplify Gen 2 backend (Cognito, AppSync, DynamoDB, Lambda).",
   "scripts": {
-    "sandbox": "ampx sandbox --outputs-out-dir ../frontend",
-    "sandbox:delete": "ampx sandbox delete",
+    "sandbox": "AWS_REGION=us-east-1 ampx sandbox --outputs-out-dir ../frontend",
+    "sandbox:delete": "AWS_REGION=us-east-1 ampx sandbox delete",
     "typecheck": "tsc --noEmit -p amplify"
   },
   "dependencies": {

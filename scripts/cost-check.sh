@@ -5,7 +5,7 @@
 set -uo pipefail
 
 REGION="${AWS_REGION:-$(aws configure get region 2>/dev/null)}"
-REGION="${REGION:-ap-southeast-1}"
+REGION="${REGION:-us-east-1}"
 FOUND=0
 
 section() { printf '\n== %s ==\n' "$1"; }

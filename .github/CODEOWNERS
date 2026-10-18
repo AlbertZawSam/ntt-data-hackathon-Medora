@@ -7,3 +7,7 @@
 /.github/                    @TEAM-LEAD
 /shared/data/red_flags.json @TEAM-LEAD
 /shared/logic/               @TEAM-LEAD
+/.claude/                    @TEAM-LEAD
+/docs/roles.md               @TEAM-LEAD
+/docs/architecture.md        @TEAM-LEAD
+/backend/package.json        @TEAM-LEAD

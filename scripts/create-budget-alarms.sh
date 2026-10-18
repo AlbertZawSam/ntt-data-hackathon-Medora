@@ -16,7 +16,7 @@ if [ "$#" -lt 1 ]; then
   exit 1
 fi
 
-REGION="${AWS_REGION:-ap-southeast-1}"
+REGION="${AWS_REGION:-us-east-1}"
 ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
 BUDGET_NAME="medora-350-cap"
 SNS_TOPIC_NAME="medora-budget-alerts"
@@ -127,4 +127,4 @@ echo "│  Emails   : $*"
 echo "└──────────────────────────────────────────────────────────────────────┘"
 echo ""
 echo "Done. Confirm the SNS subscription email before alarms can fire."
-echo "Reminder: run 'npx ampx sandbox delete' at the end of every working day."
+echo "Reminder: run 'npm run sandbox:delete' at the end of every working day."

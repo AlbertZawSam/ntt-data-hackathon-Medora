@@ -321,7 +321,7 @@ const TOOL_CONFIG: Tool[] = [
 
 function modelId(): string | undefined {
   if (!process.env.GUARDRAIL_ID) return undefined;
-  return process.env.AWS_BRANCH === 'prod' ? process.env.MODEL_ID_STRONG ?? process.env.MODEL_ID_FAST : process.env.MODEL_ID_FAST;
+  return process.env.AWS_BRANCH === 'demo' ? process.env.MODEL_ID_STRONG ?? process.env.MODEL_ID_FAST : process.env.MODEL_ID_FAST;
 }
 
 async function hasDailyCapacity(client: DataClient, referral: ReferralRun, nowMs: number): Promise<boolean> {

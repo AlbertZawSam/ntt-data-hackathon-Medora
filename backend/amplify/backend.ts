@@ -10,7 +10,7 @@ const backend = defineBackend({ auth, postConfirmation, data, agentRunner });
 // Tag every resource so Cost Explorer shows spend per stage (AGENTS.md section 5).
 const app = backend.stack.node.root;
 Tags.of(app).add('project', 'medora');
-Tags.of(app).add('stage', process.env.AWS_BRANCH === 'prod' ? 'prod' : 'dev');
+Tags.of(app).add('stage', process.env.AWS_BRANCH === 'demo' ? 'demo' : 'dev');
 
 // The app may only write these attributes; hospital and approval are set by the backend,
 // so nobody can approve themselves or claim another hospital.

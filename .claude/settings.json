@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "AWS_REGION": "us-east-1",
+    "AWS_DEFAULT_REGION": "us-east-1",
+    "MODEL_ID_STRONG": "amazon.nova-pro-v1:0",
+    "MODEL_ID_FAST": "amazon.nova-lite-v1:0",
+    "EMBEDDING_MODEL_ID": "amazon.titan-embed-text-v2:0"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(npm run typecheck:*)",
+      "Bash(npm test:*)",
+      "Bash(npm run test:*)",
+      "Bash(npx tsc --noEmit:*)",
+      "Bash(npx jest:*)",
+      "Bash(bash scripts/guard.sh)",
+      "Bash(bash scripts/cost-check.sh)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)"
+    ],
+    "ask": [
+      "Bash(git push:*)",
+      "Bash(git commit:*)",
+      "Bash(npm run sandbox:*)",
+      "Bash(npx ampx:*)",
+      "Bash(npm install:*)",
+      "Bash(aws:*)",
+      "Bash(bash scripts/create-budget-alarms.sh:*)",
+      "Bash(bash scripts/create-anomaly-detection.sh:*)"
+    ],
+    "deny": [
+      "Bash(aws iam:*)",
+      "Bash(aws organizations:*)",
+      "Bash(aws budgets:*)",
+      "Bash(aws billing:*)",
+      "Bash(aws ce update:*)",
+      "Bash(aws ce create:*)",
+      "Bash(aws ce delete:*)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Read(./.env)",
+      "Read(./**/.env)"
+    ]
+  }
+}
