@@ -28,7 +28,7 @@ Paths follow the npm workspaces layout in `AGENTS.md` section 6: `frontend/`, `b
 - [ ] 3. Shared logic in `shared/logic/` with unit tests in `shared/tests/` **P0**
   - [ ] 3.1 Types; load `shared/data/hospitals.json`, `pathways.json`, `red_flags.json`.
   - [x] 3.2 `redFlags.ts` with tests for every English and Thai phrase and the safe examples. (RC2)
-  - [ ] 3.3 `ranking.ts` (failures, score, evaluate), `timeBudget.ts` (window, too far, ask policy), `rules.ts` (auto-accept, reserved beds not free). (RC1, RC3)
+  - [x] 3.3 `ranking.ts` (failures, score, evaluate), `timeBudget.ts` (window, too far, ask policy), `rules.ts` (auto-accept, reserved beds not free). (RC1, RC3)
   - _Requirements: 4.1, 5.2, 5.3, 11.2, 12.3, 19.3_
 
 ## Milestone 2: AWS backend and security baseline

@@ -33,20 +33,28 @@ export interface Session {
   groups: string[];
   /** Hospital the user works at; set only by the backend. */
   hospitalId?: string;
+  /** Unit staff only (`ward`, `icu`, ... or `all`); set only by an admin when inviting. */
+  unit?: string;
   /** Doctors only: an admin of their hospital approved them. Set only by the backend. */
   approved: boolean;
 }
 
-/** Builds a session from ID token claims. */
-export function sessionFromClaims(claims: Record<string, unknown>): Session {
+/**
+ * Builds a session from ID token claims. `staffPool` is true when the token came from the invite-only
+ * staff pool: an admin invited those doctors, so they need no separate approval. This only decides
+ * which screens to show; the server checks the claims itself.
+ */
+export function sessionFromClaims(claims: Record<string, unknown>, options: { staffPool?: boolean } = {}): Session {
   const groups = claims['cognito:groups'];
   const hospitalId = claims['custom:hospitalId'];
+  const unit = claims['custom:unit'];
   return {
     userId: String(claims.sub ?? ''),
     email: String(claims.email ?? ''),
     groups: Array.isArray(groups) ? groups.map(String) : [],
     hospitalId: typeof hospitalId === 'string' && hospitalId !== '' ? hospitalId : undefined,
-    approved: claims['custom:approved'] === 'true',
+    unit: typeof unit === 'string' && unit !== '' ? unit : undefined,
+    approved: options.staffPool === true || claims['custom:approved'] === 'true',
   };
 }
 
@@ -62,6 +70,7 @@ export function homeRoute(session: Session): string {
   }
   if (inGroup(session, GROUPS.admins) && !session.hospitalId) return '/(admin)/hospital-setup';
   if (inGroup(session, GROUPS.staff)) return '/(staff)/inbox';
+  if (inGroup(session, GROUPS.admins)) return '/(admin)/staff-invite';
   return '/(patient)/home';
 }
 
@@ -70,9 +79,11 @@ export function canOpen(session: Session, area: Area, screen?: string): boolean 
   const isAdmin = inGroup(session, GROUPS.admins);
   // An admin must register their hospital before any other screen.
   if (isAdmin && !session.hospitalId) return area === 'admin' && screen === 'hospital-setup';
+  // Hospital setup is a one-time step: once registered, the admin moves on to their area.
+  if (area === 'admin' && screen === 'hospital-setup') return false;
   switch (area) {
     case 'patient':
-      return !inGroup(session, GROUPS.staff) && !inGroup(session, GROUPS.doctors);
+      return !inGroup(session, GROUPS.staff) && !inGroup(session, GROUPS.doctors) && !isAdmin;
     case 'staff':
       return inGroup(session, GROUPS.staff) && session.hospitalId !== undefined;
     case 'admin':

@@ -73,6 +73,21 @@ describe('sessionFromClaims', () => {
   });
 });
 
+describe('staff pool sessions', () => {
+  it('reads the unit and treats invited doctors as approved', () => {
+    const claims = { sub: 's', 'cognito:groups': ['doctors'], 'custom:hospitalId': 'H2', 'custom:unit': 'icu' };
+    expect(sessionFromClaims(claims, { staffPool: true })).toMatchObject({ unit: 'icu', approved: true });
+    expect(sessionFromClaims(claims).approved).toBe(false);
+  });
+
+  it('sends a staff-pool admin to the admin area, not the patient app', () => {
+    const poolAdmin = session(['admins'], { hospitalId: 'H1' });
+    expect(homeRoute(poolAdmin)).toBe('/(admin)/staff-invite');
+    expect(canOpen(poolAdmin, 'patient')).toBe(false);
+    expect(canOpen(poolAdmin, 'admin', 'staff-invite')).toBe(true);
+  });
+});
+
 describe('homeRoute', () => {
   it.each([
     ['patient', patient, '/(patient)/home'],
@@ -89,6 +104,11 @@ describe('homeRoute', () => {
 });
 
 describe('canOpen', () => {
+  it('moves an admin off hospital setup once the hospital is registered', () => {
+    expect(canOpen(admin, 'admin', 'hospital-setup')).toBe(false);
+    expect(redirectFor(admin, ['(admin)', 'hospital-setup'])).toBe('/(staff)/inbox');
+  });
+
   it('keeps an admin on hospital setup until the hospital is registered', () => {
     expect(canOpen(newAdmin, 'admin', 'hospital-setup')).toBe(true);
     expect(canOpen(newAdmin, 'admin', 'team')).toBe(false);

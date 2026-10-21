@@ -13,10 +13,21 @@ import {
 } from 'aws-amplify/auth';
 import type { StringKey } from '../i18n/t';
 import { sessionFromClaims, type Session, type SignUpRole } from '@medora/shared/logic/session';
-import { backendConfigured } from './amplify';
+import { cleanTotpCode, signInStepToNext, type PoolKind, type SignInNext } from '@medora/shared/logic/signin';
+import { activePool, backendConfigured, configurePool, isStaffPoolToken, rememberPool } from './amplify';
 
-/** What the sign-in screen must do next. */
-export type SignInNext = 'done' | 'newPassword' | 'verify';
+export type { PoolKind, SignInNext };
+
+/** What a staff member needs to add the account to an authenticator app. */
+export interface TotpSetup {
+  sharedSecret: string;
+}
+
+let pendingTotp: TotpSetup | null = null;
+
+export function totpSetupDetails(): TotpSetup | null {
+  return pendingTotp;
+}
 
 /** An auth failure with a translated message key that never says whether an email exists. */
 export class AuthError extends Error {
@@ -76,12 +87,28 @@ export async function resendCode(email: string): Promise<void> {
   }
 }
 
-export async function signIn(email: string, password: string): Promise<SignInNext> {
+/** Signs in to the public pool, or to the invite-only staff pool when `pool` is `staff`. */
+export async function signIn(email: string, password: string, pool: PoolKind = 'public'): Promise<SignInNext> {
+  const previous = activePool();
   try {
+    configurePool(pool);
     const { nextStep } = await amplifySignIn({ username: clean(email), password });
-    return stepToNext(nextStep.signInStep);
+    return stepToNext(nextStep);
   } catch (err) {
+    configurePool(previous); // a failed attempt must not move Amplify off a pool that still has a session
     throw toAuthError(err, 'signIn.errorGeneric');
+  }
+}
+
+/** Sends the six-digit code from the authenticator app, for first-time setup or a normal sign-in. */
+export async function confirmTotp(code: string): Promise<SignInNext> {
+  const clean6 = cleanTotpCode(code);
+  if (!clean6) throw new AuthError('auth.error.code');
+  try {
+    const { nextStep } = await confirmSignIn({ challengeResponse: clean6 });
+    return stepToNext(nextStep);
+  } catch (err) {
+    throw toAuthError(err, 'auth.error.code');
   }
 }
 
@@ -89,22 +116,37 @@ export async function signIn(email: string, password: string): Promise<SignInNex
 export async function setNewPassword(password: string): Promise<SignInNext> {
   try {
     const { nextStep } = await confirmSignIn({ challengeResponse: password });
-    return stepToNext(nextStep.signInStep);
+    return stepToNext(nextStep);
   } catch (err) {
     throw toAuthError(err, 'auth.error.generic');
   }
 }
 
-function stepToNext(step: string): SignInNext {
-  if (step === 'DONE') return 'done';
-  if (step === 'CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED') return 'newPassword';
-  if (step === 'CONFIRM_SIGN_UP') return 'verify';
-  // MFA and other challenges are off for the MVP.
-  throw new AuthError('signIn.errorGeneric');
+interface NextStepWithTotp {
+  signInStep: string;
+  totpSetupDetails?: { sharedSecret: string };
+}
+
+function stepToNext(nextStep: NextStepWithTotp): SignInNext {
+  const next = signInStepToNext(nextStep.signInStep);
+  // SMS codes and other challenges are never offered; staff use an authenticator app only.
+  if (!next) throw new AuthError('signIn.errorGeneric');
+  if (next === 'done') rememberPool(activePool());
+  pendingTotp =
+    next === 'totpSetup' && nextStep.totpSetupDetails
+      ? { sharedSecret: nextStep.totpSetupDetails.sharedSecret }
+      : null;
+  return next;
 }
 
 export async function signOut(): Promise<void> {
-  await amplifySignOut();
+  try {
+    await amplifySignOut();
+  } finally {
+    pendingTotp = null;
+    rememberPool('public');
+    configurePool('public');
+  }
 }
 
 /**
@@ -114,7 +156,7 @@ export async function signOut(): Promise<void> {
 export async function getSession(refresh = false): Promise<Session | null> {
   try {
     const { tokens } = await fetchAuthSession({ forceRefresh: refresh });
-    return tokens?.idToken ? sessionFromClaims(tokens.idToken.payload) : null;
+    return tokens?.idToken ? sessionFromClaims(tokens.idToken.payload, { staffPool: isStaffPoolToken(tokens.idToken.payload) }) : null;
   } catch {
     return null;
   }

@@ -57,6 +57,16 @@ export function driveEstimate(distanceKm: number, at: Date, ambulance = false): 
   return ((distanceKm * ROAD_FACTOR) / speed) * 60;
 }
 
+/** Ready general beds not held by a reservation; reserved beds count as not free (requirement 19.3). */
+export function freeBeds(status: HospitalStatus): number {
+  return Math.max(0, status.beds - (status.reservedBeds ?? 0));
+}
+
+/** Ready NICU cots not held by a reservation. */
+export function freeNicu(status: HospitalStatus): number {
+  return Math.max(0, status.nicu - (status.reservedNicu ?? 0));
+}
+
 /** Reasons a hospital can't take this pathway right now; empty means it can. */
 export function failsFor(status: HospitalStatus, pathway: Pathway): Failure[] {
   const failures: Failure[] = [];
@@ -69,8 +79,8 @@ export function failsFor(status: HospitalStatus, pathway: Pathway): Failure[] {
   for (const role of pathway.onDuty) {
     if (status.oncall[role] !== true) failures.push({ kind: 'onDuty', item: role });
   }
-  if (pathway.needsBed && status.beds <= 0) failures.push({ kind: 'beds' });
-  if (pathway.needsNicu && status.nicu <= 0) failures.push({ kind: 'nicu' });
+  if (pathway.needsBed && freeBeds(status) <= 0) failures.push({ kind: 'beds' });
+  if (pathway.needsNicu && freeNicu(status) <= 0) failures.push({ kind: 'nicu' });
   return failures;
 }
 
@@ -98,7 +108,7 @@ export function score(
   let s = driveMin + hospital.typicalWaitMin * weights.waitWeight;
   if (isStale(status, nowMs, weights)) s += weights.stalePenalty;
   if (status.conflict) s += weights.unclearPenalty;
-  if (pathway.needsBed && status.beds <= 1) s += weights.lowBedPenalty;
+  if (pathway.needsBed && freeBeds(status) <= 1) s += weights.lowBedPenalty;
   if (pathway.prefer !== undefined && status.depts[pathway.prefer] === 'open') s += weights.preferBonus;
   return s;
 }

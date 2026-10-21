@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React from 'react';
 import { setActiveLang, translate, type Lang, type Params, type StringKey } from '../i18n/t';
 import type { Session } from '@medora/shared/logic/session';
+import { restorePool } from '../services/amplify';
 import { getSession, signOut as authSignOut } from '../services/auth';
 import { liveData, type DataSnapshot } from '../services/data';
 
@@ -49,7 +50,8 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
         }
       })
       .catch(() => undefined); // keep English if storage is unavailable
-    const loadSession = getSession().then(setSession);
+    // The pool used last time must be active before the saved session is read.
+    const loadSession = restorePool().then(() => getSession()).then(setSession);
     void Promise.all([loadLang, loadSession]).finally(() => setReady(true));
   }, []);
 

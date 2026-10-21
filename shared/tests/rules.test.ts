@@ -48,3 +48,19 @@ describe('ruleAccepts', () => {
     );
   });
 });
+
+describe('reserved beds (requirement 19.3)', () => {
+  const stroke = PATHWAYS.stroke;
+
+  it('counts reserved beds as not free for auto-accept and for the beds failure', () => {
+    const s = openStatus({ beds: 2, reservedBeds: 1, rules: { stroke: true, minBeds: 2 } });
+    expect(ruleAccepts(s, stroke)).toBe(false);
+    const allHeld = openStatus({ beds: 2, reservedBeds: 2, rules: { stroke: true, minBeds: 0 } });
+    expect(failsFor(allHeld, stroke).some((f) => f.kind === 'beds')).toBe(true);
+    expect(ruleAccepts(allHeld, stroke)).toBe(false);
+  });
+
+  it('is unchanged when nothing is reserved', () => {
+    expect(ruleAccepts(openStatus({ beds: 2, rules: { stroke: true, minBeds: 2 } }), stroke)).toBe(true);
+  });
+});

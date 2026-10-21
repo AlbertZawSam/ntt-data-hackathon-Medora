@@ -1,0 +1,21 @@
+{
+  "_note": "Built-in Bangkok places for location search when GPS is unavailable. Approximate district centres; synthetic use only.",
+  "defaultKey": "siam",
+  "bounds": { "minLat": 13.49, "maxLat": 13.96, "minLng": 100.32, "maxLng": 100.94 },
+  "places": [
+    { "key": "siam", "name": { "en": "Siam", "th": "สยาม" }, "lat": 13.7455, "lng": 100.534 },
+    { "key": "asok", "name": { "en": "Asok / Sukhumvit", "th": "อโศก / สุขุมวิท" }, "lat": 13.7371, "lng": 100.5603 },
+    { "key": "silom", "name": { "en": "Silom", "th": "สีลม" }, "lat": 13.7285, "lng": 100.534 },
+    { "key": "victory", "name": { "en": "Victory Monument", "th": "อนุสาวรีย์ชัยสมรภูมิ" }, "lat": 13.765, "lng": 100.5379 },
+    { "key": "rama9", "name": { "en": "Rama 9", "th": "พระราม 9" }, "lat": 13.7585, "lng": 100.5655 },
+    { "key": "huaykwang", "name": { "en": "Huai Khwang", "th": "ห้วยขวาง" }, "lat": 13.7787, "lng": 100.574 },
+    { "key": "ari", "name": { "en": "Ari", "th": "อารีย์" }, "lat": 13.7794, "lng": 100.5446 },
+    { "key": "chatuchak", "name": { "en": "Chatuchak", "th": "จตุจักร" }, "lat": 13.8003, "lng": 100.5538 },
+    { "key": "bangsue", "name": { "en": "Bang Sue", "th": "บางซื่อ" }, "lat": 13.804, "lng": 100.537 },
+    { "key": "ladprao", "name": { "en": "Lat Phrao", "th": "ลาดพร้าว" }, "lat": 13.816, "lng": 100.5614 },
+    { "key": "donmueang", "name": { "en": "Don Mueang", "th": "ดอนเมือง" }, "lat": 13.9126, "lng": 100.6067 },
+    { "key": "banglamphu", "name": { "en": "Banglamphu / Khao San", "th": "บางลำพู / ข้าวสาร" }, "lat": 13.7589, "lng": 100.4974 },
+    { "key": "thonburi", "name": { "en": "Thonburi (Wongwian Yai)", "th": "ธนบุรี (วงเวียนใหญ่)" }, "lat": 13.7211, "lng": 100.493 },
+    { "key": "bangna", "name": { "en": "Bang Na", "th": "บางนา" }, "lat": 13.6682, "lng": 100.6047 }
+  ]
+}

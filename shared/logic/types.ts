@@ -58,8 +58,21 @@ export type RuleTarget = PathwayKey | 'visit';
 export type AutoAcceptRules = Partial<Record<RuleTarget, boolean>> & { minBeds: number };
 
 export interface HospitalStatus {
+  /** Ready general beds as entered by the ward unit; reserved beds are counted separately. */
   beds: number;
   nicu: number;
+  /** Beds held for accepted requests that haven't arrived yet (released after 2 hours). */
+  reservedBeds?: number;
+  /** NICU cots held for accepted requests. */
+  reservedNicu?: number;
+  /** Ready ICU beds as entered by the ICU unit. */
+  icu?: number;
+  /** Cath lab busy with a case, free in about this many minutes (cleared when it is ready or down). */
+  cathlabBusyMin?: number;
+  /** Optional note (up to 100 characters) the owning unit left with its last change, by item id. */
+  notes?: Record<string, string>;
+  /** Which unit last changed each item, and when. Freshness labels read this. */
+  meta?: Record<string, { unit: string; at: string }>;
   depts: Record<string, DeptState>;
   /** true = working */
   equip: Record<string, boolean>;

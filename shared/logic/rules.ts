@@ -1,13 +1,13 @@
 /**
  * Auto-accept rules set by hospital admins — pure TypeScript, no React Native imports.
- * Requirements: 6.4, 11.2
+ * Requirements: 6.4, 11.2, 19.3
  */
-import { failsFor } from './ranking';
+import { failsFor, freeBeds } from './ranking';
 import type { HospitalStatus, Pathway } from './types';
 
 /**
  * A pathway request is accepted automatically when the admin turned its rule on, the hospital
- * has no failures for it and free beds are at least the rule's minimum.
+ * has no failures for it and free beds (reserved beds excluded) are at least the rule's minimum.
  * A patient visit is accepted when the visit rule is on and the emergency department is open.
  */
 export function ruleAccepts(status: HospitalStatus, target: Pathway | 'visit'): boolean {
@@ -17,6 +17,6 @@ export function ruleAccepts(status: HospitalStatus, target: Pathway | 'visit'): 
   return (
     status.rules[target.key] === true &&
     failsFor(status, target).length === 0 &&
-    status.beds >= status.rules.minBeds
+    freeBeds(status) >= status.rules.minBeds
   );
 }

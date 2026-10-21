@@ -1,5 +1,8 @@
 import { a, defineData, type ClientSchema } from '@aws-amplify/backend';
 import { agentRunner } from '../functions/agent-runner/resource';
+import { inviteStaff } from '../functions/invite-staff/resource';
+import { registerHospital } from '../functions/register-hospital/resource';
+import { updateStatus } from '../functions/update-status/resource';
 
 /**
  * AppSync/DynamoDB data contract. Hospital-scoped rules compare `hospitalId` with the
@@ -23,8 +26,11 @@ const schema = a.schema({
       equipment: a.string().array().required(),
     })
     .secondaryIndexes((index) => [index('hospitalId')])
+    // Clients only read their own hospital's profile. It is created by `register-hospital`; admin
+    // edits will go through a Lambda that checks the `admins` group (docs/roles.md), because an
+    // owner rule alone would let nurses and doctors of the hospital change it.
     .authorization((allow) => [
-      allow.ownerDefinedIn('hospitalId').identityClaim('custom:hospitalId'),
+      allow.ownerDefinedIn('hospitalId').identityClaim('custom:hospitalId').to(['read']),
     ]),
 
   HospitalStatus: a
@@ -34,8 +40,11 @@ const schema = a.schema({
       status: a.json().required(),
     })
     .secondaryIndexes((index) => [index('hospitalId')])
+    // Clients only read. Every change goes through `updateStatus`, which checks the caller's unit,
+    // so a nurse can't write another unit's items (docs/roles.md). The first row is created by
+    // `register-hospital`.
     .authorization((allow) => [
-      allow.ownerDefinedIn('hospitalId').identityClaim('custom:hospitalId'),
+      allow.ownerDefinedIn('hospitalId').identityClaim('custom:hospitalId').to(['read']),
     ]),
 
   Specialist: a
@@ -192,7 +201,51 @@ const schema = a.schema({
     .arguments({ referralId: a.id().required() })
     .authorization((allow) => [allow.group('doctors')])
     .handler(a.handler.function(agentRunner).async()),
-}).authorization((allow) => [allow.resource(agentRunner).to(['query', 'mutate'])]);
+
+  /**
+   * An admin of the staff pool invites staff (with one unit), doctors or admins into their own
+   * hospital. The handler also checks the token comes from the staff pool (docs/roles.md).
+   */
+  inviteStaff: a
+    .mutation()
+    .arguments({ email: a.string().required(), group: a.string().required(), unit: a.string() })
+    .returns(a.string())
+    .authorization((allow) => [allow.group('admins')])
+    .handler(a.handler.function(inviteStaff)),
+
+  /**
+   * A new admin registers their hospital once. The handler checks the caller is an admin of the
+   * public pool with no hospital yet, creates the profile and sets `custom:hospitalId`.
+   */
+  registerHospital: a
+    .mutation()
+    .arguments({
+      nameEn: a.string().required(),
+      nameTh: a.string().required(),
+      lat: a.float().required(),
+      lng: a.float().required(),
+      totalBeds: a.integer().required(),
+      nicuTotal: a.integer().required(),
+    })
+    .returns(a.string())
+    .authorization((allow) => [allow.group('admins')])
+    .handler(a.handler.function(registerHospital)),
+
+  /**
+   * Unit staff change one status item their unit owns, or confirm "Still correct?". The handler
+   * checks the staff-pool token, the hospital and the unit before writing.
+   */
+  updateStatus: a
+    .mutation()
+    .arguments({ change: a.json().required(), note: a.string() })
+    .returns(a.string())
+    .authorization((allow) => [allow.group('hospital_staff')])
+    .handler(a.handler.function(updateStatus)),
+}).authorization((allow) => [
+  allow.resource(agentRunner).to(['query', 'mutate']),
+  allow.resource(registerHospital).to(['mutate']),
+  allow.resource(updateStatus).to(['query', 'mutate']),
+]);
 
 export type Schema = ClientSchema<typeof schema>;
 

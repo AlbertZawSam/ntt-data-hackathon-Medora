@@ -1,13 +1,19 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
 import type { StringKey } from '../src/i18n/t';
-import { AuthError, setNewPassword, signIn, type SignInNext } from '../src/services/auth';
+import { staffPoolConfigured } from '../src/services/amplify';
+import { AuthError, confirmTotp, setNewPassword, signIn, totpSetupDetails, type PoolKind, type SignInNext } from '../src/services/auth';
 import { useApp, useT } from '../src/state/AppProvider';
 import { Button } from '../src/ui/Button';
 import { Field } from '../src/ui/Field';
 import { FormScreen } from '../src/ui/FormScreen';
+import { fonts, fontSizes, useTheme } from '../src/ui/theme';
+import { Text } from 'react-native';
 
-/** Email and password sign-in; invited staff set their password here on first sign-in. Requirements: 1.2, 1.6, 18.3 */
+/**
+ * Email and password sign-in. Invited hospital staff switch to "Hospital staff sign-in", set their
+ * password on first use, then set up and use an authenticator app (no SMS). Requirements: 1.2, 1.5, 1.6, 18.3
+ */
 export default function SignInScreen(): React.JSX.Element {
   const t = useT();
   const router = useRouter();
@@ -15,7 +21,10 @@ export default function SignInScreen(): React.JSX.Element {
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [newPassword, setNewPasswordValue] = React.useState('');
-  const [step, setStep] = React.useState<'credentials' | 'newPassword'>('credentials');
+  const theme = useTheme();
+  const [pool, setPool] = React.useState<PoolKind>('public');
+  const [code, setCode] = React.useState('');
+  const [step, setStep] = React.useState<'credentials' | 'newPassword' | 'totpSetup' | 'totpCode'>('credentials');
   const [busy, setBusy] = React.useState(false);
   const [errorKey, setErrorKey] = React.useState<StringKey | null>(null);
 
@@ -23,6 +32,11 @@ export default function SignInScreen(): React.JSX.Element {
   const handle = async (next: SignInNext): Promise<void> => {
     if (next === 'done') await refreshSession();
     else if (next === 'newPassword') setStep('newPassword');
+    else if (next === 'totpSetup' || next === 'totpCode') {
+      setPassword(''); // not needed again; don't keep it in memory during the code step
+      setCode('');
+      setStep(next);
+    }
     else router.push({ pathname: '/sign-up', params: { email, verify: '1' } });
   };
 
@@ -40,10 +54,41 @@ export default function SignInScreen(): React.JSX.Element {
 
   const submit = (): void => {
     if (!email.trim() || !password) setErrorKey('auth.error.missingFields');
-    else void run(() => signIn(email, password));
+    else void run(() => signIn(email, password, pool));
   };
 
   const message = errorKey ? { text: t(errorKey), tone: 'error' as const } : null;
+
+  if (step === 'totpSetup' || step === 'totpCode') {
+    const setup = step === 'totpSetup' ? totpSetupDetails() : null;
+    return (
+      <FormScreen
+        title={t(step === 'totpSetup' ? 'signIn.totpSetupTitle' : 'signIn.totpCodeTitle')}
+        subtitle={t(step === 'totpSetup' ? 'signIn.totpSetupHint' : 'signIn.totpCodeHint')}
+        message={message}
+      >
+        {setup ? (
+          <>
+            <Text style={{ color: theme.textMuted, fontFamily: fonts.medium, fontSize: fontSizes.sm }}>{t('signIn.totpSecretLabel')}</Text>
+            <Text selectable style={{ color: theme.text, fontFamily: fonts.semibold, fontSize: fontSizes.lg }}>
+              {setup.sharedSecret}
+            </Text>
+          </>
+        ) : null}
+        <Field
+          label={t('signIn.totpCodePlaceholder')}
+          value={code}
+          onChangeText={setCode}
+          keyboardType="number-pad"
+          autoComplete="one-time-code"
+          textContentType="oneTimeCode"
+          maxLength={7}
+          onSubmitEditing={() => void run(() => confirmTotp(code))}
+        />
+        <Button label={t('signIn.totpButton')} busy={busy} onPress={() => void run(() => confirmTotp(code))} />
+      </FormScreen>
+    );
+  }
 
   if (step === 'newPassword') {
     return (
@@ -64,7 +109,7 @@ export default function SignInScreen(): React.JSX.Element {
   }
 
   return (
-    <FormScreen title={t('signIn.title')} message={message}>
+    <FormScreen title={t(pool === 'staff' ? 'signIn.staffTitle' : 'signIn.title')} message={message}>
       <Field
         label={t('signIn.emailPlaceholder')}
         value={email}
@@ -86,7 +131,19 @@ export default function SignInScreen(): React.JSX.Element {
         onSubmitEditing={submit}
       />
       <Button label={t('signIn.submitButton')} busy={busy} onPress={submit} />
-      <Button variant="link" label={t('signIn.noAccount')} onPress={() => router.push('/sign-up')} />
+      {pool === 'public' ? (
+        <Button variant="link" label={t('signIn.noAccount')} onPress={() => router.push('/sign-up')} />
+      ) : null}
+      {staffPoolConfigured ? (
+        <Button
+          variant="link"
+          label={t(pool === 'staff' ? 'signIn.patientLink' : 'signIn.staffLink')}
+          onPress={() => {
+            setErrorKey(null);
+            setPool(pool === 'staff' ? 'public' : 'staff');
+          }}
+        />
+      ) : null}
     </FormScreen>
   );
 }

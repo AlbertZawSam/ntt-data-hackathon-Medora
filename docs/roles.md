@@ -49,7 +49,7 @@ Specialist on-duty switches belong to the unit the admin assigns them to (usuall
 ## How to implement it
 
 1. **Staff user pool** (in `backend/amplify/backend.ts`): groups `admins`, `hospital_staff`, `doctors`; custom attributes `hospitalId` and `unit` (strings), both **writable only by admins** (not by the user themselves); MFA `REQUIRED` with software tokens only.
-2. **Invitations:** an `invite-staff` Lambda (called by an admin through AppSync) runs `AdminCreateUser`, `AdminAddUserToGroup` and `AdminUpdateUserAttributes` in the staff pool. It refuses to create users for another hospital than the admin's own, and refuses `custom:unit` values outside the list above.
+2. **Invitations:** an `invite-staff` Lambda (called by an admin through AppSync) runs `AdminCreateUser` (with `custom:hospitalId` and `custom:unit` set at creation) and `AdminAddUserToGroup` in the staff pool; its IAM allows only those two actions on that pool. It refuses tokens that don't come from the staff pool, lowercases emails, and never reveals whether an email already has an account. It refuses to create users for another hospital than the admin's own, and refuses `custom:unit` values outside the list above.
 3. **AppSync authorization:**
    - `StatusItem` updates go through the `validateStatusUpdate` Lambda, which checks the caller is in `hospital_staff`, their `custom:hospitalId` equals the item's hospital, and their `custom:unit` equals the item's `ownerUnit` (or is `all`), then writes with a DynamoDB condition on `ownerUnit` and `version`.
    - `CareRequest` accept, decline and undo: `hospital_staff` of the request's hospital.

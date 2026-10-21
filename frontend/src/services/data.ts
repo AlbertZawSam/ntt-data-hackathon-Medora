@@ -16,6 +16,8 @@ import type {
   TraceStep,
   Transfer,
 } from '@medora/shared/logic/types';
+import type { HospitalInput } from '@medora/shared/logic/hospital';
+import type { StatusChange } from '@medora/shared/logic/statusUpdate';
 import type { Session } from '@medora/shared/logic/session';
 import { backendConfigured } from './amplify';
 
@@ -47,6 +49,8 @@ interface Client {
   };
   mutations: {
     startReferral: (input: { referralId: string }) => Promise<{ errors?: unknown[] }>;
+    registerHospital: (input: HospitalInput) => Promise<{ data?: string | null; errors?: unknown[] }>;
+    updateStatus: (input: { change: string; note?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
   };
 }
 
@@ -82,6 +86,38 @@ const EMPTY_SNAPSHOT: DataSnapshot = Object.freeze({
 });
 
 type SnapshotKey = Exclude<keyof DataSnapshot, 'isSynced'>;
+
+/**
+ * AppSync returns AWSJSON fields as strings and expects strings back. These are the JSON fields of
+ * each snapshot list; they are parsed on the way in so screens always see objects.
+ */
+const JSON_FIELDS: Partial<Record<SnapshotKey, string[]>> = {
+  hospitalProfiles: ['name'],
+  hospitalStatuses: ['status'],
+  careRequests: ['patient', 'slot'],
+  referrals: ['chosenName', 'why', 'rows'],
+  traceSteps: ['title', 'detail'],
+  activities: ['actor', 'text'],
+};
+
+function parseJsonFields<T>(key: SnapshotKey, items: T[]): T[] {
+  const fields = JSON_FIELDS[key];
+  if (!fields) return items;
+  return items.map((item) => {
+    const copy = { ...item } as Record<string, unknown>;
+    for (const field of fields) {
+      const value = copy[field];
+      if (typeof value === 'string') {
+        try {
+          copy[field] = JSON.parse(value);
+        } catch {
+          // leave a malformed value as-is rather than dropping the record
+        }
+      }
+    }
+    return copy as T;
+  });
+}
 type ObservableModel = Pick<Model<RecordWithId>, 'observeQuery'>;
 
 class LiveDataStore {
@@ -143,7 +179,7 @@ class LiveDataStore {
           first = false;
           this.received += 1;
         }
-        this.snapshot = { ...this.snapshot, [key]: items, isSynced: this.received === this.expected } as DataSnapshot;
+        this.snapshot = { ...this.snapshot, [key]: parseJsonFields(key, items), isSynced: this.received === this.expected } as DataSnapshot;
         this.emit();
       },
       // Authorization and connectivity errors leave an empty/live snapshot; Amplify reconnects
@@ -195,7 +231,34 @@ export async function startReferral(
   return created.data.id;
 }
 
+/**
+ * Registers the signed-in admin's hospital once. The backend creates the profile and sets the
+ * admin's hospital; the caller must refresh the session afterwards to receive the new claim.
+ */
+export async function registerHospital(input: HospitalInput): Promise<string> {
+  const result = await client.mutations.registerHospital(input);
+  ensureData(result, 'Register hospital');
+  if (!result.data) throw new DataServiceError('Register hospital failed.');
+  return result.data;
+}
+
+/**
+ * Sends one status change for the caller's unit. The server checks the unit and hospital again, so a
+ * refusal here (for example an item another unit owns) surfaces as a DataServiceError.
+ */
+export async function updateStatus(change: StatusChange, note?: string): Promise<void> {
+  const trimmed = note?.trim();
+  const result = await client.mutations.updateStatus({ change: JSON.stringify(change), ...(trimmed ? { note: trimmed } : {}) });
+  ensureData(result, 'Update status');
+}
+
 export async function writeActivity(input: Omit<Activity, 'id' | 'createdAt'>): Promise<void> {
-  const result = await client.models.Activity.create(input);
+  // AWSJSON fields go to AppSync as strings.
+  const result = await client.models.Activity.create({
+    ...input,
+    at: new Date().toISOString(), // the Activity model's required time field
+    actor: JSON.stringify(input.actor),
+    text: JSON.stringify(input.text),
+  } as unknown as Omit<Activity, 'id' | 'createdAt'>);
   ensureData(result, 'Write activity');
 }
