@@ -85,12 +85,24 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function toBi(value: unknown): Bi | null {
+/** AWSJSON arrives from AppSync as a string; accept an already-parsed object too. */
+function parsed(value: unknown): unknown {
+  if (typeof value !== 'string') return value;
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+function toBi(raw: unknown): Bi | null {
+  const value = parsed(raw);
   if (!isRecord(value) || typeof value.en !== 'string' || typeof value.th !== 'string') return null;
   return { en: value.en, th: value.th };
 }
 
-function toStatus(value: unknown): HospitalStatus | null {
+function toStatus(raw: unknown): HospitalStatus | null {
+  const value = parsed(raw);
   if (!isRecord(value)) return null;
   const { beds, nicu, depts, equip, oncall, rules, conflict, updatedAt } = value;
   if (
@@ -139,6 +151,23 @@ function referralRun(record: ReferralRecord): ReferralRun {
     requestIds: (record.requestIds ?? []).filter((id): id is string => typeof id === 'string'),
     startedAtMs: record.startedAtMs,
   };
+}
+
+/** AppSync AWSJSON fields take JSON strings; the data client doesn't stringify objects for us. */
+const JSON_KEYS = ['patient', 'slot', 'hospitalName', 'title', 'detail', 'actor', 'text', 'chosenName', 'why', 'rows'];
+function toWire<T extends Record<string, unknown>>(input: T, keys: string[] = JSON_KEYS): T {
+  const out: Record<string, unknown> = { ...input };
+  for (const key of keys) if (out[key] !== undefined && typeof out[key] !== 'string') out[key] = JSON.stringify(out[key]);
+  return out as T;
+}
+function fromWire<T extends Record<string, unknown>>(record: T, keys: string[]): T {
+  const out: Record<string, unknown> = { ...record };
+  for (const key of keys) {
+    if (typeof out[key] === 'string') {
+      try { out[key] = JSON.parse(out[key] as string); } catch { /* keep as-is */ }
+    }
+  }
+  return out as T;
 }
 
 class AmplifyReferralStore implements ReferralStore {
@@ -203,23 +232,23 @@ class AmplifyReferralStore implements ReferralStore {
   async requests(referralId: string): Promise<CareRequest[]> {
     const result = await this.client.models.CareRequest.list({ filter: { referralId: { eq: referralId } }, limit: 1_000 });
     dataError(result.errors, 'list referral requests');
-    return result.data.map((record) => ({ ...record, id: record.id }));
+    return result.data.map((record) => fromWire(record, ['patient', 'slot', 'hospitalName']) as unknown as CareRequest);
   }
 
   async createRequest(request: Omit<CareRequest, 'id'>): Promise<CareRequest> {
-    const result = await this.client.models.CareRequest.create(request as Omit<CareRequestRecord, 'id'>);
+    const result = await this.client.models.CareRequest.create(toWire(request as unknown as Record<string, unknown>) as unknown as Omit<CareRequestRecord, 'id'>);
     dataError(result.errors, 'create referral request');
     if (!result.data) throw new Error('Referral request was not created.');
-    return { ...result.data, id: result.data.id };
+    return fromWire(result.data, ['patient', 'slot', 'hospitalName']) as unknown as CareRequest;
   }
 
   async updateRequest(id: string, changes: Partial<CareRequest>): Promise<void> {
-    const result = await this.client.models.CareRequest.update({ id, ...changes });
+    const result = await this.client.models.CareRequest.update({ id, ...toWire(changes as Record<string, unknown>) });
     dataError(result.errors, 'update referral request');
   }
 
   async updateReferral(id: string, changes: Record<string, unknown>): Promise<void> {
-    const result = await this.client.models.Referral.update({ id, ...changes });
+    const result = await this.client.models.Referral.update({ id, ...toWire(changes) });
     dataError(result.errors, 'update referral');
   }
 
@@ -230,9 +259,8 @@ class AmplifyReferralStore implements ReferralStore {
       hospitalId: this.referral.fromHospitalId,
       n: this.traceNumber,
       kind,
-      title,
-      detail,
-    });
+      ...toWire({ title, detail }),
+    } as never);
     dataError(result.errors, 'write trace step');
   }
 
@@ -241,9 +269,8 @@ class AmplifyReferralStore implements ReferralStore {
       hospitalId: this.referral.fromHospitalId,
       ownerId: this.referral.ownerId,
       at: new Date(this.now()).toISOString(),
-      actor: { en: 'Referral agent', th: 'เอเจนต์ส่งต่อ' },
-      text,
-    });
+      ...toWire({ actor: { en: 'Referral agent', th: 'เอเจนต์ส่งต่อ' }, text }),
+    } as never);
     dataError(result.errors, 'write activity');
   }
 

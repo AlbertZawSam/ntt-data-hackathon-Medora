@@ -1,7 +1,8 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { pick } from '../../src/i18n/t';
-import { DataServiceError, startReferral } from '../../src/services/data';
+import { DataServiceError, confirmReferral, setAsideReferral, startReferral } from '../../src/services/data';
+import type { StringKey } from '../../src/i18n/t';
 import { ScreenStub } from '../../src/components/ScreenStub';
 import { useApp, useT } from '../../src/state/AppProvider';
 import { Button } from '../../src/ui/Button';
@@ -18,6 +19,8 @@ export default function DoctorReferScreen(): React.JSX.Element {
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [activeId, setActiveId] = React.useState<string | null>(null);
+  const [deciding, setDeciding] = React.useState(false);
+  const [decisionError, setDecisionError] = React.useState(false);
 
   const referral = React.useMemo(() => {
     const owned = data.referrals.filter((item) => item.ownerId === session?.userId);
@@ -49,6 +52,21 @@ export default function DoctorReferScreen(): React.JSX.Element {
       })
       .catch((cause: unknown) => setError(cause instanceof DataServiceError ? t('doctor.refer.startError') : t('doctor.refer.startError')))
       .finally(() => setBusy(false));
+  };
+
+  const asked = React.useMemo(
+    () => (referral ? data.careRequests.filter((r) => r.referralId === referral.id) : []),
+    [data.careRequests, referral],
+  );
+
+  /** Only the doctor decides: confirming or setting aside is their action, never the agent's. */
+  const decide = (action: 'confirm' | 'aside'): void => {
+    if (!referral) return;
+    setDeciding(true);
+    setDecisionError(false);
+    void (action === 'confirm' ? confirmReferral(referral) : setAsideReferral(referral.id))
+      .catch(() => setDecisionError(true))
+      .finally(() => setDeciding(false));
   };
 
   const recommendationSeconds =
@@ -101,6 +119,22 @@ export default function DoctorReferScreen(): React.JSX.Element {
           <Text style={[styles.traceTitle, { color: theme.text }]}>{referral.chosenName ? pick(referral.chosenName, lang) : t('doctor.refer.noHospital')}</Text>
           {referral.why ? <Text style={[styles.copy, { color: theme.textMuted }]}>{pick(referral.why, lang)}</Text> : null}
           {recommendationSeconds !== undefined ? <Text style={[styles.copy, { color: theme.textMuted }]}>{t('doctor.refer.timeToRecommendation', { seconds: recommendationSeconds })}</Text> : null}
+          {referral.etaMin !== undefined ? <Text style={[styles.copy, { color: theme.textMuted }]}>{t('doctor.refer.etaMin', { min: referral.etaMin })}</Text> : null}
+          {decisionError ? <Text style={[styles.error, { color: theme.emergency }]}>{t('doctor.refer.confirmError')}</Text> : null}
+          <Button label={t('doctor.refer.confirmTransfer')} busy={deciding} disabled={!referral.chosenId} onPress={() => decide('confirm')} />
+          <Button variant="secondary" label={t('doctor.refer.notThisOne')} disabled={deciding} onPress={() => decide('aside')} />
+        </View>
+      ) : null}
+      {referral?.status === 'confirmed' ? <Text style={[styles.status, { color: theme.success }]}>{t('doctor.refer.confirmed')}</Text> : null}
+      {referral?.status === 'set_aside' ? <Text style={[styles.copy, { color: theme.textMuted }]}>{t('doctor.refer.setAsideDone')}</Text> : null}
+      {asked.length > 0 ? (
+        <View style={[styles.panel, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('doctor.refer.decisionTitle')}</Text>
+          {asked.map((r) => (
+            <Text key={r.id} style={[styles.copy, { color: theme.textMuted }]}>
+              {t('doctor.refer.decisionRow', { name: r.hospitalName ? pick(r.hospitalName, lang) : r.hospitalId, status: t(`request.status.${r.status}` as StringKey) })}
+            </Text>
+          ))}
         </View>
       ) : null}
     </ScreenStub>

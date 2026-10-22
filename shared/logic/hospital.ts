@@ -44,13 +44,13 @@ export type RegistrationCheck =
   | { ok: false; reason: 'wrong-pool' | 'wrong-token' | 'not-admin' | 'already-registered' };
 
 /**
- * An admin without a hospital may register one, once. The token must come from the public pool
- * (the staff pool's admins are created with a hospital already), must carry the `admins` group,
+ * An admin without a hospital may register one, once. The token must come from the invite-only staff
+ * pool (the first admin is created by `scripts/create-first-admin.mjs` with no hospital), must carry the `admins` group,
  * and must not already have `custom:hospitalId`. A token issued before registering stays valid for up
  * to an hour, so the Lambda also derives the profile id from `sub`: a second attempt then fails.
  */
-export function checkRegistration(claims: Record<string, unknown> | undefined, publicPoolId: string | undefined): RegistrationCheck {
-  if (!claims || !publicPoolId || typeof claims.iss !== 'string' || !claims.iss.endsWith(`/${publicPoolId}`)) {
+export function checkRegistration(claims: Record<string, unknown> | undefined, poolId: string | undefined): RegistrationCheck {
+  if (!claims || !poolId || typeof claims.iss !== 'string' || !claims.iss.endsWith(`/${poolId}`)) {
     return { ok: false, reason: 'wrong-pool' };
   }
   const groups = claims['cognito:groups'];

@@ -33,7 +33,7 @@ describe('validateHospitalInput', () => {
 });
 
 describe('checkRegistration', () => {
-  it('lets a public-pool admin without a hospital register one', () => {
+  it('lets a staff-pool admin without a hospital register one', () => {
     expect(checkRegistration(adminClaims, POOL)).toEqual({ ok: true, username: 'u-1', sub: 'sub-1' });
   });
 

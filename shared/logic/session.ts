@@ -13,17 +13,19 @@ export const GROUPS = {
 
 export type Group = (typeof GROUPS)[keyof typeof GROUPS];
 
-/** Roles a user can pick at sign-up. Staff accounts are only created by an admin's invitation. */
-export const SIGN_UP_ROLES = ['patient', 'admin', 'doctor'] as const;
+/**
+ * Public sign-up creates patients only. Hospital admins, unit staff and doctors exist only in the
+ * invite-only staff pool (AGENTS.md 4b.1); the first admin of a hospital is created with
+ * `scripts/create-first-admin.mjs`.
+ */
+export const SIGN_UP_ROLES = ['patient'] as const;
 export type SignUpRole = (typeof SIGN_UP_ROLES)[number];
 
 /**
- * Groups for the role chosen at sign-up. Anything unexpected becomes a patient, so a tampered
- * sign-up can never reach staff or doctor screens.
+ * Groups for a public-pool sign-up. Whatever role the request claims, the result is `patients`, so a
+ * tampered sign-up can never reach staff, doctor or admin rights.
  */
-export function groupsForRole(role: unknown): Group[] {
-  if (role === 'admin') return [GROUPS.staff, GROUPS.admins];
-  if (role === 'doctor') return [GROUPS.doctors];
+export function groupsForRole(_role?: unknown): Group[] {
   return [GROUPS.patients];
 }
 

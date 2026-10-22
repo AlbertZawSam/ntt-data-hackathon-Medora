@@ -1,5 +1,8 @@
 import { a, defineData, type ClientSchema } from '@aws-amplify/backend';
+import { adminSettings } from '../functions/admin-settings/resource';
 import { agentRunner } from '../functions/agent-runner/resource';
+import { careActions } from '../functions/care-actions/resource';
+import { findCare } from '../functions/find-care/resource';
 import { inviteStaff } from '../functions/invite-staff/resource';
 import { registerHospital } from '../functions/register-hospital/resource';
 import { updateStatus } from '../functions/update-status/resource';
@@ -57,8 +60,10 @@ const schema = a.schema({
       slots: a.json().required(),
     })
     .secondaryIndexes((index) => [index('hospitalId').sortKeys(['specialty'])])
+    // Clients only read. Admin changes will go through a Lambda that checks the admin's own hospital
+    // (a plain group rule isn't scoped to one hospital), so no client can edit specialists today.
     .authorization((allow) => [
-      allow.ownerDefinedIn('hospitalId').identityClaim('custom:hospitalId'),
+      allow.ownerDefinedIn('hospitalId').identityClaim('custom:hospitalId').to(['read']),
     ]),
 
   CareRequest: a
@@ -78,6 +83,8 @@ const schema = a.schema({
       referralId: a.string(),
       slot: a.json(),
       doctorName: a.string(),
+      /** Bilingual hospital name copied at request time, so patients never read hospital profiles. */
+      hospitalName: a.json(),
       createdAtMs: a.integer().required(),
     })
     .secondaryIndexes((index) => [
@@ -85,9 +92,11 @@ const schema = a.schema({
       index('ownerId').sortKeys(['createdAtMs']),
       index('referralId').sortKeys(['createdAtMs']),
     ])
+    // Clients only read. Creating a request, accepting, declining, undoing and cancelling go through
+    // `care-actions`, so nobody can accept their own request or change another hospital's.
     .authorization((allow) => [
-      allow.ownerDefinedIn('ownerId').identityClaim('sub'),
-      allow.ownerDefinedIn('hospitalId').identityClaim('custom:hospitalId'),
+      allow.ownerDefinedIn('ownerId').identityClaim('sub').to(['read']),
+      allow.ownerDefinedIn('hospitalId').identityClaim('custom:hospitalId').to(['read']),
     ]),
 
   Message: a
@@ -101,9 +110,10 @@ const schema = a.schema({
       createdAtMs: a.integer().required(),
     })
     .secondaryIndexes((index) => [index('requestId').sortKeys(['createdAtMs'])])
+    // Clients only read; `sendMessage` decides the sender from the caller's token.
     .authorization((allow) => [
-      allow.ownerDefinedIn('ownerId').identityClaim('sub'),
-      allow.ownerDefinedIn('hospitalId').identityClaim('custom:hospitalId'),
+      allow.ownerDefinedIn('ownerId').identityClaim('sub').to(['read']),
+      allow.ownerDefinedIn('hospitalId').identityClaim('custom:hospitalId').to(['read']),
     ]),
 
   Referral: a
@@ -178,9 +188,11 @@ const schema = a.schema({
       index('hospitalId').sortKeys(['at']),
       index('ownerId').sortKeys(['at']),
     ])
+    // Hospital members only read the log. The owner can add and read their own entries (the phone's
+    // emergency-check log); nobody edits or deletes. Lambdas write the rest.
     .authorization((allow) => [
-      allow.ownerDefinedIn('ownerId').identityClaim('sub'),
-      allow.ownerDefinedIn('hospitalId').identityClaim('custom:hospitalId'),
+      allow.ownerDefinedIn('ownerId').identityClaim('sub').to(['create', 'read']),
+      allow.ownerDefinedIn('hospitalId').identityClaim('custom:hospitalId').to(['read']),
     ]),
 
   Device: a
@@ -241,7 +253,65 @@ const schema = a.schema({
     .returns(a.string())
     .authorization((allow) => [allow.group('hospital_staff')])
     .handler(a.handler.function(updateStatus)),
+
+  /** A patient sends a request to one hospital; the admin's auto-accept rule may accept it at once. */
+  submitRequest: a
+    .mutation()
+    .arguments({
+      hospitalId: a.string().required(),
+      needKey: a.string().required(),
+      etaMin: a.integer().required(),
+      mode: a.string().required(),
+      name: a.string(),
+      phone: a.string(),
+      description: a.string().required(),
+    })
+    .returns(a.string())
+    .authorization((allow) => [allow.group('patients')])
+    .handler(a.handler.function(careActions)),
+
+  cancelRequest: a
+    .mutation()
+    .arguments({ requestId: a.id().required() })
+    .returns(a.string())
+    .authorization((allow) => [allow.group('patients')])
+    .handler(a.handler.function(careActions)),
+
+  /** Unit staff accept, decline (with a reason and optional note) or undo an automatic acceptance. */
+  answerRequest: a
+    .mutation()
+    .arguments({ requestId: a.id().required(), action: a.string().required(), reason: a.string(), note: a.string() })
+    .returns(a.string())
+    .authorization((allow) => [allow.group('hospital_staff')])
+    .handler(a.handler.function(careActions)),
+
+  /** The patient or the request's hospital staff send a quick reply (key) or short text. */
+  sendMessage: a
+    .mutation()
+    .arguments({ requestId: a.id().required(), key: a.string(), text: a.string() })
+    .returns(a.string())
+    .authorization((allow) => [allow.group('patients'), allow.group('hospital_staff')])
+    .handler(a.handler.function(careActions)),
+
+  /** Admins set their hospital's auto-accept rules (a minimum of free beds and one switch per target). */
+  setAutoAcceptRules: a
+    .mutation()
+    .arguments({ rules: a.json().required() })
+    .returns(a.string())
+    .authorization((allow) => [allow.group('admins')])
+    .handler(a.handler.function(adminSettings)),
+
+  /** Emergency check (layer 2), intake agent and ranking: hospitals as simple labels only. */
+  findCare: a
+    .query()
+    .arguments({ description: a.string().required(), lat: a.float().required(), lng: a.float().required() })
+    .returns(a.string())
+    .authorization((allow) => [allow.group('patients')])
+    .handler(a.handler.function(findCare)),
 }).authorization((allow) => [
+  allow.resource(adminSettings).to(['query', 'mutate']),
+  allow.resource(careActions).to(['query', 'mutate']),
+  allow.resource(findCare).to(['query']),
   allow.resource(agentRunner).to(['query', 'mutate']),
   allow.resource(registerHospital).to(['mutate']),
   allow.resource(updateStatus).to(['query', 'mutate']),

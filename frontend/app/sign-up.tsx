@@ -2,7 +2,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { StringKey } from '../src/i18n/t';
-import { SIGN_UP_ROLES, type SignUpRole } from '@medora/shared/logic/session';
+/** Public sign-up creates patients only; hospital accounts come from an invitation. */
+const SIGN_UP_ROLE = 'patient' as const;
 import { AuthError, confirmCode, resendCode, signIn, signUp } from '../src/services/auth';
 import { useApp, useT } from '../src/state/AppProvider';
 import { Button } from '../src/ui/Button';
@@ -11,7 +12,7 @@ import { FormScreen } from '../src/ui/FormScreen';
 import { fonts, fontSizes, radii, spacing, useTheme } from '../src/ui/theme';
 
 /**
- * Sign-up with a role choice (patient, hospital admin, doctor) and an email verification code.
+ * Patient sign-up with an email verification code.
  * Staff accounts come only from an admin's invitation.
  * Requirements: 1.1, 1.6, 18.1, 18.6, 18.7
  */
@@ -24,7 +25,6 @@ export default function SignUpScreen(): React.JSX.Element {
   const params = useLocalSearchParams<{ email?: string; verify?: string }>();
   const [email, setEmail] = React.useState(params.email ?? '');
   const [password, setPassword] = React.useState('');
-  const [role, setRole] = React.useState<SignUpRole>('patient');
   const [code, setCode] = React.useState('');
   const [step, setStep] = React.useState<'details' | 'code'>(params.verify === '1' ? 'code' : 'details');
   const [busy, setBusy] = React.useState(false);
@@ -48,7 +48,7 @@ export default function SignUpScreen(): React.JSX.Element {
       return;
     }
     void run(async () => {
-      await signUp(email, password, role);
+      await signUp(email, password, SIGN_UP_ROLE);
       setStep('code');
     });
   };
@@ -98,29 +98,7 @@ export default function SignUpScreen(): React.JSX.Element {
 
   return (
     <FormScreen title={t('signUp.title')} message={shown}>
-      <View style={styles.roles} accessibilityRole="radiogroup" accessibilityLabel={t('signUp.roleLabel')}>
-        <Text style={[styles.roleLabel, { color: theme.text }]}>{t('signUp.roleLabel')}</Text>
-        {SIGN_UP_ROLES.map((r) => {
-          const selected = r === role;
-          return (
-            <Pressable
-              key={r}
-              onPress={() => setRole(r)}
-              accessibilityRole="radio"
-              accessibilityState={{ selected }}
-              style={[
-                styles.role,
-                { backgroundColor: theme.surface, borderColor: selected ? theme.primary : theme.border },
-                selected && styles.roleSelected,
-              ]}
-            >
-              <Text style={[styles.roleName, { color: theme.text }]}>{t(`signUp.role.${r}`)}</Text>
-              <Text style={[styles.roleHint, { color: theme.textMuted }]}>{t(`signUp.roleHint.${r}`)}</Text>
-            </Pressable>
-          );
-        })}
-        <Text style={[styles.roleHint, { color: theme.textMuted }]}>{t('signUp.staffNote')}</Text>
-      </View>
+      <Text style={[styles.roleHint, { color: theme.textMuted }]}>{t('signUp.staffNote')}</Text>
       <Field
         label={t('signIn.emailPlaceholder')}
         value={email}

@@ -12,12 +12,15 @@ import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { auth } from './auth/resource';
 import { postConfirmation } from './auth/post-confirmation/resource';
 import { data } from './data/resource';
+import { adminSettings } from './functions/admin-settings/resource';
 import { agentRunner } from './functions/agent-runner/resource';
+import { careActions } from './functions/care-actions/resource';
+import { findCare } from './functions/find-care/resource';
 import { inviteStaff } from './functions/invite-staff/resource';
 import { registerHospital } from './functions/register-hospital/resource';
 import { updateStatus } from './functions/update-status/resource';
 
-const backend = defineBackend({ auth, postConfirmation, data, agentRunner, inviteStaff, registerHospital, updateStatus });
+const backend = defineBackend({ auth, postConfirmation, data, agentRunner, adminSettings, careActions, findCare, inviteStaff, registerHospital, updateStatus });
 
 // Tag every resource so Cost Explorer shows spend per stage (AGENTS.md section 5).
 const app = backend.stack.node.root;
@@ -27,14 +30,32 @@ Tags.of(app).add('stage', process.env.AWS_BRANCH === 'demo' ? 'demo' : 'dev');
 // The app may only write these attributes; hospital and approval are set by the backend,
 // so nobody can approve themselves or claim another hospital.
 const { cfnUserPoolClient } = backend.auth.resources.cfnResources;
-cfnUserPoolClient.writeAttributes = ['email', 'custom:role', 'custom:requestedHospitalId'];
+cfnUserPoolClient.writeAttributes = ['email', 'custom:role'];
 // Sign-in errors never reveal whether an email is registered (Requirement 1.6).
 cfnUserPoolClient.preventUserExistenceErrors = 'ENABLED';
 
-// Bedrock, Knowledge Base, and Amazon Location permissions are intentionally not attached here.
-// AGENTS.md forbids coding-agent IAM changes; the team lead must grant the narrowly scoped
-// `bedrock:InvokeModel`, `bedrock:Retrieve`, and `geo:CalculateRouteMatrix` permissions before
-// enabling the model path. Until then the coordinator takes its fixed-rule backup path.
+// Bedrock permissions are opt-in: AGENTS.md says coding agents don't change IAM on their own, so the
+// team lead turns this on for the sandbox by setting MEDORA_ATTACH_BEDROCK_IAM=true. The statements
+// name the two Nova model ARNs (and the guardrail when GUARDRAIL_ID is set), never `*`. Until then
+// both model paths fail safe: find-care uses its keyword fallback and the coordinator its fixed rules.
+// Knowledge Base and Amazon Location permissions are added the same way once those resources exist.
+if (process.env.MEDORA_ATTACH_BEDROCK_IAM === 'true') {
+  const region = 'us-east-1';
+  const resources = [
+    `arn:aws:bedrock:${region}::foundation-model/amazon.nova-lite-v1:0`,
+    `arn:aws:bedrock:${region}::foundation-model/amazon.nova-pro-v1:0`,
+  ];
+  const guardrailArn = process.env.GUARDRAIL_ARN;
+  // find-care only calls Nova Lite; the referral coordinator may also use Nova Pro.
+  const perFunction = [
+    { fn: backend.findCare, models: resources.slice(0, 1) },
+    { fn: backend.agentRunner, models: resources },
+  ];
+  for (const { fn, models } of perFunction) {
+    fn.resources.lambda.addToRolePolicy(new PolicyStatement({ actions: ['bedrock:InvokeModel'], resources: models }));
+    if (guardrailArn) fn.resources.lambda.addToRolePolicy(new PolicyStatement({ actions: ['bedrock:ApplyGuardrail'], resources: [guardrailArn] }));
+  }
+}
 
 // Staff pool (docs/roles.md, AGENTS.md section 4b): hospital accounts only, by invitation, with
 // authenticator-app (TOTP) MFA required and no SMS. The default Amplify pool above stays the
@@ -97,17 +118,35 @@ backend.inviteStaff.resources.lambda.addToRolePolicy(
   }),
 );
 
+backend.adminSettings.addEnvironment('STAFF_USER_POOL_ID', staffPool.userPoolId);
+
 // update-status only accepts staff-pool tokens; it needs the pool id to check them and no IAM of its own.
 backend.updateStatus.addEnvironment('STAFF_USER_POOL_ID', staffPool.userPoolId);
 
-// register-hospital gets one Cognito action on the public pool only. IAM can't narrow it to one
-// attribute, so the guarantee that it writes only custom:hospitalId lives in the handler.
-// The `admins` group is already assigned at sign-up, so it needs no group permission.
-backend.registerHospital.addEnvironment('PUBLIC_USER_POOL_ID', backend.auth.resources.userPool.userPoolId);
+// care-actions checks patient tokens against the public pool and staff tokens against the staff pool;
+// it has no IAM of its own beyond its data access.
+backend.careActions.addEnvironment('PUBLIC_USER_POOL_ID', backend.auth.resources.userPool.userPoolId);
+backend.careActions.addEnvironment('STAFF_USER_POOL_ID', staffPool.userPoolId);
+
+// Model ids come from the environment, never from screens or prompts (AGENTS.md 4a). Direct in-region
+// ids; the stronger model is used for the demo stage and final evaluation only.
+const MODEL_ID_FAST = 'amazon.nova-lite-v1:0';
+const MODEL_ID_STRONG = 'amazon.nova-pro-v1:0';
+for (const fn of [backend.findCare, backend.agentRunner]) {
+  fn.addEnvironment('MODEL_ID_FAST', MODEL_ID_FAST);
+  fn.addEnvironment('MODEL_ID_STRONG', MODEL_ID_STRONG);
+  if (process.env.GUARDRAIL_ID) fn.addEnvironment('GUARDRAIL_ID', process.env.GUARDRAIL_ID);
+  if (process.env.GUARDRAIL_VERSION) fn.addEnvironment('GUARDRAIL_VERSION', process.env.GUARDRAIL_VERSION);
+}
+
+// register-hospital gets one Cognito action on the staff pool only. IAM can't narrow it to one
+// attribute, so the guarantee that it writes only custom:hospitalId lives in the handler. The first
+// admin is created in the staff pool by scripts/create-first-admin.mjs, already in the `admins` group.
+backend.registerHospital.addEnvironment('STAFF_USER_POOL_ID', staffPool.userPoolId);
 backend.registerHospital.resources.lambda.addToRolePolicy(
   new PolicyStatement({
     actions: ['cognito-idp:AdminUpdateUserAttributes'],
-    resources: [backend.auth.resources.userPool.userPoolArn],
+    resources: [staffPool.userPoolArn],
   }),
 );
 

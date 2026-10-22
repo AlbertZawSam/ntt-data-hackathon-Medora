@@ -81,11 +81,11 @@ Paths follow the npm workspaces layout in `AGENTS.md` section 6: `frontend/`, `b
   - Layer 1 on the phone (offline) and layer 2 in the `safety-gate` Lambda; 1669 screen with the nearest open emergency department; logged.
   - _Requirements: 4.1 to 4.5_
 
-- [ ] 13. Find care **P0** (RC2)
+- [x] 13. Find care **P0** (RC2)
   - `patient-understand` Lambda (Nova Lite, JSON output, keyword fallback); hospitals that can help now with simple labels; map; "skipped because" for closer hospitals; disclaimer.
   - _Requirements: 5.1 to 5.7_
 
-- [ ] 14. Request to hospital and messages **P0** (RC3)
+- [x] 14. Request to hospital and messages **P0** (RC3)
   - Request form (name, phone, description, arrival mode); auto-accept with 60-second undo; 45-second no-reply; live status; cancel; message thread with quick replies stored as keys.
   - _Requirements: 6.1 to 6.6, 7.1 to 7.4, 2.4_
 
@@ -95,7 +95,7 @@ Paths follow the npm workspaces layout in `AGENTS.md` section 6: `frontend/`, `b
 
 ## Milestone 5: Hospital inbox and alerts (RC3)
 
-- [ ] 16. Inbox **P0**
+- [x] 16. Inbox **P0**
   - Requests with patient details, accept, decline with reason, optional note, undo countdown, messages, bookings; alert banner with sound and vibration.
   - _Requirements: 10.2, 10.3, 10.5_
 

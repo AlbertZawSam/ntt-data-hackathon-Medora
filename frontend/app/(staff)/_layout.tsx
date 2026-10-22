@@ -3,7 +3,7 @@ import React from 'react';
 import { useT } from '../../src/state/AppProvider';
 import { fonts, useTheme } from '../../src/ui/theme';
 
-/** Unit staff move between My unit, the inbox and the auto-accept rules. docs/roles.md */
+/** Unit staff move between My unit and the inbox; auto-accept rules belong to admins. docs/roles.md */
 export default function StaffLayout(): React.JSX.Element {
   const t = useT();
   const theme = useTheme();
@@ -20,7 +20,7 @@ export default function StaffLayout(): React.JSX.Element {
     >
       <Tabs.Screen name="status" options={{ title: t('staff.status.myUnit') }} />
       <Tabs.Screen name="inbox" options={{ title: t('staff.inbox.title') }} />
-      <Tabs.Screen name="rules" options={{ title: t('staff.rules.title') }} />
+      <Tabs.Screen name="activity" options={{ title: t('doctor.tab.activity') }} />
     </Tabs>
   );
 }

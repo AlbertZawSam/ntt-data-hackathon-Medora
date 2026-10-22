@@ -24,28 +24,19 @@ const pendingDoctor = session(['doctors']);
 const doctor = session(['doctors'], { hospitalId: 'H1', approved: true });
 
 describe('groupsForRole', () => {
-  it('maps each sign-up role to its groups', () => {
-    expect(groupsForRole('patient')).toEqual(['patients']);
-    expect(groupsForRole('admin')).toEqual(['hospital_staff', 'admins']);
-    expect(groupsForRole('doctor')).toEqual(['doctors']);
+  it('public sign-up always makes a patient, whatever role is claimed', () => {
+    for (const role of ['patient', 'admin', 'doctor', 'staff', 'hospital_staff', 'ADMIN', undefined]) {
+      expect(groupsForRole(role)).toEqual(['patients']);
+    }
   });
 
-  it('never gives staff, doctor or admin groups to anything else', () => {
+  it('never gives any claimed value staff, doctor or admin groups', () => {
     fc.assert(
-      fc.property(
-        fc.oneof(fc.string(), fc.constant(undefined), fc.constant('staff'), fc.constant('hospital_staff'), fc.constant('ADMIN')),
-        (role) => {
-          fc.pre(role !== 'admin' && role !== 'doctor');
-          expect(groupsForRole(role)).toEqual(['patients']);
-        },
-      ),
+      fc.property(fc.oneof(fc.string(), fc.constant(undefined)), (role) => {
+        expect(groupsForRole(role)).toEqual(['patients']);
+      }),
       { numRuns: 200 },
     );
-  });
-
-  it('never makes a doctor or patient an admin', () => {
-    expect(groupsForRole('doctor')).not.toContain('admins');
-    expect(groupsForRole('patient')).not.toContain('admins');
   });
 });
 

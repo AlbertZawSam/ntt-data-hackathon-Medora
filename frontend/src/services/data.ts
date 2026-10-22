@@ -4,7 +4,11 @@
  * No records are seeded or fabricated: an empty snapshot means the sandbox is empty.
  */
 import { generateClient } from 'aws-amplify/data';
+import type { ArrivalMode, PublicHospital, QuickReplyKey } from '@medora/shared/logic/care';
 import type {
+  AutoAcceptRules,
+  Bi,
+  NeedKey,
   Activity,
   CareRequest,
   Device,
@@ -51,6 +55,23 @@ interface Client {
     startReferral: (input: { referralId: string }) => Promise<{ errors?: unknown[] }>;
     registerHospital: (input: HospitalInput) => Promise<{ data?: string | null; errors?: unknown[] }>;
     updateStatus: (input: { change: string; note?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
+    submitRequest: (input: {
+      hospitalId: string;
+      needKey: string;
+      etaMin: number;
+      mode: string;
+      name?: string;
+      phone?: string;
+      description: string;
+    }) => Promise<{ data?: string | null; errors?: unknown[] }>;
+    cancelRequest: (input: { requestId: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
+    answerRequest: (input: { requestId: string; action: string; reason?: string; note?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
+    sendMessage: (input: { requestId: string; key?: string; text?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
+    setAutoAcceptRules: (input: { rules: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
+    inviteStaff: (input: { email: string; group: string; unit?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
+  };
+  queries: {
+    findCare: (input: { description: string; lat: number; lng: number }) => Promise<{ data?: string | null; errors?: unknown[] }>;
   };
 }
 
@@ -94,7 +115,7 @@ type SnapshotKey = Exclude<keyof DataSnapshot, 'isSynced'>;
 const JSON_FIELDS: Partial<Record<SnapshotKey, string[]>> = {
   hospitalProfiles: ['name'],
   hospitalStatuses: ['status'],
-  careRequests: ['patient', 'slot'],
+  careRequests: ['patient', 'slot', 'hospitalName'],
   referrals: ['chosenName', 'why', 'rows'],
   traceSteps: ['title', 'detail'],
   activities: ['actor', 'text'],
@@ -261,4 +282,81 @@ export async function writeActivity(input: Omit<Activity, 'id' | 'createdAt'>): 
     text: JSON.stringify(input.text),
   } as unknown as Omit<Activity, 'id' | 'createdAt'>);
   ensureData(result, 'Write activity');
+}
+
+/** What `find-care` returns: an emergency (fixed rules, layer 2) or hospitals as simple labels. */
+export type FindCareResult =
+  | { emergency: { key: string; label: Bi } }
+  | { need: NeedKey; aiUsed: boolean; summary?: Bi; hospitals: PublicHospital[] };
+
+/** Layer 2 of the emergency check, the intake agent and the ranking, all on the server. */
+export async function findCare(input: { description: string; lat: number; lng: number }): Promise<FindCareResult> {
+  const result = await client.queries.findCare(input);
+  ensureData(result, 'Find care');
+  if (!result.data) throw new DataServiceError('Find care failed.');
+  return JSON.parse(result.data) as FindCareResult;
+}
+
+export interface NewRequest {
+  hospitalId: string;
+  needKey: NeedKey;
+  etaMin: number;
+  mode: ArrivalMode;
+  name?: string;
+  phone?: string;
+  description: string;
+}
+
+/** Sends a request to one hospital; the admin's auto-accept rule may accept it at once. */
+export async function submitRequest(input: NewRequest): Promise<string> {
+  const result = await client.mutations.submitRequest(input);
+  ensureData(result, 'Submit request');
+  if (!result.data) throw new DataServiceError('Submit request failed.');
+  return result.data;
+}
+
+export async function cancelRequest(requestId: string): Promise<void> {
+  ensureData(await client.mutations.cancelRequest({ requestId }), 'Cancel request');
+}
+
+/** Staff: accept, decline (with a reason key and optional note) or undo an automatic acceptance. */
+export async function answerRequest(requestId: string, action: 'accept' | 'decline' | 'undo', extra: { reason?: string; note?: string } = {}): Promise<void> {
+  ensureData(await client.mutations.answerRequest({ requestId, action, ...extra }), 'Answer request');
+}
+
+/** A quick reply is sent as a key so each side reads it in their own language. */
+export async function sendMessage(requestId: string, message: { key: QuickReplyKey } | { text: string }): Promise<void> {
+  ensureData(await client.mutations.sendMessage({ requestId, ...message }), 'Send message');
+}
+
+/** Admin: invite staff, a doctor or another admin into the admin's own hospital. */
+export async function inviteStaff(input: { email: string; group: string; unit?: string }): Promise<void> {
+  ensureData(await client.mutations.inviteStaff(input), 'Invite staff');
+}
+
+/** Doctor: confirm the recommended transfer. Only the referral's owner can update it (AppSync owner rule). */
+export async function confirmReferral(referral: Referral): Promise<void> {
+  if (!referral.chosenId) throw new DataServiceError('No recommended hospital.');
+  const now = Date.now();
+  ensureData(await client.models.Referral.update({ id: referral.id, status: 'confirmed' }), 'Confirm referral');
+  const transfer = await (client.models.Transfer as unknown as { create: (i: Record<string, unknown>) => Promise<{ errors?: unknown[] }> }).create({
+    referralId: referral.id,
+    hospitalIds: [referral.fromHospitalId, referral.chosenId],
+    fromHospitalId: referral.fromHospitalId,
+    toHospitalId: referral.chosenId,
+    ownerId: referral.ownerId,
+    startedAt: now,
+    etaMin: referral.etaMin ?? 0,
+    status: 'in_progress',
+  });
+  ensureData(transfer, 'Start transfer');
+}
+
+export async function setAsideReferral(referralId: string): Promise<void> {
+  ensureData(await client.models.Referral.update({ id: referralId, status: 'set_aside' }), 'Set aside referral');
+}
+
+/** Admin: save the hospital's auto-accept rules. The server checks the admin's hospital and the rule shape. */
+export async function setAutoAcceptRules(rules: AutoAcceptRules): Promise<void> {
+  ensureData(await client.mutations.setAutoAcceptRules({ rules: JSON.stringify(rules) }), 'Save rules');
 }

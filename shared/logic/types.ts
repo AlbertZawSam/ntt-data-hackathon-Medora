@@ -148,6 +148,7 @@ export interface CareRequest {
   referralId?: string;
   slot?: { day: string; time: string };
   doctorName?: string;
+  hospitalName?: Bi;
   createdAtMs: number;
 }
 

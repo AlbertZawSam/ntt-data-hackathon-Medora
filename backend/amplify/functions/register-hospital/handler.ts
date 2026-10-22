@@ -46,13 +46,13 @@ async function dataClient(): Promise<HospitalClient> {
 }
 
 /**
- * Registers the caller's hospital. The caller must be an admin from the public pool who has no
+ * Registers the caller's hospital. The caller must be an admin from the staff pool who has no
  * hospital yet; the id is generated here and never taken from the request. The profile is created
  * first and removed again if the user's attribute can't be set, so a failure leaves nothing behind.
  * Logs only the outcome, never names or locations.
  */
 export const handler: AppSyncResolverHandler<Args, string> = async (event) => {
-  const poolId = process.env.PUBLIC_USER_POOL_ID;
+  const poolId = process.env.STAFF_USER_POOL_ID;
   const identity = event.identity as AppSyncIdentityCognito | null | undefined;
   const caller = checkRegistration(identity?.claims as Record<string, unknown> | undefined, poolId);
   if (!poolId || !caller.ok) {

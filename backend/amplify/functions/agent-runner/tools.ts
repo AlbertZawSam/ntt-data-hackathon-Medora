@@ -183,6 +183,7 @@ export class ReferralTools {
         auto,
         reason: auto ? 'accepted_by_rule' : undefined,
         overrideUntil: auto ? this.store.now() + 60_000 : undefined,
+        hospitalName: row.hospital.name,
         patient: { mode: 'ambulance', description: this.referral.text },
         fromHospitalId: this.referral.fromHospitalId,
         referralId: this.referral.id,

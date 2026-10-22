@@ -64,3 +64,17 @@ describe('reserved beds (requirement 19.3)', () => {
     expect(ruleAccepts(openStatus({ beds: 2, rules: { stroke: true, minBeds: 2 } }), stroke)).toBe(true);
   });
 });
+
+import { sanitizeRules } from '../logic/rules';
+
+describe('sanitizeRules', () => {
+  it('accepts known targets and a whole minimum', () => {
+    expect(sanitizeRules({ stroke: true, visit: false, minBeds: 2 })).toEqual({ stroke: true, visit: false, minBeds: 2 });
+  });
+  it.each([
+    [null], [[]], [{ stroke: true }], [{ minBeds: -1 }], [{ minBeds: 1.5 }], [{ minBeds: 101 }],
+    [{ minBeds: 1, surgery: true }], [{ minBeds: 1, stroke: 'yes' }],
+  ])('refuses %j', (raw) => {
+    expect(sanitizeRules(raw)).toBeNull();
+  });
+});
