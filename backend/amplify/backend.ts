@@ -15,12 +15,14 @@ import { data } from './data/resource';
 import { adminSettings } from './functions/admin-settings/resource';
 import { agentRunner } from './functions/agent-runner/resource';
 import { careActions } from './functions/care-actions/resource';
+import { referralActions } from './functions/referral-actions/resource';
+import { specialistActions } from './functions/specialist-actions/resource';
 import { findCare } from './functions/find-care/resource';
 import { inviteStaff } from './functions/invite-staff/resource';
 import { registerHospital } from './functions/register-hospital/resource';
 import { updateStatus } from './functions/update-status/resource';
 
-const backend = defineBackend({ auth, postConfirmation, data, agentRunner, adminSettings, careActions, findCare, inviteStaff, registerHospital, updateStatus });
+const backend = defineBackend({ auth, postConfirmation, data, agentRunner, adminSettings, careActions, referralActions, specialistActions, findCare, inviteStaff, registerHospital, updateStatus });
 
 // Tag every resource so Cost Explorer shows spend per stage (AGENTS.md section 5).
 const app = backend.stack.node.root;
@@ -119,6 +121,9 @@ backend.inviteStaff.resources.lambda.addToRolePolicy(
 );
 
 backend.adminSettings.addEnvironment('STAFF_USER_POOL_ID', staffPool.userPoolId);
+backend.referralActions.addEnvironment('STAFF_USER_POOL_ID', staffPool.userPoolId);
+backend.specialistActions.addEnvironment('STAFF_USER_POOL_ID', staffPool.userPoolId);
+backend.specialistActions.addEnvironment('PUBLIC_USER_POOL_ID', backend.auth.resources.userPool.userPoolId);
 
 // update-status only accepts staff-pool tokens; it needs the pool id to check them and no IAM of its own.
 backend.updateStatus.addEnvironment('STAFF_USER_POOL_ID', staffPool.userPoolId);
@@ -132,6 +137,8 @@ backend.careActions.addEnvironment('STAFF_USER_POOL_ID', staffPool.userPoolId);
 // ids; the stronger model is used for the demo stage and final evaluation only.
 const MODEL_ID_FAST = 'amazon.nova-lite-v1:0';
 const MODEL_ID_STRONG = 'amazon.nova-pro-v1:0';
+// Demo switch (task 21): simulated hospital replies, off unless DEMO_REPLIES=true is set for the demo stage.
+if (process.env.DEMO_REPLIES === 'true') backend.agentRunner.addEnvironment('DEMO_REPLIES', 'true');
 for (const fn of [backend.findCare, backend.agentRunner]) {
   fn.addEnvironment('MODEL_ID_FAST', MODEL_ID_FAST);
   fn.addEnvironment('MODEL_ID_STRONG', MODEL_ID_STRONG);

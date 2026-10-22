@@ -3,6 +3,7 @@
  * path and for its model-unavailable backup, so safety-critical filtering is never delegated
  * to the model.
  */
+import { canConfirmReferral } from './access';
 import { PATHWAYS } from './pathways';
 import { classifyNeed, evaluate, type LatLng } from './ranking';
 import { askPolicy, remainingWindow } from './timeBudget';
@@ -71,4 +72,44 @@ export function statedDelayMin(note: string | undefined): number | null {
 export function delayExceedsWindow(assessment: ReferralAssessment, row: RankedHospital, delayMin: number | null): boolean {
   if (delayMin === null || !Number.isFinite(assessment.remainingMin)) return false;
   return row.driveMin + PATHWAYS[assessment.pathway].prepMin + delayMin > assessment.remainingMin;
+}
+
+export type ReferralDecision = 'confirm' | 'set_aside';
+
+export type ReferralDecisionCheck =
+  | { ok: true; status: 'confirmed' | 'set_aside' }
+  | { ok: false; reason: 'not-owner' | 'bad-state' | 'no-hospital' | 'not-accepted' };
+
+/**
+ * Only the doctor who started a referral confirms or sets it aside, only while it awaits a decision,
+ * and a transfer is confirmed only to a hospital that has accepted this referral. The agent has no
+ * way to reach this check: it never confirms (AGENTS.md section 4, rule 2).
+ */
+export function checkReferralDecision(
+  caller: { groups: readonly string[]; hospitalId?: string; userId?: string },
+  referral: { ownerId: string; fromHospitalId: string; status: string; chosenId?: string | null },
+  decision: ReferralDecision,
+  acceptedHospitalIds: readonly string[],
+): ReferralDecisionCheck {
+  if (!canConfirmReferral(caller, referral) || caller.hospitalId !== referral.fromHospitalId) return { ok: false, reason: 'not-owner' };
+  if (referral.status !== 'awaiting') return { ok: false, reason: 'bad-state' };
+  if (decision === 'set_aside') return { ok: true, status: 'set_aside' };
+  if (!referral.chosenId) return { ok: false, reason: 'no-hospital' };
+  if (!acceptedHospitalIds.includes(referral.chosenId)) return { ok: false, reason: 'not-accepted' };
+  return { ok: true, status: 'confirmed' };
+}
+
+/** Seconds a simulated hospital takes to reply in the demo stage (requirement 17.2). */
+export const DEMO_REPLY_DELAY_SEC = 8;
+
+/**
+ * Preset reply for the demo stage only, for hospitals that have no auto-accept rule: the best-ranked
+ * hospital asked for a stroke says its neurologist is free in about 40 minutes (so the agent must weigh
+ * the treatment window); the others accept plainly. The caller labels these as simulated in the trace.
+ */
+export function demoReplyFor(pathway: PathwayKey, askedIndex: number): { note?: string } {
+  if (pathway === 'stroke' && askedIndex === 0) {
+    return { note: 'Neurologist free in about 40 minutes / แพทย์ระบบประสาทว่างในอีกประมาณ 40 นาที' };
+  }
+  return {};
 }

@@ -6,8 +6,10 @@ import React from 'react';
 import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { dataAgeMin, isStale } from '@medora/shared/logic/ranking';
 import { MAX_NOTE, changeFor, controlsForUnit, type UnitControl } from '@medora/shared/logic/statusUpdate';
+import { activeHolds, contradictsHolds, withHolds } from '@medora/shared/logic/reservations';
 import type { HospitalStatus } from '@medora/shared/logic/types';
 import { LanguageToggle } from '../../src/components/LanguageToggle';
+import { StatusReminder } from '../../src/components/StatusReminder';
 import type { StringKey } from '../../src/i18n/t';
 import { updateStatus } from '../../src/services/data';
 import { useApp, useT } from '../../src/state/AppProvider';
@@ -33,7 +35,11 @@ export default function StaffStatusScreen(): React.JSX.Element {
 
   const unit = session?.unit;
   const controls = controlsForUnit(unit);
-  const status: HospitalStatus | undefined = data.hospitalStatuses.find((s) => s.hospitalId === session?.hospitalId)?.status;
+  const stored: HospitalStatus | undefined = data.hospitalStatuses.find((s) => s.hospitalId === session?.hospitalId)?.status;
+  // Held beds (accepted patients who haven't arrived) are shown separately and count as not free.
+  const holds = activeHolds(data.reservations, session?.hospitalId ?? '', now);
+  const status: HospitalStatus | undefined = stored ? withHolds(stored, holds) : undefined;
+  const conflict = stored ? contradictsHolds(stored, holds) : { beds: false, nicu: false };
 
   const send = async (change: ReturnType<typeof changeFor> | { kind: 'confirm' } | { kind: 'cathlabBusy'; minutes: number | null }): Promise<void> => {
     if (!change || busy) return;
@@ -60,6 +66,7 @@ export default function StaffStatusScreen(): React.JSX.Element {
           <Text style={[styles.title, { color: theme.text }]}>{t('staff.status.title')}</Text>
           <LanguageToggle />
         </View>
+        <StatusReminder audience="unit" />
         {unit ? <Text style={[styles.sub, { color: theme.textMuted }]}>{t('staff.status.unitLabel', { unit: t(`unit.name.${unit}` as StringKey) })}</Text> : null}
 
         {!status ? (
@@ -75,6 +82,10 @@ export default function StaffStatusScreen(): React.JSX.Element {
               <Text style={[styles.sub, { color: theme.text }]}>{t('staff.status.confirmAccurate')}</Text>
               <Button label={t('staff.status.yesCorrect')} busy={busy} onPress={() => void send({ kind: 'confirm' })} />
             </View>
+
+            {conflict.beds || conflict.nicu ? (
+              <Text accessibilityLiveRegion="polite" style={[styles.sub, { color: theme.warning }]}>{t('staff.status.holdConflict')}</Text>
+            ) : null}
 
             {controls.map((control) => (
               <ControlRow key={control.id} control={control} status={status} busy={busy} onSend={(change) => void send(change)} />

@@ -1,5 +1,5 @@
 import { PATHWAYS } from '@medora/shared/logic/pathways';
-import { assessReferral, delayExceedsWindow, nextHospitals, statedDelayMin, type ReferralAssessment } from '@medora/shared/logic/referral';
+import { DEMO_REPLY_DELAY_SEC, assessReferral, delayExceedsWindow, demoReplyFor, nextHospitals, statedDelayMin, type ReferralAssessment } from '@medora/shared/logic/referral';
 import { ruleAccepts } from '@medora/shared/logic/rules';
 import type {
   Bi,
@@ -45,6 +45,8 @@ export interface ReferralStore {
   activity(text: Bi): Promise<void>;
   knowledgeSearch(query: string): Promise<Array<{ hospitalId: string; text: string; source: string }>>;
   now(): number;
+  /** Demo stage only: hospitals without an auto-accept rule reply after a few seconds with preset notes. */
+  demoReplies?(): boolean;
 }
 
 interface AssessmentState {
@@ -170,6 +172,7 @@ export class ReferralTools {
 
     const rows = this.state.assessment.ranked.filter((row) => ids.includes(row.hospital.id));
     this.rounds += 1;
+    const created: CareRequest[] = [];
     for (const row of rows) {
       this.asked.add(row.hospital.id);
       const auto = ruleAccepts(row.hospital.status, PATHWAYS[this.state.assessment.pathway]);
@@ -189,6 +192,7 @@ export class ReferralTools {
         referralId: this.referral.id,
         createdAtMs: this.store.now(),
       });
+      created.push(request);
       if (auto) await this.store.activity({ en: 'Referral accepted by hospital rule', th: 'คำขอส่งต่อได้รับการตอบรับตามกฎของโรงพยาบาล' });
     }
     await this.store.trace(
@@ -199,7 +203,22 @@ export class ReferralTools {
 
     // The Lambda is asynchronous. It only waits for the explicit, bounded policy interval and
     // never invents a staff reply; an enabled hospital rule is the sole automatic acceptance.
-    await new Promise<void>((resolve) => setTimeout(resolve, waitSeconds * 1_000));
+    let remaining = waitSeconds;
+    if (this.store.demoReplies?.()) {
+      // Optional demo switch (task 21): simulated replies, clearly labeled in the trace; never in real use.
+      const wait = Math.min(DEMO_REPLY_DELAY_SEC, waitSeconds);
+      await new Promise<void>((resolve) => setTimeout(resolve, wait * 1_000));
+      remaining = waitSeconds - wait;
+      let index = 0;
+      for (const request of created) {
+        if (request.status !== 'waiting') continue;
+        const { note } = demoReplyFor(this.state.assessment.pathway, index);
+        index += 1;
+        await this.store.updateRequest(request.id, { status: 'accepted', reason: 'demo_reply', ...(note ? { note } : {}) });
+      }
+      await this.store.trace('demo_reply', { en: 'Simulated hospital replies (demo)', th: 'จำลองการตอบกลับของโรงพยาบาล (สาธิต)' }, { en: 'Demo stage: hospitals without an auto-accept rule replied with preset notes.', th: 'โหมดสาธิต: โรงพยาบาลที่ไม่มีกฎตอบรับอัตโนมัติตอบกลับด้วยหมายเหตุที่ตั้งไว้' });
+    }
+    await new Promise<void>((resolve) => setTimeout(resolve, remaining * 1_000));
     return { ok: true, replies: await this.replies() };
   }
 

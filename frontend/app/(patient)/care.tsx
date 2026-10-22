@@ -10,6 +10,7 @@ import { ARRIVAL_MODES, type ArrivalMode, type PublicHospital } from '@medora/sh
 import type { NeedKey } from '@medora/shared/logic/types';
 import { pick, type StringKey } from '../../src/i18n/t';
 import { findCare, submitRequest } from '../../src/services/data';
+import { setLastNeed } from '../../src/services/lastNeed';
 import { checkEmergency, logEmergencyCheck } from '../../src/services/emergency';
 import { useChosenLocation } from '../../src/services/location';
 import { useApp, useT } from '../../src/state/AppProvider';
@@ -59,6 +60,7 @@ export default function PatientCareScreen(): React.JSX.Element {
       const result = await findCare({ description: text.trim(), lat: location.lat, lng: location.lng });
       if ('emergency' in result) return emergency(result.emergency.key); // layer 2
       setNeed(result.need);
+      setLastNeed(result.need);
       setAiUsed(result.aiUsed);
       setHospitals(result.hospitals);
       setPhase('results');

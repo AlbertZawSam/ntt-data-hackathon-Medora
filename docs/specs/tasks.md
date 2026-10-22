@@ -59,7 +59,7 @@ Paths follow the npm workspaces layout in `AGENTS.md` section 6: `frontend/`, `b
   - [ ] 7.4 Fallback: a general staff account per hospital can update every item.
   - _Requirements: 9.1, 9.2, 9.3, 9.4, 19.1, 19.2, 19.8, 19.10_
 
-- [ ] 8. Reservations **P1**
+- [x] 8. Reservations **P1**
   - Reserve a bed on acceptance; release by DynamoDB time-to-live after 2 hours or on cancel or decline; convert on arrival; contradiction check prompts.
   - _Requirements: 19.3, 19.4, 19.6_
 
@@ -89,7 +89,7 @@ Paths follow the npm workspaces layout in `AGENTS.md` section 6: `frontend/`, `b
   - Request form (name, phone, description, arrival mode); auto-accept with 60-second undo; 45-second no-reply; live status; cancel; message thread with quick replies stored as keys.
   - _Requirements: 6.1 to 6.6, 7.1 to 7.4, 2.4_
 
-- [ ] 15. Find a specialist **P1** (RC4)
+- [x] 15. Find a specialist **P1** (RC4)
   - Location row with "Use my location"; specialty suggested from the last search; language filter; nearest first, then soonest slot; map; instant booking with slot lock.
   - _Requirements: 8.1 to 8.6_
 
@@ -118,7 +118,7 @@ Paths follow the npm workspaces layout in `AGENTS.md` section 6: `frontend/`, `b
   - Description with samples, onset minutes, live trace, map with asked, declined and chosen hospitals, decision table, recommendation with reasons, confirm or set aside, simulated transfer tracking.
   - _Requirements: 13.1 to 13.4, 17.3_
 
-- [ ] 21. Demo replies **P0**
+- [x] 21. Demo replies **P0**
   - Optional switch: hospitals without an auto-accept rule reply after 8 seconds with preset notes (Rama Nine for stroke: neurologist free in about 40 minutes).
   - _Requirements: 17.2_
 

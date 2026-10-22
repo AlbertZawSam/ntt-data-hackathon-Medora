@@ -4,6 +4,8 @@
  * No records are seeded or fabricated: an empty snapshot means the sandbox is empty.
  */
 import { generateClient } from 'aws-amplify/data';
+import type { Reservation } from '@medora/shared/logic/reservations';
+import type { PublicSpecialist, Slot } from '@medora/shared/logic/specialists';
 import type { ArrivalMode, PublicHospital, QuickReplyKey } from '@medora/shared/logic/care';
 import type {
   AutoAcceptRules,
@@ -50,6 +52,7 @@ interface Client {
     Transfer: Model<Transfer>;
     Activity: Model<Activity>;
     Device: Model<Device>;
+    Reservation: Model<Reservation>;
   };
   mutations: {
     startReferral: (input: { referralId: string }) => Promise<{ errors?: unknown[] }>;
@@ -67,10 +70,16 @@ interface Client {
     cancelRequest: (input: { requestId: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     answerRequest: (input: { requestId: string; action: string; reason?: string; note?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     sendMessage: (input: { requestId: string; key?: string; text?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
+    openReferral: (input: { text: string; onsetMin?: number; lang: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
+    decideReferral: (input: { referralId: string; decision: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
+    saveSpecialist: (input: { id?: string; name: string; specialty: string; languages: string[]; namePublic: boolean; slots: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
+    deleteSpecialist: (input: { id: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
+    bookSpecialist: (input: { specialistId: string; slotId: string; name?: string; phone?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     setAutoAcceptRules: (input: { rules: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     inviteStaff: (input: { email: string; group: string; unit?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
   };
   queries: {
+    findSpecialists: (input: { lat: number; lng: number; specialty?: string; language?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     findCare: (input: { description: string; lat: number; lng: number }) => Promise<{ data?: string | null; errors?: unknown[] }>;
   };
 }
@@ -88,6 +97,7 @@ export interface DataSnapshot {
   transfers: Transfer[];
   activities: Activity[];
   devices: Device[];
+  reservations: Reservation[];
   /** True once each subscription that this role can read has delivered its initial query. */
   isSynced: boolean;
 }
@@ -103,6 +113,7 @@ const EMPTY_SNAPSHOT: DataSnapshot = Object.freeze({
   transfers: [],
   activities: [],
   devices: [],
+  reservations: [],
   isSynced: false,
 });
 
@@ -178,6 +189,7 @@ class LiveDataStore {
       this.observe('hospitalProfiles', client.models.HospitalProfile, hospitalFilter);
       this.observe('specialists', client.models.Specialist, hospitalFilter);
       this.observe('hospitalStatuses', client.models.HospitalStatus, hospitalFilter);
+      this.observe('reservations', client.models.Reservation, hospitalFilter);
       this.observe('traceSteps', client.models.TraceStep, hospitalFilter);
     }
   }
@@ -228,28 +240,22 @@ function ensureData(result: { errors?: unknown[] }, action: string): void {
   if (result.errors?.length) throw new DataServiceError(`${action} failed.`);
 }
 
-/** Creates the referral record then invokes the bounded, asynchronous coordinator. */
+/** Creates the referral on the server (which checks the doctor), then invokes the bounded, asynchronous coordinator. */
 export async function startReferral(
   session: Session,
   input: { text: string; onsetMin?: number; lang: 'en' | 'th' },
 ): Promise<string> {
   if (!session.hospitalId) throw new DataServiceError('Doctor hospital is unavailable.');
-  const created = await client.models.Referral.create({
-    fromHospitalId: session.hospitalId,
-    ownerId: session.userId,
+  const created = await client.mutations.openReferral({
     text: input.text.trim(),
-    onsetMin: input.onsetMin,
+    ...(input.onsetMin !== undefined ? { onsetMin: input.onsetMin } : {}),
     lang: input.lang,
-    status: 'running',
-    mode: 'ai',
-    requestIds: [],
-    startedAtMs: Date.now(),
   });
   ensureData(created, 'Create referral');
   if (!created.data) throw new DataServiceError('Create referral failed.');
-  const invoked = await client.mutations.startReferral({ referralId: created.data.id });
+  const invoked = await client.mutations.startReferral({ referralId: created.data });
   ensureData(invoked, 'Start referral');
-  return created.data.id;
+  return created.data;
 }
 
 /**
@@ -319,8 +325,8 @@ export async function cancelRequest(requestId: string): Promise<void> {
   ensureData(await client.mutations.cancelRequest({ requestId }), 'Cancel request');
 }
 
-/** Staff: accept, decline (with a reason key and optional note) or undo an automatic acceptance. */
-export async function answerRequest(requestId: string, action: 'accept' | 'decline' | 'undo', extra: { reason?: string; note?: string } = {}): Promise<void> {
+/** Staff: accept, decline (with a reason key and optional note), undo an automatic acceptance, or mark the patient arrived. */
+export async function answerRequest(requestId: string, action: 'accept' | 'decline' | 'undo' | 'arrived', extra: { reason?: string; note?: string } = {}): Promise<void> {
   ensureData(await client.mutations.answerRequest({ requestId, action, ...extra }), 'Answer request');
 }
 
@@ -334,29 +340,41 @@ export async function inviteStaff(input: { email: string; group: string; unit?: 
   ensureData(await client.mutations.inviteStaff(input), 'Invite staff');
 }
 
-/** Doctor: confirm the recommended transfer. Only the referral's owner can update it (AppSync owner rule). */
+/** Doctor: confirm the recommended transfer. The server checks the doctor owns it and the hospital accepted. */
 export async function confirmReferral(referral: Referral): Promise<void> {
-  if (!referral.chosenId) throw new DataServiceError('No recommended hospital.');
-  const now = Date.now();
-  ensureData(await client.models.Referral.update({ id: referral.id, status: 'confirmed' }), 'Confirm referral');
-  const transfer = await (client.models.Transfer as unknown as { create: (i: Record<string, unknown>) => Promise<{ errors?: unknown[] }> }).create({
-    referralId: referral.id,
-    hospitalIds: [referral.fromHospitalId, referral.chosenId],
-    fromHospitalId: referral.fromHospitalId,
-    toHospitalId: referral.chosenId,
-    ownerId: referral.ownerId,
-    startedAt: now,
-    etaMin: referral.etaMin ?? 0,
-    status: 'in_progress',
-  });
-  ensureData(transfer, 'Start transfer');
+  ensureData(await client.mutations.decideReferral({ referralId: referral.id, decision: 'confirm' }), 'Confirm referral');
 }
 
 export async function setAsideReferral(referralId: string): Promise<void> {
-  ensureData(await client.models.Referral.update({ id: referralId, status: 'set_aside' }), 'Set aside referral');
+  ensureData(await client.mutations.decideReferral({ referralId, decision: 'set_aside' }), 'Set aside referral');
 }
 
 /** Admin: save the hospital's auto-accept rules. The server checks the admin's hospital and the rule shape. */
 export async function setAutoAcceptRules(rules: AutoAcceptRules): Promise<void> {
   ensureData(await client.mutations.setAutoAcceptRules({ rules: JSON.stringify(rules) }), 'Save rules');
+}
+
+/** Patients: specialists with an open slot, nearest first then soonest, names only where shared. */
+export async function findSpecialists(input: { lat: number; lng: number; specialty?: string; language?: string }): Promise<PublicSpecialist[]> {
+  const result = await client.queries.findSpecialists(input);
+  ensureData(result, 'Find specialists');
+  if (!result.data) throw new DataServiceError('Find specialists failed.');
+  return JSON.parse(result.data) as PublicSpecialist[];
+}
+
+/** Patients: instant booking; returns the booking request id. */
+export async function bookSpecialist(input: { specialistId: string; slotId: string; name?: string; phone?: string }): Promise<string> {
+  const result = await client.mutations.bookSpecialist(input);
+  ensureData(result, 'Book specialist');
+  if (!result.data) throw new DataServiceError('Book specialist failed.');
+  return result.data;
+}
+
+/** Admin: create (no id) or replace one specialist of the admin's own hospital. */
+export async function saveSpecialist(input: { id?: string; name: string; specialty: string; languages: string[]; namePublic: boolean; slots: Slot[] }): Promise<void> {
+  ensureData(await client.mutations.saveSpecialist({ ...input, slots: JSON.stringify(input.slots) }), 'Save specialist');
+}
+
+export async function deleteSpecialist(id: string): Promise<void> {
+  ensureData(await client.mutations.deleteSpecialist({ id }), 'Delete specialist');
 }

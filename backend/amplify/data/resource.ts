@@ -2,6 +2,8 @@ import { a, defineData, type ClientSchema } from '@aws-amplify/backend';
 import { adminSettings } from '../functions/admin-settings/resource';
 import { agentRunner } from '../functions/agent-runner/resource';
 import { careActions } from '../functions/care-actions/resource';
+import { referralActions } from '../functions/referral-actions/resource';
+import { specialistActions } from '../functions/specialist-actions/resource';
 import { findCare } from '../functions/find-care/resource';
 import { inviteStaff } from '../functions/invite-staff/resource';
 import { registerHospital } from '../functions/register-hospital/resource';
@@ -99,6 +101,22 @@ const schema = a.schema({
       allow.ownerDefinedIn('hospitalId').identityClaim('custom:hospitalId').to(['read']),
     ]),
 
+  Reservation: a
+    .model({
+      requestId: a.string().required(),
+      hospitalId: a.string().required(),
+      kind: a.string().required(),
+      state: a.string().required(),
+      createdAtMs: a.integer().required(),
+      expiresAtMs: a.integer().required(),
+    })
+    .secondaryIndexes((index) => [index('hospitalId'), index('requestId')])
+    // A held bed is promised to an accepted patient. Staff of the hospital read it; only `care-actions`
+    // writes it, and a hold expires by itself after two hours.
+    .authorization((allow) => [
+      allow.ownerDefinedIn('hospitalId').identityClaim('custom:hospitalId').to(['read']),
+    ]),
+
   Message: a
     .model({
       requestId: a.string().required(),
@@ -140,8 +158,10 @@ const schema = a.schema({
       index('ownerId').sortKeys(['startedAtMs']),
       index('fromHospitalId').sortKeys(['startedAtMs']),
     ])
+    // Clients only read. `openReferral` and `decideReferral` check the doctor, the hospital and the
+    // accepting hospital, so a referral's status and chosen hospital can't be edited from the app.
     .authorization((allow) => [
-      allow.ownerDefinedIn('ownerId').identityClaim('sub'),
+      allow.ownerDefinedIn('ownerId').identityClaim('sub').to(['read']),
       allow.ownerDefinedIn('fromHospitalId').identityClaim('custom:hospitalId').to(['read']),
     ]),
 
@@ -171,9 +191,10 @@ const schema = a.schema({
       status: a.string().required(),
     })
     .secondaryIndexes((index) => [index('referralId')])
+    // Clients only read; transfers are created by `decideReferral`.
     .authorization((allow) => [
-      allow.ownerDefinedIn('ownerId').identityClaim('sub'),
-      allow.ownersDefinedIn('hospitalIds').identityClaim('custom:hospitalId'),
+      allow.ownerDefinedIn('ownerId').identityClaim('sub').to(['read']),
+      allow.ownersDefinedIn('hospitalIds').identityClaim('custom:hospitalId').to(['read']),
     ]),
 
   Activity: a
@@ -293,6 +314,60 @@ const schema = a.schema({
     .authorization((allow) => [allow.group('patients'), allow.group('hospital_staff')])
     .handler(a.handler.function(careActions)),
 
+  /** A doctor starts a referral for their own hospital; the agent is started separately by `startReferral`. */
+  openReferral: a
+    .mutation()
+    .arguments({ text: a.string().required(), onsetMin: a.integer(), lang: a.string().required() })
+    .returns(a.string())
+    .authorization((allow) => [allow.group('doctors')])
+    .handler(a.handler.function(referralActions)),
+
+  /** Only the owning doctor confirms (to an accepting hospital) or sets aside; creates the transfer. */
+  decideReferral: a
+    .mutation()
+    .arguments({ referralId: a.id().required(), decision: a.string().required() })
+    .returns(a.string())
+    .authorization((allow) => [allow.group('doctors')])
+    .handler(a.handler.function(referralActions)),
+
+  /** An admin creates or replaces one specialist (with clinic slots) of their own hospital. */
+  saveSpecialist: a
+    .mutation()
+    .arguments({
+      id: a.id(),
+      name: a.string().required(),
+      specialty: a.string().required(),
+      languages: a.string().array().required(),
+      namePublic: a.boolean().required(),
+      slots: a.json().required(),
+    })
+    .returns(a.string())
+    .authorization((allow) => [allow.group('admins')])
+    .handler(a.handler.function(specialistActions)),
+
+  deleteSpecialist: a
+    .mutation()
+    .arguments({ id: a.id().required() })
+    .returns(a.string())
+    .authorization((allow) => [allow.group('admins')])
+    .handler(a.handler.function(specialistActions)),
+
+  /** Patients search specialists: nearest hospital first, then soonest slot; names shown only if shared. */
+  findSpecialists: a
+    .query()
+    .arguments({ lat: a.float().required(), lng: a.float().required(), specialty: a.string(), language: a.string() })
+    .returns(a.string())
+    .authorization((allow) => [allow.group('patients')])
+    .handler(a.handler.function(specialistActions)),
+
+  /** Instant booking of one slot; returns the booking request id. */
+  bookSpecialist: a
+    .mutation()
+    .arguments({ specialistId: a.id().required(), slotId: a.string().required(), name: a.string(), phone: a.string() })
+    .returns(a.string())
+    .authorization((allow) => [allow.group('patients')])
+    .handler(a.handler.function(specialistActions)),
+
   /** Admins set their hospital's auto-accept rules (a minimum of free beds and one switch per target). */
   setAutoAcceptRules: a
     .mutation()
@@ -310,6 +385,8 @@ const schema = a.schema({
     .handler(a.handler.function(findCare)),
 }).authorization((allow) => [
   allow.resource(adminSettings).to(['query', 'mutate']),
+  allow.resource(referralActions).to(['query', 'mutate']),
+  allow.resource(specialistActions).to(['query', 'mutate']),
   allow.resource(careActions).to(['query', 'mutate']),
   allow.resource(findCare).to(['query']),
   allow.resource(agentRunner).to(['query', 'mutate']),

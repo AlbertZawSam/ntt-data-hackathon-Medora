@@ -6,6 +6,7 @@ import { generateClient } from 'aws-amplify/data';
 import { NEED_KEYS, MAX_DESCRIPTION, toPublicHospital, targetForNeed } from '@medora/shared/logic/care';
 import { isInBangkok } from '@medora/shared/logic/places';
 import { classifyNeed, evaluate } from '@medora/shared/logic/ranking';
+import { activeHolds, withHolds, type Reservation } from '@medora/shared/logic/reservations';
 import { redFlag } from '@medora/shared/logic/redFlags';
 import { GROUPS } from '@medora/shared/logic/session';
 import { PATHWAYS } from '@medora/shared/logic/pathways';
@@ -22,6 +23,7 @@ interface Client {
   models: {
     HospitalProfile: { list(i: Rec): Promise<{ data: Array<{ hospitalId: string; name: unknown; lat: number; lng: number; typicalWaitMin: number }>; errors?: unknown[] }> };
     HospitalStatus: { list(i: Rec): Promise<{ data: Array<{ hospitalId: string; status: unknown }>; errors?: unknown[] }> };
+    Reservation: { list(i: Rec): Promise<{ data: Reservation[]; errors?: unknown[] }> };
   };
 }
 
@@ -86,12 +88,17 @@ export const handler = async (event: AppSyncResolverEvent<Args>): Promise<string
   const need: NeedKey = ai?.need ?? classifyNeed(description);
 
   const client = await dataClient();
-  const [profiles, statuses] = await Promise.all([client.models.HospitalProfile.list({ limit: 1000 }), client.models.HospitalStatus.list({ limit: 1000 })]);
-  if (profiles.errors?.length || statuses.errors?.length) throw new Error('data-unavailable');
+  const [profiles, statuses, reservations] = await Promise.all([
+    client.models.HospitalProfile.list({ limit: 1000 }),
+    client.models.HospitalStatus.list({ limit: 1000 }),
+    client.models.Reservation.list({ limit: 1000 }),
+  ]);
+  if (profiles.errors?.length || statuses.errors?.length || reservations.errors?.length) throw new Error('data-unavailable');
   const statusById = new Map(statuses.data.map((s) => [s.hospitalId, parse<HospitalStatus>(s.status)]));
   const hospitals: RankableHospital[] = profiles.data.flatMap((p) => {
     const status = statusById.get(p.hospitalId);
-    return status ? [{ id: p.hospitalId, name: parse<Bi>(p.name), lat: p.lat, lng: p.lng, typicalWaitMin: p.typicalWaitMin, status }] : [];
+    // Held beds count as not free, so the public never sees a hospital as open when its beds are promised.
+    return status ? [{ id: p.hospitalId, name: parse<Bi>(p.name), lat: p.lat, lng: p.lng, typicalWaitMin: p.typicalWaitMin, status: withHolds(status, activeHolds(reservations.data, p.hospitalId, Date.now())) }] : [];
   });
 
   const target = targetForNeed(need);

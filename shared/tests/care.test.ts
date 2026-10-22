@@ -66,6 +66,10 @@ describe('transition', () => {
     expect(transition({ ...base, status: 'completed' }, 'cancel', NOW_MS)).toEqual({ ok: false, reason: 'bad-state' });
     expect(transition({ ...base, status: 'accepted' }, 'cancel', NOW_MS)).toEqual({ ok: true, status: 'cancelled' });
   });
+  it('marks arrival only for an accepted request', () => {
+    expect(transition({ ...base, status: 'accepted' }, 'arrived', NOW_MS)).toEqual({ ok: true, status: 'completed' });
+    expect(transition(base, 'arrived', NOW_MS)).toEqual({ ok: false, reason: 'bad-state' });
+  });
   it('counts down the undo window', () => {
     const auto = { status: 'accepted', auto: true, overrideUntil: NOW_MS + 30_500 } as const;
     expect(undoSecondsLeft(auto, NOW_MS)).toBe(31);

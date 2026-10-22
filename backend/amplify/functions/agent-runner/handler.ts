@@ -2,6 +2,7 @@ import { getAmplifyDataClientConfig } from '@aws-amplify/backend/function/runtim
 import { BedrockAgentRuntimeClient, RetrieveCommand } from '@aws-sdk/client-bedrock-agent-runtime';
 import { BedrockRuntimeClient, ConverseCommand, type Message, type Tool } from '@aws-sdk/client-bedrock-runtime';
 import { CalculateRouteMatrixCommand, LocationClient } from '@aws-sdk/client-location';
+import { activeHolds, withHolds, type Reservation } from '@medora/shared/logic/reservations';
 import { classifyReferralPathway } from '@medora/shared/logic/referral';
 import type { Bi, CareRequest, HospitalStatus } from '@medora/shared/logic/types';
 import { Amplify } from 'aws-amplify';
@@ -63,6 +64,7 @@ interface DataClient {
     Referral: Model<ReferralRecord>;
     HospitalProfile: Model<ProfileRecord>;
     HospitalStatus: Model<StatusRecord>;
+    Reservation: Model<Reservation & { id: string }>;
     CareRequest: Model<CareRequestRecord>;
     TraceStep: Model<{
       id: string;
@@ -79,6 +81,7 @@ interface DataClient {
 
 interface StartReferralEvent {
   arguments: { referralId?: string };
+  identity?: { sub?: string } | null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -185,12 +188,19 @@ class AmplifyReferralStore implements ReferralStore {
     return Date.now();
   }
 
+  /** Only when the demo switch is on in the environment (set for the demo stage, never by default). */
+  demoReplies(): boolean {
+    return process.env.DEMO_REPLIES === 'true';
+  }
+
   async hospitals(): Promise<AgentHospital[]> {
     if (this.hospitalsCache) return this.hospitalsCache;
-    const [profilesResult, statusesResult] = await Promise.all([
+    const [profilesResult, statusesResult, reservationsResult] = await Promise.all([
       this.client.models.HospitalProfile.list({ limit: 1_000 }),
       this.client.models.HospitalStatus.list({ limit: 1_000 }),
+      this.client.models.Reservation.list({ limit: 1_000 }),
     ]);
+    dataError(reservationsResult.errors, 'list reservations');
     dataError(profilesResult.errors, 'list hospital profiles');
     dataError(statusesResult.errors, 'list hospital statuses');
     const statusByHospital = new Map(statusesResult.data.map((row) => [row.hospitalId, toStatus(row.status)]));
@@ -198,7 +208,7 @@ class AmplifyReferralStore implements ReferralStore {
       const name = toBi(profile.name);
       const status = statusByHospital.get(profile.hospitalId);
       if (!name || !status || !Number.isFinite(profile.lat) || !Number.isFinite(profile.lng)) return [];
-      return [{ id: profile.hospitalId, name, lat: profile.lat, lng: profile.lng, typicalWaitMin: profile.typicalWaitMin, status }];
+      return [{ id: profile.hospitalId, name, lat: profile.lat, lng: profile.lng, typicalWaitMin: profile.typicalWaitMin, status: withHolds(status, activeHolds(reservationsResult.data, profile.hospitalId, this.now())) }];
     });
     return this.hospitalsCache;
   }
@@ -418,6 +428,8 @@ export const handler = async (event: StartReferralEvent): Promise<void> => {
   const referralResult = await client.models.Referral.get({ id: referralId });
   dataError(referralResult.errors, 'get referral');
   if (!referralResult.data || referralResult.data.status !== 'running') return;
+  // Only the doctor who owns the referral can start its agent run.
+  if (event.identity?.sub && event.identity.sub !== referralResult.data.ownerId) return;
   const referral = referralRun(referralResult.data);
   const store = new AmplifyReferralStore(client, referral);
   const tools = new ReferralTools(referral, store);

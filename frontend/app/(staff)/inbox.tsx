@@ -53,7 +53,7 @@ export default function StaffInboxScreen(): React.JSX.Element {
     seen.current = ids;
   }, [data.isSynced, waiting]);
 
-  const act = async (id: string, action: 'accept' | 'decline' | 'undo', extra: { reason?: string; note?: string } = {}): Promise<void> => {
+  const act = async (id: string, action: 'accept' | 'decline' | 'undo' | 'arrived', extra: { reason?: string; note?: string } = {}): Promise<void> => {
     setBusy(id);
     setFailed(false);
     try {
@@ -107,6 +107,7 @@ export default function StaffInboxScreen(): React.JSX.Element {
               )
             ) : null}
             {undoLeft > 0 ? <Button variant="secondary" label={t('staff.inbox.undoSeconds', { s: undoLeft })} busy={busy === r.id} onPress={() => void act(r.id, 'undo')} /> : null}
+            {r.status === 'accepted' ? <Button label={t('staff.inbox.arrived')} busy={busy === r.id} onPress={() => void act(r.id, 'arrived')} /> : null}
             {r.status === 'accepted' ? (
               <>
                 <Text style={[styles.name, { color: theme.text }]}>{t('staff.inbox.messages')}</Text>

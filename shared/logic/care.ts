@@ -86,7 +86,7 @@ export function decideNewRequest(status: HospitalStatus, need: NeedKey, nowMs: n
   return { status: 'waiting', auto: false };
 }
 
-export type RequestAction = 'accept' | 'decline' | 'undo' | 'cancel' | 'expire';
+export type RequestAction = 'accept' | 'decline' | 'undo' | 'cancel' | 'expire' | 'arrived';
 
 export type TransitionResult = { ok: true; status: CareRequestStatus } | { ok: false; reason: 'bad-state' | 'undo-expired' | 'too-early' };
 
@@ -114,6 +114,8 @@ export function transition(
       return request.status === 'waiting' || request.status === 'accepted' || request.status === 'no_reply'
         ? { ok: true, status: 'cancelled' }
         : { ok: false, reason: 'bad-state' };
+    case 'arrived':
+      return request.status === 'accepted' ? { ok: true, status: 'completed' } : { ok: false, reason: 'bad-state' };
     case 'expire':
       if (request.status !== 'waiting') return { ok: false, reason: 'bad-state' };
       return nowMs - request.createdAtMs >= NO_REPLY_MS ? { ok: true, status: 'no_reply' } : { ok: false, reason: 'too-early' };

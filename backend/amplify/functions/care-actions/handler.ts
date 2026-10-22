@@ -11,6 +11,7 @@ import {
   validateRequestInput,
   type RequestAction,
 } from '@medora/shared/logic/care';
+import { activeHolds, kindForNeed, newReservation, withHolds, type Reservation } from '@medora/shared/logic/reservations';
 import { GROUPS } from '@medora/shared/logic/session';
 import type { CareRequest, HospitalStatus } from '@medora/shared/logic/types';
 
@@ -31,6 +32,7 @@ interface Client {
     HospitalStatus: Model<{ id: string; status: unknown }>;
     HospitalProfile: Model<{ id: string; name: unknown }>;
     Message: Model<{ id: string }>;
+    Reservation: Model<Reservation> & { list(input: Record_): Promise<{ data: Reservation[]; errors?: unknown[] }> };
     Activity: Model<{ id: string }>;
   };
 }
@@ -39,6 +41,27 @@ async function dataClient(): Promise<Client> {
   const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(process.env as never);
   Amplify.configure(resourceConfig, libraryOptions);
   return generateClient() as unknown as Client;
+}
+
+/** Holds currently in force at a hospital: held beds count as not free for ranking and auto-accept. */
+async function currentHolds(client: Client, hospitalId: string) {
+  const list = await client.models.Reservation.list({ filter: { hospitalId: { eq: hospitalId } }, limit: 1000 });
+  if (list.errors?.length) throw new Error('data-unavailable');
+  return activeHolds(list.data, hospitalId, Date.now());
+}
+
+async function hold(client: Client, request: { id: string; hospitalId: string; needKey: string }): Promise<void> {
+  const kind = kindForNeed(request.needKey);
+  if (!kind) return;
+  const r = await client.models.Reservation.create(newReservation(request.id, request.hospitalId, kind, Date.now()));
+  if (r.errors?.length) console.error('care-actions: hold failed');
+}
+
+async function settle(client: Client, requestId: string, state: 'released' | 'converted'): Promise<Reservation | undefined> {
+  const found = await client.models.Reservation.list({ filter: { requestId: { eq: requestId } }, limit: 10 });
+  const open = found.data.find((r) => r.state === 'held');
+  if (open) await client.models.Reservation.update({ id: open.id, state });
+  return open;
 }
 
 const must = <T>(result: Result<T>, what: string): T => {
@@ -61,6 +84,16 @@ async function log(client: Client, hospitalId: string, ownerId: string | undefin
     text: JSON.stringify({ en, th }),
   });
   if (r.errors?.length) console.error('care-actions: activity log failed');
+}
+
+/**
+ * Re-reads the request right before writing and refuses if its status changed since the first read, so a
+ * patient's cancel and a staff accept (or two staff answers) can't both succeed on a stale view. This
+ * narrows the race to a few milliseconds; the Amplify data client has no conditional write.
+ */
+async function stillSame(client: Client, request: RequestRecord): Promise<void> {
+  const fresh = must(await client.models.CareRequest.get({ id: request.id }), 'no-request');
+  if (fresh.status !== request.status) throw new Error('bad-state');
 }
 
 /** A patient: public-pool token with the `patients` group. Returns the user's id. */
@@ -97,7 +130,7 @@ async function submitRequest(client: Client, event: AppSyncResolverEvent<Record_
   const status = parse<HospitalStatus>(statusRow.status);
   const profile = await client.models.HospitalProfile.get({ id: input.hospitalId });
   const nowMs = Date.now();
-  const decision = decideNewRequest(status, input.needKey, nowMs);
+  const decision = decideNewRequest(withHolds(status, await currentHolds(client, input.hospitalId)), input.needKey, nowMs);
 
   const created = must(
     await client.models.CareRequest.create({
@@ -116,6 +149,7 @@ async function submitRequest(client: Client, event: AppSyncResolverEvent<Record_
     }),
     'create-failed',
   );
+  if (decision.status === 'accepted') await hold(client, { id: created.id, hospitalId: input.hospitalId, needKey: input.needKey });
   await log(client, input.hospitalId, ownerId, 'Patient', 'ผู้ป่วย', `Request ${created.id}: ${decision.status}${decision.auto ? ' (rule)' : ''}`, `คำขอ ${created.id}: ${decision.status}${decision.auto ? ' (ตามกฎ)' : ''}`);
   console.info(`care-actions submit ok: status=${decision.status}`);
   return created.id;
@@ -127,12 +161,14 @@ async function patientCancel(client: Client, event: AppSyncResolverEvent<Record_
   if (request.ownerId !== ownerId) throw new Error('not-owner');
   const move = transition(request, 'cancel', Date.now());
   if (!move.ok) throw new Error(move.reason);
+  await stillSame(client, request);
   must(await client.models.CareRequest.update({ id: request.id, status: move.status }), 'save-failed');
+  await settle(client, request.id, 'released');
   await log(client, request.hospitalId, ownerId, 'Patient', 'ผู้ป่วย', `Request ${request.id}: cancelled`, `คำขอ ${request.id}: ยกเลิก`);
   return 'ok';
 }
 
-const STAFF_ACTIONS: readonly string[] = ['accept', 'decline', 'undo'];
+const STAFF_ACTIONS: readonly string[] = ['accept', 'decline', 'undo', 'arrived'];
 const DECLINE_REASONS = ['nobed', 'busy', 'equip', 'divert'];
 
 async function answerRequest(client: Client, event: AppSyncResolverEvent<Record_>): Promise<string> {
@@ -145,6 +181,7 @@ async function answerRequest(client: Client, event: AppSyncResolverEvent<Record_
   const move = transition(request, action as RequestAction, Date.now());
   if (!move.ok) throw new Error(move.reason);
 
+  await stillSame(client, request);
   const reason = typeof event.arguments.reason === 'string' && DECLINE_REASONS.includes(event.arguments.reason) ? event.arguments.reason : undefined;
   const note = typeof event.arguments.note === 'string' ? event.arguments.note.trim().slice(0, 200) : undefined;
   must(
@@ -157,9 +194,24 @@ async function answerRequest(client: Client, event: AppSyncResolverEvent<Record_
     }),
     'save-failed',
   );
+  if (action === 'accept') await hold(client, request);
+  if (action === 'decline' || action === 'undo') await settle(client, request.id, 'released');
+  if (action === 'arrived') {
+    // The patient now occupies the bed: the hold becomes a used bed, so the count goes down by one.
+    const held = await settle(client, request.id, 'converted');
+    if (held) await occupy(client, request.hospitalId, held.kind);
+  }
   await log(client, request.hospitalId, sub, `Unit: ${caller.unit ?? '-'}`, `หน่วย: ${caller.unit ?? '-'}`, `Request ${request.id}: ${action}`, `คำขอ ${request.id}: ${action}`);
   console.info(`care-actions answer ok: action=${action}`);
   return 'ok';
+}
+
+async function occupy(client: Client, hospitalId: string, kind: 'bed' | 'nicu'): Promise<void> {
+  const row = await client.models.HospitalStatus.get({ id: hospitalId });
+  if (!row.data) return;
+  const status = parse<HospitalStatus>(row.data.status);
+  const next = kind === 'nicu' ? { ...status, nicu: Math.max(0, status.nicu - 1) } : { ...status, beds: Math.max(0, status.beds - 1) };
+  await client.models.HospitalStatus.update({ id: hospitalId, status: JSON.stringify(next) });
 }
 
 async function sendMessage(client: Client, event: AppSyncResolverEvent<Record_>): Promise<string> {

@@ -11,6 +11,7 @@ import { inviteStaff } from '../../src/services/data';
 import { useApp, useT } from '../../src/state/AppProvider';
 import { Button } from '../../src/ui/Button';
 import { Field } from '../../src/ui/Field';
+import { StatusReminder } from '../../src/components/StatusReminder';
 import { Screen } from '../../src/ui/Screen';
 import { fonts, fontSizes, useTheme } from '../../src/ui/theme';
 
@@ -39,6 +40,7 @@ export default function AdminStaffInviteScreen(): React.JSX.Element {
 
   return (
     <Screen title={t('admin.staffInvite.title')}>
+      <StatusReminder audience="admin" />
       <Field label={t('admin.staffInvite.emailPlaceholder')} value={email} onChangeText={(v) => { setEmail(v); setState('idle'); }} autoCapitalize="none" keyboardType="email-address" autoCorrect={false} />
       <Text style={[styles.label, { color: theme.text }]}>{t('admin.staffInvite.groupLabel')}</Text>
       {GROUPS.map((g) => (

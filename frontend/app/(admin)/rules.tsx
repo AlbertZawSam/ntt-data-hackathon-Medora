@@ -13,6 +13,7 @@ import { setAutoAcceptRules } from '../../src/services/data';
 import { useApp, useT } from '../../src/state/AppProvider';
 import { Button } from '../../src/ui/Button';
 import { Field } from '../../src/ui/Field';
+import { StatusReminder } from '../../src/components/StatusReminder';
 import { Screen } from '../../src/ui/Screen';
 import { fonts, fontSizes, spacing, useTheme } from '../../src/ui/theme';
 
@@ -50,6 +51,7 @@ export default function AdminRulesScreen(): React.JSX.Element {
 
   return (
     <Screen title={t('staff.rules.title')}>
+      <StatusReminder audience="admin" />
       {RULE_TARGETS.map((target) => (
         <View key={target} style={styles.row}>
           <Text style={[styles.label, { color: theme.text }]}>{label(target)}</Text>
