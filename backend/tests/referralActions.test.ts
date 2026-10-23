@@ -59,6 +59,25 @@ describe('decideReferral', () => {
   });
 });
 
+describe('set aside', () => {
+  const aside = (args: Record<string, unknown> = {}) => call(staffEvent('decideReferral', { referralId: 'f1', decision: 'set_aside', ...args }, doctor));
+  it('logs the reason on the server, and refuses a reason that is not on the list', async () => {
+    await expect(aside({ reason: 'because' })).rejects.toThrow('bad-reason');
+    expect(fake.tables('Referral')[0].status).toBe('awaiting');
+    await aside({ reason: 'tooFar' });
+    expect(String(fake.tables('Activity').at(-1)?.text)).toContain('too far for this patient');
+  });
+  it("withdraws only the chosen hospital's request of this referral", async () => {
+    fake.tables('CareRequest').push(
+      { id: 'q2', referralId: 'f1', hospitalId: 'H3', status: 'accepted' },
+      { id: 'q3', referralId: 'other', hospitalId: 'H2', status: 'accepted' },
+    );
+    await aside();
+    const status = (id: string) => fake.tables('CareRequest').find((r) => r.id === id)?.status;
+    expect([status('q1'), status('q2'), status('q3')]).toEqual(['cancelled', 'accepted', 'accepted']);
+  });
+});
+
 describe('arriveTransfer', () => {
   beforeEach(() => {
     fake.tables('Transfer').push({ id: 't1', referralId: 'f1', ownerId: 'd1', status: 'in_progress' });

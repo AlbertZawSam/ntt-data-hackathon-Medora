@@ -7,6 +7,7 @@ import { generateClient } from 'aws-amplify/data';
 import type { Reservation } from '@medora/shared/logic/reservations';
 import type { PublicSpecialist, Slot } from '@medora/shared/logic/specialists';
 import type { ArrivalMode, PublicHospital, QuickReplyKey } from '@medora/shared/logic/care';
+import { SET_ASIDE_REASONS, type SetAsideReason } from '@medora/shared/logic/referral';
 import type {
   AutoAcceptRules,
   NeedKey,
@@ -74,7 +75,7 @@ interface Client {
     answerRequest: (input: { requestId: string; action: string; reason?: string; note?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     sendMessage: (input: { requestId: string; key?: string; text?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     openReferral: (input: { text: string; onsetMin?: number; lang: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
-    decideReferral: (input: { referralId: string; decision: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
+    decideReferral: (input: { referralId: string; decision: string; reason?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     arriveTransfer: (input: { transferId: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     saveSpecialist: (input: { id?: string; name: string; specialty: string; languages: string[]; namePublic: boolean; slots: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     removeSpecialist: (input: { id: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
@@ -274,16 +275,7 @@ export async function startReferral(
   return created.data;
 }
 
-/** Why a doctor set a recommendation aside; stored as a key, shown in both languages. */
-export const SET_ASIDE_REASONS = ['tooFar', 'patientChoice', 'clinical', 'other'] as const;
-export type SetAsideReason = (typeof SET_ASIDE_REASONS)[number];
-
-const SET_ASIDE_TEXT: Record<SetAsideReason, Bi> = {
-  tooFar: { en: 'too far for this patient', th: 'ไกลเกินไปสำหรับผู้ป่วยรายนี้' },
-  patientChoice: { en: "patient's or family's choice", th: 'ผู้ป่วยหรือญาติเลือกที่อื่น' },
-  clinical: { en: 'clinical judgement', th: 'ดุลยพินิจทางคลินิก' },
-  other: { en: 'other reason', th: 'เหตุผลอื่น' },
-};
+export { SET_ASIDE_REASONS, type SetAsideReason };
 
 function ownAwaiting(session: Session, referral: Referral): string {
   if (referral.ownerId !== session.userId || referral.status !== 'awaiting' || !referral.chosenId) {
@@ -304,18 +296,11 @@ export async function confirmReferral(session: Session, referral: Referral): Pro
 
 /**
  * The doctor sets the recommendation aside with a reason ("Not this one"). The server closes the referral
- * and withdraws the chosen hospital's accepted request, so its bed is not held; the reason is logged here.
+ * and withdraws the chosen hospital's accepted request, so its bed is not held; the server logs the reason.
  */
 export async function setAsideReferral(session: Session, referral: Referral, reason: SetAsideReason): Promise<void> {
   ownAwaiting(session, referral);
-  ensureData(await client.mutations.decideReferral({ referralId: referral.id, decision: 'set_aside' }), 'Set aside referral');
-  const why = SET_ASIDE_TEXT[reason];
-  await writeActivity({
-    hospitalId: referral.fromHospitalId,
-    ownerId: session.userId,
-    actor: { en: 'Doctor', th: 'แพทย์' },
-    text: { en: `Doctor set the recommendation aside: ${why.en}`, th: `แพทย์ไม่เลือกโรงพยาบาลที่แนะนำ: ${why.th}` },
-  }).catch(() => undefined);
+  ensureData(await client.mutations.decideReferral({ referralId: referral.id, decision: 'set_aside', reason }), 'Set aside referral');
 }
 
 /** Marks a simulated transfer as arrived (requirement 13.3). The server checks the doctor owns the transfer. */

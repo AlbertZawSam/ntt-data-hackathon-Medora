@@ -3,7 +3,7 @@ import type { AppSyncIdentityCognito, AppSyncResolverEvent } from 'aws-lambda';
 import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import { callerFromClaims, canStartReferral } from '@medora/shared/logic/access';
-import { checkReferralDecision, type ReferralDecision } from '@medora/shared/logic/referral';
+import { SET_ASIDE_TEXT, checkReferralDecision, isSetAsideReason, type ReferralDecision } from '@medora/shared/logic/referral';
 
 type Rec = Record<string, unknown>;
 type Result<T> = { data: T | null; errors?: unknown[] };
@@ -92,6 +92,8 @@ async function decide(client: Client, event: AppSyncResolverEvent<Rec>): Promise
   const me = doctor(event);
   const decision = event.arguments.decision;
   if (decision !== 'confirm' && decision !== 'set_aside') throw new Error('bad-decision');
+  const reason = event.arguments.reason;
+  if (reason !== undefined && reason !== null && !isSetAsideReason(reason)) throw new Error('bad-reason');
   const referral = must(await client.models.Referral.get({ id: String(event.arguments.referralId) }), 'no-referral');
 
   const asked = await client.models.CareRequest.list({ filter: { referralId: { eq: referral.id } }, limit: 1000 });
@@ -107,14 +109,15 @@ async function decide(client: Client, event: AppSyncResolverEvent<Rec>): Promise
   // Re-read right before writing, so two quick taps can't both succeed.
   const fresh = must(await client.models.Referral.get({ id: referral.id }), 'no-referral');
   if (fresh.status !== 'awaiting') throw new Error('bad-state');
-  must(await client.models.Referral.update({ id: referral.id, status: check.status }), 'save-failed');
-
-  // Setting a recommendation aside releases the chosen hospital: its accepted request is withdrawn.
+  // Setting a recommendation aside releases the chosen hospital: its accepted request is withdrawn first,
+  // so a failure here leaves the referral open for a retry instead of closed with a bed still held.
   if (check.status === 'set_aside' && referral.chosenId) {
     for (const request of asked.data.filter((r) => r.hospitalId === referral.chosenId && r.status === 'accepted')) {
       must(await client.models.CareRequest.update({ id: request.id, status: 'cancelled' }), 'withdraw-failed');
     }
   }
+  must(await client.models.Referral.update({ id: referral.id, status: check.status }), 'save-failed');
+
   if (check.status === 'confirmed' && referral.chosenId) {
     must(
       await client.models.Transfer.create({
@@ -130,7 +133,14 @@ async function decide(client: Client, event: AppSyncResolverEvent<Rec>): Promise
       'transfer-failed',
     );
   }
-  await log(client, me.hospitalId, me.userId, `Referral ${referral.id}: ${check.status}`, `การส่งต่อ ${referral.id}: ${check.status}`);
+  const why = check.status === 'set_aside' && isSetAsideReason(reason) ? SET_ASIDE_TEXT[reason] : null;
+  await log(
+    client,
+    me.hospitalId,
+    me.userId,
+    `Referral ${referral.id}: ${check.status}${why ? ` (${why.en})` : ''}`,
+    `การส่งต่อ ${referral.id}: ${check.status}${why ? ` (${why.th})` : ''}`,
+  );
   console.info(`referral-actions decide ok: ${check.status}`);
   return check.status;
 }

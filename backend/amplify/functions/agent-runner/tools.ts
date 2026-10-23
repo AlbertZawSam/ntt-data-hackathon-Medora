@@ -1,6 +1,7 @@
 import { operationalText } from '@medora/shared/logic/agentText';
 import { decisionRows } from '@medora/shared/logic/decisionTable';
 import { DEMO_REPLY_AFTER_SEC, demoReply } from '@medora/shared/logic/demoReplies';
+import { kbTraceDetail } from '@medora/shared/logic/kb';
 import { PATHWAYS } from '@medora/shared/logic/pathways';
 import { DEMO_REPLY_DELAY_SEC, assessReferral, delayExceedsWindow, demoReplyFor, nextHospitals, statedDelayMin, type ReferralAssessment } from '@medora/shared/logic/referral';
 import { ruleAccepts } from '@medora/shared/logic/rules';
@@ -162,12 +163,24 @@ export class ReferralTools {
     const query = typeof input.query === 'string' ? input.query.trim().slice(0, 500) : '';
     if (!query) return toolError('query must be a non-empty string up to 500 characters.');
     const matches = await this.store.knowledgeSearch(query);
+    const hospitals = this.state?.hospitals ?? (await this.store.hospitals());
     await this.store.trace(
       'search_knowledge_base',
       { en: 'Capability sources checked', th: 'ตรวจสอบแหล่งข้อมูลความสามารถแล้ว' },
-      { en: `${matches.length} matching source(s) found.`, th: `พบแหล่งข้อมูลที่ตรงกัน ${matches.length} แหล่ง` },
+      kbTraceDetail(matches, (id) => hospitals.find((hospital) => hospital.id === id)?.name),
     );
-    return { ok: true, matches };
+    // The model gets a short list, not ten bilingual paragraphs: a long result made Nova Lite stall after the
+    // search in some runs. The trace above still shows every source. The next step is ours, not the documents'.
+    const seen = new Set<string>();
+    const brief = matches
+      .filter((match) => !seen.has(match.source) && seen.add(match.source))
+      .slice(0, 5)
+      .map((match) => ({ hospitalId: match.hospitalId, source: match.source, excerpt: match.text.slice(0, 160) }));
+    return {
+      ok: true,
+      matches: brief,
+      next: this.state ? 'Now call ask_hospitals for the hospitals assess_case returned as able to help.' : 'Now call assess_case.',
+    };
   }
 
   async askHospitals(input: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -284,6 +297,10 @@ export class ReferralTools {
     const reasonEn = this.withNames(typeof input.reason_en === 'string' ? input.reason_en.trim().slice(0, 500) : '', 'en');
     const reasonTh = this.withNames(typeof input.reason_th === 'string' ? input.reason_th.trim().slice(0, 500) : '', 'th');
     if (!reasonEn || !reasonTh) return toolError('reason_en and reason_th are required.');
+    // Hospitals that can help must be asked before giving up: the model can't skip the asking step.
+    if (this.state && this.asked.size === 0 && this.state.assessment.ranked.some((row) => row.eligible)) {
+      return toolError('Hospitals can help with this case. Call ask_hospitals for them before reporting no placement.');
+    }
     await this.store.updateReferral(this.referral.id, {
       status: 'failed',
       ...(this.state ? { rows: decisionRows(this.state.assessment.ranked, await this.store.requests(this.referral.id)) } : {}),
@@ -298,29 +315,36 @@ export class ReferralTools {
   async ruleBasedBackup(): Promise<void> {
     const pathway = this.state?.assessment.pathway ?? 'general';
     if (!this.state) await this.execute('assess_case', { pathway });
-    let accepted: CareRequest | undefined;
+    // A hospital may already have accepted in a round the model asked before it stopped, so look first.
+    const acceptedNow = async (): Promise<CareRequest | undefined> => {
+      const requests = await this.store.requests(this.referral.id);
+      return this.state?.assessment.ranked
+        .filter((row) => row.eligible)
+        .map((row) => requests.find((request) => request.hospitalId === row.hospital.id && request.status === 'accepted'))
+        .find((request): request is CareRequest => request !== undefined);
+    };
+    let accepted = await acceptedNow();
     while (this.rounds < 2 && !accepted) {
       const candidates = this.state ? nextHospitals(this.state.assessment, this.asked) : [];
       if (candidates.length === 0) break;
       await this.execute('ask_hospitals', { hospital_ids: candidates.map((row) => row.hospital.id), wait_seconds: this.state!.assessment.waitSeconds });
-      const requests = await this.store.requests(this.referral.id);
-      accepted = this.state?.assessment.ranked
-        .filter((row) => row.eligible)
-        .map((row) => requests.find((request) => request.hospitalId === row.hospital.id && request.status === 'accepted'))
-        .find((request): request is CareRequest => request !== undefined);
+      accepted = await acceptedNow();
     }
-    if (!accepted) {
+    const recommended = accepted
+      ? await this.execute('recommend', {
+          hospital_id: accepted.hospitalId,
+          reason_en: 'This hospital accepted and has the best eligible travel time.',
+          reason_th: 'โรงพยาบาลนี้ตอบรับและมีเวลาเดินทางที่เหมาะสมที่สุดในกลุ่มที่รับได้',
+        })
+      : undefined;
+    // No acceptance, or one the rules refuse (for example a stated delay that breaks the window): close the
+    // referral honestly rather than leave it running.
+    if (recommended?.ok !== true) {
       await this.execute('report_no_placement', {
-        reason_en: 'No hospital accepted the referral in the available time.',
-        reason_th: 'ไม่มีโรงพยาบาลตอบรับคำขอส่งต่อภายในเวลาที่กำหนด',
+        reason_en: accepted ? 'The accepted hospital cannot take the patient inside the treatment window.' : 'No hospital accepted the referral in the available time.',
+        reason_th: accepted ? 'โรงพยาบาลที่ตอบรับไม่สามารถรับผู้ป่วยได้ภายในช่วงเวลาการรักษา' : 'ไม่มีโรงพยาบาลตอบรับคำขอส่งต่อภายในเวลาที่กำหนด',
       });
-      return;
     }
-    await this.execute('recommend', {
-      hospital_id: accepted.hospitalId,
-      reason_en: 'This hospital accepted and has the best eligible travel time.',
-      reason_th: 'โรงพยาบาลนี้ตอบรับและมีเวลาเดินทางที่เหมาะสมที่สุดในกลุ่มที่รับได้',
-    });
   }
 
   /** Store a short operational update, never raw chain-of-thought. */

@@ -1,6 +1,6 @@
 # Agent evaluations (task 25)
 
-**Status: the cases and the scorer are built; no model runs have been recorded yet.** Runs need a deployed sandbox with Bedrock access (see the team lead's IAM approval and the Guardrail in `docs/specs/tasks.md`, task 18).
+**Status: the cases, the scorer and the runner (`npm run evals`) are built; no model runs have been recorded yet.** Runs need a deployed sandbox with Bedrock access and `DEMO_REPLIES=true`.
 
 ## What is compared
 
@@ -33,10 +33,27 @@ Defined in `shared/logic/evals.ts` (`EVAL_CASES`), each in English and Thai unle
 
 ## How to run
 
-1. Deploy a sandbox, turn on the Bedrock permissions and a Guardrail, and set `DEMO_REPLIES=true` so hospitals without a rule reply with preset notes.
-2. Create test hospitals with known capabilities, so each case has a known set of capable hospitals.
-3. For each case and model, start the referral as a doctor, wait for the run to end, then read back the referral, its decision rows and any transfers into an `EvalRun`.
-4. Score with `scoreRun`, combine ten runs with `summarise`, and record the results below. Use Nova Lite for development runs; use Nova Pro only for the final evaluation, to stay inside the $350 budget.
+`scripts/run-evals.ts` does the whole loop. Run it yourself from the repository root:
+
+```bash
+export AWS_PROFILE=medora AWS_REGION=us-east-1
+DEMO_REPLIES=true npm run sandbox                          # leave running; keep DEMO_REPLIES=true on every redeploy; the knowledge base is on unless MEDORA_ENABLE_KB=false
+npm run upload-kb                                          # a new deploy starts with an empty knowledge base
+npm run seed                                               # the test hospitals (Thonburi refers; the others can help)
+npm run evals                                              # dry run: checks the sandbox, prints the plan and a cost estimate, calls no model
+npm run evals -- --yes                                     # 10 runs of each case on Nova Lite (about $0.20)
+npm run evals -- --yes --model both                        # then Nova Lite and Nova Pro, for the final evaluation (about $2.50)
+```
+
+For each run it creates a referral from Thonburi with its own owner (`eval-<id>-<n>`, so the daily run limit never blocks), invokes the agent Lambda directly with the chosen model, plays the staff the case needs (the nearest hospital states a 40 minute delay, or a note tries to give the agent orders), waits for the run to end, and reads the referral, decision rows, trace and transfers back into an `EvalRun`. The ground truth for "capable" comes from the sandbox's own hospital rows and the fixed ranking rules.
+
+- **Model choice:** `--model fast|strong|both`. The override travels only in a direct Lambda invoke; AppSync cannot send it. The runner refuses to run when the deployed agent is older than its source (prompt, tools or the override), because the results would describe old code, and `--model strong` would silently run Nova Lite.
+- **Agent safeguards the evals exposed:** the agent now searches the knowledge base once (so sources are cited), and `report_no_placement` is refused until the hospitals that can help have been asked (a 1-run smoke test showed Nova Lite sometimes gave up right after the search). For cases with a stated delay, the nearest hospital stops counting as capable when its delay breaks the treatment window, so an honest "no placement" is a pass.
+- **Backup runs:** a run where the model failed and the fixed rules finished the referral is counted apart ("used the rule-based backup") and never as a model pass.
+- **Turns:** the loop is capped at 8 model turns in code; turns are not stored, so `withinTurnLimit` is enforced rather than measured.
+- **Results:** printed as the table below and saved, with the ids of everything created, to `scripts/.local/evals-<id>.json` (ignored by Git).
+- **Cleaning up:** `npm run evals -- --cleanup scripts/.local/evals-<id>.json --yes` deletes exactly the records that file lists (and shows what it would delete without `--yes`). A person runs this; coding agents never run delete commands.
+- **Cost:** Nova Lite while developing; Nova Pro only for the final evaluation, to stay inside the $350 budget. The estimate in the dry run is rough (about 15k input and 2k output tokens per run); check Cost Explorer afterwards.
 
 ## Results
 

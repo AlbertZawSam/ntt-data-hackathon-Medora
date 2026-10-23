@@ -356,7 +356,7 @@ const schema = a.schema({
   /** Only the owning doctor confirms (to an accepting hospital) or sets aside; creates the transfer. */
   decideReferral: a
     .mutation()
-    .arguments({ referralId: a.id().required(), decision: a.string().required() })
+    .arguments({ referralId: a.id().required(), decision: a.string().required(), reason: a.string() })
     .returns(a.string())
     .authorization((allow) => [allow.group('doctors')])
     .handler(a.handler.function(referralActions)),

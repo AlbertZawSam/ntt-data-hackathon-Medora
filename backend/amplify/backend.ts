@@ -133,12 +133,13 @@ if (process.env.MEDORA_ATTACH_BEDROCK_IAM === 'true') {
   backend.findCare.resources.lambda.addToRolePolicy(new PolicyStatement({ actions: ['bedrock:ApplyGuardrail'], resources: [guardrail.attrGuardrailArn] }));
 }
 
-// Knowledge base (task 23, requirements 14.1 to 14.3). Opt-in: the team lead sets MEDORA_ENABLE_KB=true
-// for the sandbox, then runs `npm run upload-kb`. Until then the agent uses registered hospital profiles
-// and says so in the trace. Cost: S3 Vectors and S3 have no hourly charge (cents per month for these 25
-// small documents); Titan Text Embeddings V2 is paid per token at ingestion and per search query.
+// Knowledge base (task 23, requirements 14.1 to 14.3). On by default: a deploy without it would delete the
+// stack and the indexed documents, so the sandbox keeps it unless MEDORA_ENABLE_KB=false is set. After a new
+// deploy the bucket is empty: run `npm run upload-kb`. Without a knowledge base the agent uses registered
+// hospital profiles and says so in the trace. Cost: S3 Vectors and S3 have no hourly charge (cents per month
+// for these 25 small documents); Titan Text Embeddings V2 is paid per token at ingestion and per search.
 let knowledgeBaseOutput: Record<string, string> | undefined;
-if (process.env.MEDORA_ENABLE_KB === 'true') {
+if (process.env.MEDORA_ENABLE_KB !== 'false') {
   const kbStack = backend.createStack('knowledge-base');
   const EMBEDDING_MODEL_ID = 'amazon.titan-embed-text-v2:0';
   const isDemoStage = process.env.AWS_BRANCH === 'demo';

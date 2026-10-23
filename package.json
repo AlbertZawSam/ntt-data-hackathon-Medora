@@ -22,6 +22,7 @@
     "seed": "tsx scripts/seed.ts",
     "kb": "tsx scripts/build-kb.ts",
     "upload-kb": "tsx scripts/upload-kb.ts",
+    "evals": "tsx scripts/run-evals.ts",
     "test-logins": "node scripts/test-logins.mjs"
   }
 }

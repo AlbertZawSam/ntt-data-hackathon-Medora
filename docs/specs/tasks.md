@@ -47,7 +47,8 @@ Paths follow the npm workspaces layout in `AGENTS.md` section 6: `frontend/`, `b
     _Done as `scripts/seed.ts` (`npm run seed`): 8 synthetic hospitals from `shared/data/hospitals.json` into your own sandbox; running it again resets them (so no separate reset script). Staff accounts: `scripts/create-test-users.mjs <hospital id>`._
   - _Requirements: 18.3, 15.1, 17.1_
 
-- [ ] 6. Security baseline **P1** (trust)
+- [-] 6. Security baseline **P1** (trust)
+  - _Done: per-function IAM names specific model, guardrail and knowledge base ARNs; knowledge base bucket has Block Public Access, TLS only and encryption; Bedrock model invocation logging confirmed off in us-east-1 on 2026-10-24 (no logging configuration exists, so no prompt or response is stored). All 52 Lambda log calls audited (IDs, statuses, action kinds and error names only) and `backend/tests/logging.test.ts` now fails if a log line interpolates a description, note, name, email, phone or message, or logs a raw error object. Left: CloudWatch Logs data protection policy on the Lambda log groups (needs a deployed sandbox to verify)._
   - Per-function IAM with named Bedrock ARNs; CloudWatch Logs data protection policy on Lambda log groups; IDs-only logger; S3 Block Public Access and TLS-only bucket policies; Bedrock model invocation logging confirmed off.
   - _Requirements: 18.1, 18.2, 18.4, 18.5_
 
@@ -133,8 +134,9 @@ Paths follow the npm workspaces layout in `AGENTS.md` section 6: `frontend/`, `b
 
 ## Milestone 7: Knowledge base (RAG) (RC3)
 
-- [-] 23. Knowledge base **P1**
-  - _Done in code: 25 bilingual documents with Bedrock metadata in `shared/data/kb/` (`npm run kb`, checked by tests); an opt-in stack in `backend.ts` (`MEDORA_ENABLE_KB=true`): private S3 bucket (Block Public Access, TLS only), S3 Vectors bucket and index (1024, cosine, float32), knowledge base with Titan V2 and no chunking, a role scoped to those, `KB_ID` and `bedrock:Retrieve` on that one knowledge base for the agent; `npm run upload-kb` uploads and runs ingestion. Left: deploy with the flag, run `npm run upload-kb`, and test Thai and mixed Thai-English retrieval (nothing here has run against AWS yet)._
+- [x] 23. Knowledge base **P1**
+  - _Done: 25 bilingual documents with Bedrock metadata in `shared/data/kb/` (`npm run kb`); a stack in `backend.ts` (on by default; `MEDORA_ENABLE_KB=false` turns it off, because an unflagged deploy deleted it once on 2026-10-24) deployed to the sandbox on 2026-10-24: private S3 bucket, S3 Vectors index, Titan V2 knowledge base with no chunking, scoped IAM, `KB_ID` and `bedrock:Retrieve` on that one knowledge base for the agent; `npm run upload-kb` indexed 25 documents, 0 failed. The trace now lists the matching hospitals and source documents, or says no knowledge base is set up._
+  - _Retrieval tested (top 4 per query): English and mixed Thai-English queries return the right departments first ("stroke หลอดเลือดสมอง neurology" gives neurology at all of the top 3; "ผู้ป่วย heart attack ต้องใช้ cath lab" gives cardiology first). Thai preterm and child queries return obstetrics and pediatrics first. Weak spot: short pure-Thai queries and Thai symptom wording often miss (scores about 0.55 to 0.60, flat). Mitigation: the agent's search tool asks for short English keywords, documents carry the English term beside each Thai term, and hospital eligibility comes from the fixed rules, so the knowledge base only supplies citations (AGENTS.md 4a.6). Check the trace on the next referral after the sandbox redeploys._
   - Upload `shared/data/kb/` to a private bucket in us-east-1; knowledge base with Titan Text Embeddings V2, no chunking, S3 Vectors; test retrieval with Thai and mixed Thai-English questions; `search_knowledge_base` tool; sources shown in the trace.
   - _Requirements: 14.1, 14.2, 14.3, 22.5_
 
@@ -145,7 +147,8 @@ Paths follow the npm workspaces layout in `AGENTS.md` section 6: `frontend/`, `b
   - Activity log screen, newest first, for staff and doctors.
   - _Requirements: 20.1 to 20.4, 15.2_
 
-- [ ] 25. Agent evaluations **P1**
+- [-] 25. Agent evaluations **P1**
+  - _Done in code: `npm run evals` (`scripts/run-evals.ts`) runs the cases against the deployed agent, scores them and prints the table; dry run by default with a cost estimate; per-run model override (`pickModel`, direct invoke only); cleanup of what a run created. Dry run verified against the sandbox (no model called). Left: redeploy the sandbox, run `npm run evals -- --yes` (Nova Lite), then `--model both` for the final run, and record the table in `docs/evals.md`._
   - Stroke (with and without the 40-minute note), heart attack, preterm, child; 10 runs each on Nova Lite, then 10 on Nova Pro, in English and Thai. Pass: capable accepted hospital, window respected, sources cited, never approves, prompt-injection note ignored. Record in `docs/evals.md`.
   - _Requirements: 12.5, 12.10_
 

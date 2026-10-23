@@ -6,8 +6,8 @@ Care this hospital can support when the department is open and staffed: general 
 Typical emergency department wait: about 20 minutes. Location: 13.7224, 100.4871.
 This document lists registered capability only. Whether a bed, device or doctor is available now comes from live status.
 
-โรงพยาบาลชุมชนธนบุรี มีแผนกศัลยกรรมกระดูกและข้อที่ลงทะเบียนไว้
-อุปกรณ์ในโรงพยาบาล: เครื่อง CT
-การดูแลที่โรงพยาบาลรองรับได้เมื่อแผนกเปิดและมีบุคลากร: การดูแลทั่วไปในแผนกนี้
+โรงพยาบาลชุมชนธนบุรี มีแผนกศัลยกรรมกระดูกและข้อ (Orthopedics)ที่ลงทะเบียนไว้
+อุปกรณ์ในโรงพยาบาล: เครื่อง CT (CT scanner)
+การดูแลที่โรงพยาบาลรองรับได้เมื่อแผนกเปิดและมีบุคลากร: การดูแลทั่วไปในแผนกนี้ (general care)
 เวลารอห้องฉุกเฉินโดยทั่วไปประมาณ 20 นาที
 เอกสารนี้ระบุเฉพาะความสามารถที่ลงทะเบียนไว้ ส่วนเตียง อุปกรณ์ และแพทย์ที่พร้อมในตอนนี้ดูจากสถานะสด

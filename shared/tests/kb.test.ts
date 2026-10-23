@@ -1,5 +1,5 @@
 import { DEMO_HOSPITALS } from '../logic/demoHospitals';
-import { buildKbDocuments } from '../logic/kb';
+import { buildKbDocuments, kbTraceDetail } from '../logic/kb';
 
 const docs = buildKbDocuments(DEMO_HOSPITALS, (key) => `id-${key}`);
 
@@ -33,5 +33,36 @@ describe('knowledge base documents', () => {
       expect(doc.text).toContain('registered capability only');
       expect(doc.text).not.toMatch(/\b(free|ready) beds?\b/i);
     }
+  });
+});
+
+describe('kbTraceDetail', () => {
+  const names: Record<string, { en: string; th: string }> = { H1: { en: 'Rama Nine', th: 'พระรามเก้า' }, H2: { en: 'Siam', th: 'สยาม' } };
+  const nameOf = (id: string) => names[id];
+
+  it('lists the matching hospitals and source documents in both languages', () => {
+    const detail = kbTraceDetail(
+      [
+        { hospitalId: 'H1', source: 's3://bucket-1/rama9/neuro.md' },
+        { hospitalId: 'H1', source: 's3://bucket-1/rama9/neuro.md' },
+        { hospitalId: 'H2', source: 's3://bucket-1/siam/neuro.md' },
+      ],
+      nameOf,
+    );
+    expect(detail.en).toBe('2 source document(s): Rama Nine (rama9/neuro.md), Siam (siam/neuro.md).');
+    expect(detail.th).toContain('พระรามเก้า (rama9/neuro.md)');
+  });
+
+  it('says so when no knowledge base is set up, and when nothing matches', () => {
+    expect(kbTraceDetail([{ hospitalId: 'H1', source: 'hospital-profile' }], nameOf).en).toContain('No knowledge base is set up');
+    expect(kbTraceDetail([], nameOf).en).toBe('No matching source found.');
+  });
+
+  it('shows at most a few documents and says there are more', () => {
+    const many = Array.from({ length: 6 }, (_, i) => ({ hospitalId: 'H1', source: `s3://b/rama9/d${i}.md` }));
+    const detail = kbTraceDetail(many, nameOf, 3);
+    expect(detail.en).toContain('6 source document(s)');
+    expect(detail.en).toContain('and more');
+    expect(detail.en).not.toContain('d3.md');
   });
 });

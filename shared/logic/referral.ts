@@ -7,7 +7,7 @@ import { canConfirmReferral } from './access';
 import { PATHWAYS } from './pathways';
 import { classifyNeed, evaluate, type LatLng } from './ranking';
 import { askPolicy, remainingWindow } from './timeBudget';
-import type { PathwayKey, RankableHospital, RankedHospital } from './types';
+import type { Bi, PathwayKey, RankableHospital, RankedHospital } from './types';
 
 const REFERRAL_KEYWORDS: Array<{ pathway: PathwayKey; en: RegExp; th: string[] }> = [
   { pathway: 'stroke', en: /\b(stroke|face droop|slurred speech|one.?sided weakness)\b/i, th: ['หลอดเลือดสมอง', 'หน้าเบี้ยว', 'พูดไม่ชัด', 'อ่อนแรงครึ่งซีก'] },
@@ -113,3 +113,16 @@ export function demoReplyFor(pathway: PathwayKey, askedIndex: number): { note?: 
   }
   return {};
 }
+
+/** Why a doctor set a recommendation aside; sent and stored as a key, shown in both languages. */
+export const SET_ASIDE_REASONS = ['tooFar', 'patientChoice', 'clinical', 'other'] as const;
+export type SetAsideReason = (typeof SET_ASIDE_REASONS)[number];
+
+export const SET_ASIDE_TEXT: Record<SetAsideReason, Bi> = {
+  tooFar: { en: 'too far for this patient', th: 'ไกลเกินไปสำหรับผู้ป่วยรายนี้' },
+  patientChoice: { en: "patient's or family's choice", th: 'ผู้ป่วยหรือญาติเลือกที่อื่น' },
+  clinical: { en: 'clinical judgement', th: 'ดุลยพินิจทางคลินิก' },
+  other: { en: 'other reason', th: 'เหตุผลอื่น' },
+};
+
+export const isSetAsideReason = (value: unknown): value is SetAsideReason => SET_ASIDE_REASONS.some((reason) => reason === value);

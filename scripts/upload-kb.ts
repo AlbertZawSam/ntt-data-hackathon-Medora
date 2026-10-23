@@ -1,7 +1,8 @@
 /**
  * Uploads shared/data/kb/ to the knowledge base bucket and starts an ingestion job (task 23).
- * Run `npm run kb` first if the documents changed, and deploy with MEDORA_ENABLE_KB=true so
- * frontend/amplify_outputs.json has the knowledgeBase section.
+ * Run `npm run kb` first if the documents changed. Needs a deployed sandbox (the knowledge base is on unless
+ * MEDORA_ENABLE_KB=false), so frontend/amplify_outputs.json has the knowledgeBase section. A fresh deploy
+ * starts empty: run this again after every redeploy that recreated the knowledge base.
  *
  *   npm run upload-kb       (uses your current AWS credentials)
  *
@@ -29,7 +30,7 @@ async function main(): Promise<void> {
     custom?: { knowledgeBase?: { knowledgeBaseId: string; dataSourceId: string; docsBucket: string; region: string } };
   };
   const kb = outputs.custom?.knowledgeBase;
-  if (!kb) throw new Error('No knowledgeBase in frontend/amplify_outputs.json. Deploy the sandbox with MEDORA_ENABLE_KB=true.');
+  if (!kb) throw new Error('No knowledgeBase in frontend/amplify_outputs.json. Deploy the sandbox without MEDORA_ENABLE_KB=false.');
   if (kb.region !== REGION) throw new Error(`Refusing to use ${kb.region}: this project uses ${REGION} only.`);
 
   const s3 = new S3Client({ region: REGION });

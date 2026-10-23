@@ -32,7 +32,9 @@ export interface KbDocument {
 }
 
 const label = (table: Record<string, Bi>, key: string): Bi => table[key] ?? { en: key, th: key };
-const list = (items: Bi[], lang: 'en' | 'th'): string => items.map((item) => item[lang]).join(lang === 'en' ? ', ' : ' ');
+const list = (items: Bi[], lang: 'en' | 'th'): string => items.map((item) => item[lang]).join(', ');
+/** Thai with the English term beside it: embeddings match mixed Thai-English questions better this way. */
+const both = (item: Bi): string => `${item.th} (${item.en})`;
 
 /** Pathways whose registered departments and equipment this hospital has, and that use `department`. */
 function supportedPathways(hospital: DemoHospital, department: string): Bi[] {
@@ -49,7 +51,7 @@ export function buildKbDocuments(hospitals: readonly DemoHospital[], idFor: (key
       const equipment = hospital.equipment.map((e) => label(EQUIPMENT, e));
       const pathways = supportedPathways(hospital, department);
       const careEn = pathways.length ? list(pathways, 'en') : 'general care in this department';
-      const careTh = pathways.length ? list(pathways, 'th') : 'การดูแลทั่วไปในแผนกนี้';
+      const careTh = pathways.length ? pathways.map(both).join(', ') : 'การดูแลทั่วไปในแผนกนี้ (general care)';
       const text = [
         `# ${hospital.name.en}: ${dept.en} / ${hospital.name.th}: ${dept.th}`,
         '',
@@ -59,8 +61,8 @@ export function buildKbDocuments(hospitals: readonly DemoHospital[], idFor: (key
         `Typical emergency department wait: about ${hospital.typicalWaitMin} minutes. Location: ${hospital.lat}, ${hospital.lng}.`,
         'This document lists registered capability only. Whether a bed, device or doctor is available now comes from live status.',
         '',
-        `${hospital.name.th} มีแผนก${dept.th}ที่ลงทะเบียนไว้`,
-        `อุปกรณ์ในโรงพยาบาล: ${equipment.length ? list(equipment, 'th') : 'ไม่มีที่ลงทะเบียน'}`,
+        `${hospital.name.th} มีแผนก${both(dept)}ที่ลงทะเบียนไว้`,
+        `อุปกรณ์ในโรงพยาบาล: ${equipment.length ? equipment.map(both).join(', ') : 'ไม่มีที่ลงทะเบียน (none)'}`,
         `การดูแลที่โรงพยาบาลรองรับได้เมื่อแผนกเปิดและมีบุคลากร: ${careTh}`,
         `เวลารอห้องฉุกเฉินโดยทั่วไปประมาณ ${hospital.typicalWaitMin} นาที`,
         'เอกสารนี้ระบุเฉพาะความสามารถที่ลงทะเบียนไว้ ส่วนเตียง อุปกรณ์ และแพทย์ที่พร้อมในตอนนี้ดูจากสถานะสด',
@@ -73,4 +75,28 @@ export function buildKbDocuments(hospitals: readonly DemoHospital[], idFor: (key
       };
     }),
   );
+}
+
+export interface KbMatch {
+  hospitalId: string;
+  source: string;
+}
+
+/** What the agent's trace says after a knowledge base search: the matching hospitals and source documents (requirements 14.2, 14.3). */
+export function kbTraceDetail(matches: readonly KbMatch[], nameOf: (hospitalId: string) => Bi | undefined, max = 4): Bi {
+  if (matches.length === 0) return { en: 'No matching source found.', th: 'ไม่พบแหล่งข้อมูลที่ตรงกัน' };
+  if (matches.every((match) => match.source === 'hospital-profile')) {
+    return {
+      en: 'No knowledge base is set up, so the registered hospital profiles were used.',
+      th: 'ยังไม่ได้ตั้งค่าฐานความรู้ จึงใช้โปรไฟล์โรงพยาบาลที่ลงทะเบียนไว้',
+    };
+  }
+  const seen = new Set<string>();
+  const shown = matches.filter((match) => !seen.has(match.source) && seen.add(match.source)).slice(0, max);
+  const line = (lang: 'en' | 'th'): string =>
+    shown.map((match) => `${nameOf(match.hospitalId)?.[lang] ?? match.hospitalId} (${match.source.replace(/^s3:\/\/[^/]+\//, '')})`).join(', ');
+  return {
+    en: `${seen.size} source document(s): ${line('en')}${seen.size > shown.length ? ', and more' : ''}.`,
+    th: `พบเอกสารอ้างอิง ${seen.size} ฉบับ: ${line('th')}${seen.size > shown.length ? ' และอื่น ๆ' : ''}`,
+  };
 }
