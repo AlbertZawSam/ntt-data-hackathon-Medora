@@ -3,8 +3,9 @@ import type { AppSyncIdentityCognito, AppSyncResolverHandler } from 'aws-lambda'
 import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import { callerFromClaims, isUnitClaim } from '@medora/shared/logic/access';
+import { publicEntry } from '@medora/shared/logic/publicDirectory';
 import { applyStatusChange, itemId, type StatusChange } from '@medora/shared/logic/statusUpdate';
-import type { HospitalStatus } from '@medora/shared/logic/types';
+import type { Bi, HospitalStatus } from '@medora/shared/logic/types';
 
 interface Args {
   change: unknown;
@@ -21,10 +22,40 @@ interface StatusClient {
       get: (input: { id: string }) => Promise<Result & { data: { id: string; status: unknown } | null }>;
       update: (input: { id: string; status: string }) => Promise<Result>;
     };
+    HospitalProfile: {
+      get: (input: { id: string }) => Promise<Result & { data: { hospitalId: string; name: unknown; lat: number; lng: number; typicalWaitMin: number } | null }>;
+    };
+    PublicDirectory: {
+      update: (input: { id: string; hospitalId: string; entry: string }) => Promise<Result & { data: unknown }>;
+      create: (input: { id: string; hospitalId: string; entry: string }) => Promise<Result>;
+    };
     Activity: {
       create: (input: Record<string, unknown>) => Promise<Result>;
     };
   };
+}
+
+const parseJson = (raw: unknown): unknown => (typeof raw === 'string' ? JSON.parse(raw) : raw);
+
+/**
+ * Refreshes the hospital's public labels from its new status, so patient screens change within
+ * seconds (requirement 9.2). The status is already saved; a failure here is logged, not thrown.
+ */
+async function refreshPublicEntry(client: StatusClient, hospitalId: string, status: HospitalStatus): Promise<void> {
+  const profile = await client.models.HospitalProfile.get({ id: hospitalId });
+  if (profile.errors?.length || !profile.data) {
+    console.error('update-status: no profile for the public directory');
+    return;
+  }
+  const name = parseJson(profile.data.name) as Bi;
+  const entry = JSON.stringify(
+    publicEntry({ hospitalId, name, lat: profile.data.lat, lng: profile.data.lng, typicalWaitMin: profile.data.typicalWaitMin }, status),
+  );
+  const updated = await client.models.PublicDirectory.update({ id: hospitalId, hospitalId, entry });
+  if (!updated.errors?.length && updated.data) return;
+  // Hospitals registered before the directory existed have no row yet.
+  const created = await client.models.PublicDirectory.create({ id: hospitalId, hospitalId, entry });
+  if (created.errors?.length) console.error('update-status: public directory write failed');
 }
 
 async function dataClient(): Promise<StatusClient> {
@@ -79,6 +110,7 @@ export const handler: AppSyncResolverHandler<Args, string> = async (event) => {
     console.error('update-status: save failed');
     throw new Error('save-failed');
   }
+  await refreshPublicEntry(client, caller.hospitalId, result.status).catch(() => console.error('update-status: public directory refresh failed'));
   // Every app decision goes to the activity log (AGENTS.md 4b.6): ids and units only, never the note.
   const what = itemId(change);
   const logged = await client.models.Activity.create({
