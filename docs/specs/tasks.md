@@ -117,7 +117,8 @@ Paths follow the npm workspaces layout in `AGENTS.md` section 6: `frontend/`, `b
   - Replies in the doctor's language; at most 8 turns, a token cap per call and a daily run limit per user.
   - _Requirements: 12.1 to 12.7, 12.9, 12.10, 2.3, 16.2, 22.4_
 
-- [ ] 20. Doctor screens **P0**
+- [x] 20. Doctor screens **P0**
+  - _Done in code: tap-to-fill sample cases (stroke, heart attack, premature baby), scrolling `Screen` shell. Not yet run against a deployed sandbox._
   - Description with samples, onset minutes, live trace, map with asked, declined and chosen hospitals, decision table, recommendation with reasons, confirm or set aside, simulated transfer tracking.
   - _Requirements: 13.1 to 13.4, 17.3_
 

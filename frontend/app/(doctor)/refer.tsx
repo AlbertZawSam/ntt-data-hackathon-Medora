@@ -4,12 +4,19 @@ import { pick } from '../../src/i18n/t';
 import { DataServiceError, confirmReferral, setAsideReferral, startReferral } from '../../src/services/data';
 import type { StringKey } from '../../src/i18n/t';
 import { MapView, type MapMarker } from '../../src/components/MapView';
-import { ScreenStub } from '../../src/components/ScreenStub';
 import type { DecisionRow } from '@medora/shared/logic/types';
 import { useApp, useT } from '../../src/state/AppProvider';
 import { Button } from '../../src/ui/Button';
 import { Field } from '../../src/ui/Field';
+import { Screen } from '../../src/ui/Screen';
 import { fonts, fontSizes, radii, spacing, useTheme } from '../../src/ui/theme';
+
+/** Synthetic cases the doctor can tap to fill the form (task 20). Onset is minutes since symptoms began. */
+const SAMPLES: Array<{ key: 'stroke' | 'stemi' | 'preterm'; onset: string }> = [
+  { key: 'stroke', onset: '45' },
+  { key: 'stemi', onset: '40' },
+  { key: 'preterm', onset: '' },
+];
 
 /** Live doctor view for the asynchronous, bounded referral coordinator. */
 export default function DoctorReferScreen(): React.JSX.Element {
@@ -88,11 +95,26 @@ export default function DoctorReferScreen(): React.JSX.Element {
     referral?.recommendedAtMs === undefined ? undefined : Math.max(0, Math.round((referral.recommendedAtMs - referral.startedAtMs) / 1_000));
 
   return (
-    <ScreenStub titleKey="doctor.refer.title">
+    <Screen title={t('doctor.refer.title')}>
       <View style={[styles.badge, { backgroundColor: theme.surface, borderColor: theme.primary }]}>
         <Text style={[styles.badgeText, { color: theme.primary }]}>{t('doctor.refer.agentBadge')}</Text>
       </View>
       <Text style={[styles.copy, { color: theme.textMuted }]}>{t('doctor.refer.agentPrinciple')}</Text>
+      <Text style={[styles.copy, { color: theme.textMuted }]}>{t('doctor.refer.samplesTitle')}</Text>
+      <View style={styles.samples}>
+        {SAMPLES.map((sample) => (
+          <Button
+            key={sample.key}
+            variant="secondary"
+            label={t(`doctor.refer.sample.${sample.key}` as StringKey)}
+            onPress={() => {
+              setDescription(t(`doctor.refer.sample.${sample.key}.text` as StringKey));
+              setOnset(sample.onset);
+              setError(null);
+            }}
+          />
+        ))}
+      </View>
       <Field
         label={t('doctor.refer.descriptionPlaceholder')}
         value={description}
@@ -158,7 +180,7 @@ export default function DoctorReferScreen(): React.JSX.Element {
           ))}
         </View>
       ) : null}
-    </ScreenStub>
+    </Screen>
   );
 }
 
@@ -168,6 +190,7 @@ const styles = StyleSheet.create({
   copy: { fontFamily: fonts.regular, fontSize: fontSizes.sm, textAlign: 'center' },
   description: { minHeight: 112, paddingTop: spacing.sm },
   error: { fontFamily: fonts.medium, fontSize: fontSizes.sm, textAlign: 'center' },
+  samples: { gap: spacing.xs },
   panel: { alignSelf: 'stretch', borderWidth: 1, borderRadius: radii.md, padding: spacing.md, gap: spacing.sm },
   sectionTitle: { fontFamily: fonts.semibold, fontSize: fontSizes.lg },
   status: { fontFamily: fonts.semibold, fontSize: fontSizes.md },
