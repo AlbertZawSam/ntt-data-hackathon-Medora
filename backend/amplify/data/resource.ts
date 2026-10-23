@@ -1,12 +1,16 @@
 import { a, defineData, type ClientSchema } from '@aws-amplify/backend';
 import { agentRunner } from '../functions/agent-runner/resource';
 import { inviteStaff } from '../functions/invite-staff/resource';
+import { patientUnderstand } from '../functions/patient-understand/resource';
 import { registerHospital } from '../functions/register-hospital/resource';
 import { updateStatus } from '../functions/update-status/resource';
 
 /**
  * AppSync/DynamoDB data contract. Hospital-scoped rules compare `hospitalId` with the
  * signed-in user's `custom:hospitalId` claim; patients never receive raw status rows.
+ *
+ * Millisecond timestamps (`...Ms`, `overrideUntil`, `startedAt`) are Float, not Int: GraphQL Int is
+ * 32-bit and can't hold a time in milliseconds; a Float holds it exactly.
  *
  * DynamoDB remains on-demand and AppSync has no hourly idle charge. Both are charged
  * per operation/storage only. The referral Lambda is granted the minimum data access it
@@ -47,6 +51,19 @@ const schema = a.schema({
       allow.ownerDefinedIn('hospitalId').identityClaim('custom:hospitalId').to(['read']),
     ]),
 
+  /**
+   * What people seeking care may see about a hospital: simple labels per type of care and how fresh
+   * the data is (shared/logic/publicDirectory.ts), never bed counts, equipment faults or rosters.
+   * Derived from HospitalStatus by `update-status` and `register-hospital`; any signed-in user reads
+   * it, nobody writes it from the app. Requirements: 5.6, 9.2, 18.3
+   */
+  PublicDirectory: a
+    .model({
+      hospitalId: a.string().required(),
+      entry: a.json().required(),
+    })
+    .authorization((allow) => [allow.authenticated().to(['read'])]),
+
   Specialist: a
     .model({
       hospitalId: a.string().required(),
@@ -72,13 +89,13 @@ const schema = a.schema({
       auto: a.boolean().required(),
       reason: a.string(),
       note: a.string(),
-      overrideUntil: a.integer(),
+      overrideUntil: a.float(),
       patient: a.json().required(),
       fromHospitalId: a.string(),
       referralId: a.string(),
       slot: a.json(),
       doctorName: a.string(),
-      createdAtMs: a.integer().required(),
+      createdAtMs: a.float().required(),
     })
     .secondaryIndexes((index) => [
       index('hospitalId').sortKeys(['createdAtMs']),
@@ -98,7 +115,7 @@ const schema = a.schema({
       from: a.string().required(),
       key: a.string(),
       text: a.string(),
-      createdAtMs: a.integer().required(),
+      createdAtMs: a.float().required(),
     })
     .secondaryIndexes((index) => [index('requestId').sortKeys(['createdAtMs'])])
     .authorization((allow) => [
@@ -122,8 +139,8 @@ const schema = a.schema({
       why: a.json(),
       rows: a.json(),
       requestIds: a.string().array().required(),
-      startedAtMs: a.integer().required(),
-      recommendedAtMs: a.integer(),
+      startedAtMs: a.float().required(),
+      recommendedAtMs: a.float(),
       elapsedSec: a.integer(),
     })
     .secondaryIndexes((index) => [
@@ -156,7 +173,7 @@ const schema = a.schema({
       fromHospitalId: a.string().required(),
       toHospitalId: a.string().required(),
       ownerId: a.string().required(),
-      startedAt: a.integer().required(),
+      startedAt: a.float().required(),
       etaMin: a.integer().required(),
       status: a.string().required(),
     })
@@ -201,6 +218,18 @@ const schema = a.schema({
     .arguments({ referralId: a.id().required() })
     .authorization((allow) => [allow.group('doctors')])
     .handler(a.handler.function(agentRunner).async()),
+
+  /**
+   * Safety gate layer 2 and patient understanding (Find care). The handler runs the fixed red-flag
+   * rules before any model call, then asks Nova Lite for the type of care, falling back to keyword
+   * rules. Returns a small JSON result; it stores nothing. Requirements: 4.5, 5.1
+   */
+  understandNeed: a
+    .query()
+    .arguments({ text: a.string().required(), lang: a.string() })
+    .returns(a.json())
+    .authorization((allow) => [allow.authenticated()])
+    .handler(a.handler.function(patientUnderstand)),
 
   /**
    * An admin of the staff pool invites staff (with one unit), doctors or admins into their own

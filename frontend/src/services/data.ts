@@ -17,6 +17,8 @@ import type {
   Transfer,
 } from '@medora/shared/logic/types';
 import type { HospitalInput } from '@medora/shared/logic/hospital';
+import { parsePublicEntry, type PublicEntry } from '@medora/shared/logic/publicDirectory';
+import type { UnderstandResult } from '@medora/shared/logic/understand';
 import type { StatusChange } from '@medora/shared/logic/statusUpdate';
 import type { Session } from '@medora/shared/logic/session';
 import { backendConfigured } from './amplify';
@@ -38,6 +40,7 @@ interface Client {
   models: {
     HospitalProfile: Model<HospitalProfile>;
     HospitalStatus: Model<{ id: string; hospitalId: string; status: HospitalStatus }>;
+    PublicDirectory: Model<{ id: string; hospitalId: string; entry: unknown }>;
     Specialist: Model<Specialist>;
     CareRequest: Model<CareRequest>;
     Message: Model<Message>;
@@ -46,6 +49,9 @@ interface Client {
     Transfer: Model<Transfer>;
     Activity: Model<Activity>;
     Device: Model<Device>;
+  };
+  queries: {
+    understandNeed: (input: { text: string; lang?: string }) => Promise<{ data?: unknown; errors?: unknown[] }>;
   };
   mutations: {
     startReferral: (input: { referralId: string }) => Promise<{ errors?: unknown[] }>;
@@ -59,6 +65,8 @@ const client = generateClient() as unknown as Client;
 export interface DataSnapshot {
   hospitalProfiles: HospitalProfile[];
   hospitalStatuses: Array<{ id: string; hospitalId: string; status: HospitalStatus }>;
+  /** Public labels for every registered hospital (no counts or faults); what patients rank. */
+  publicDirectory: PublicEntry[];
   specialists: Specialist[];
   careRequests: CareRequest[];
   messages: Message[];
@@ -74,6 +82,7 @@ export interface DataSnapshot {
 const EMPTY_SNAPSHOT: DataSnapshot = Object.freeze({
   hospitalProfiles: [],
   hospitalStatuses: [],
+  publicDirectory: [],
   specialists: [],
   careRequests: [],
   messages: [],
@@ -150,6 +159,13 @@ class LiveDataStore {
     this.observe('transfers', client.models.Transfer, ownerFilter);
     this.observe('activities', client.models.Activity, session.hospitalId ? { or: [ownerFilter, hospitalFilter] } : ownerFilter);
     this.observe('devices', client.models.Device, { userId: { eq: session.userId } });
+    // Every signed-in user sees the public labels; changes by staff arrive live (requirement 9.2).
+    this.observe('publicDirectory', client.models.PublicDirectory, undefined, (items) =>
+      items.flatMap((row) => {
+        const entry = parsePublicEntry((row as { entry?: unknown }).entry);
+        return entry ? [entry] : [];
+      }),
+    );
 
     // Exact status data is hospital-only. Public availability is deliberately supplied by a
     // separate labelled query rather than leaking beds, equipment faults, or staff rosters.
@@ -170,7 +186,12 @@ class LiveDataStore {
     this.emit();
   }
 
-  private observe<T extends RecordWithId>(key: SnapshotKey, model: ObservableModel, filter?: Record<string, unknown>): void {
+  private observe<T extends RecordWithId>(
+    key: SnapshotKey,
+    model: ObservableModel,
+    filter?: Record<string, unknown>,
+    map: (items: RecordWithId[]) => unknown[] = (items) => parseJsonFields(key, items),
+  ): void {
     this.expected += 1;
     let first = true;
     const subscription = model.observeQuery({ filter }).subscribe({
@@ -179,7 +200,7 @@ class LiveDataStore {
           first = false;
           this.received += 1;
         }
-        this.snapshot = { ...this.snapshot, [key]: parseJsonFields(key, items), isSynced: this.received === this.expected } as DataSnapshot;
+        this.snapshot = { ...this.snapshot, [key]: map(items), isSynced: this.received === this.expected } as DataSnapshot;
         this.emit();
       },
       // Authorization and connectivity errors leave an empty/live snapshot; Amplify reconnects
@@ -250,6 +271,26 @@ export async function updateStatus(change: StatusChange, note?: string): Promise
   const trimmed = note?.trim();
   const result = await client.mutations.updateStatus({ change: JSON.stringify(change), ...(trimmed ? { note: trimmed } : {}) });
   ensureData(result, 'Update status');
+}
+
+/**
+ * Safety gate layer 2 and the type of care (Find care). The phone has already run layer 1. Returns
+ * null when the backend can't be reached; the caller then uses the on-device keyword rules.
+ */
+export async function understandNeed(text: string, lang: 'en' | 'th'): Promise<UnderstandResult | null> {
+  if (!backendConfigured) return null;
+  try {
+    const result = await client.queries.understandNeed({ text, lang });
+    if (result.errors?.length || result.data === undefined || result.data === null) return null;
+    // AWSJSON may arrive as a JSON string (once or, from older handlers, twice encoded) or as an object.
+    let value: unknown = result.data;
+    for (let i = 0; i < 2 && typeof value === 'string'; i += 1) value = JSON.parse(value);
+    return typeof value === 'object' && value !== null && typeof (value as { emergency?: unknown }).emergency === 'boolean'
+      ? (value as UnderstandResult)
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function writeActivity(input: Omit<Activity, 'id' | 'createdAt'>): Promise<void> {

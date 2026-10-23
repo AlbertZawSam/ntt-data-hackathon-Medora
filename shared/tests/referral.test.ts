@@ -6,6 +6,7 @@ describe('classifyReferralPathway', () => {
   it.each([
     ['sudden one-sided weakness and slurred speech', 'stroke'],
     ['เจ็บหน้าอกสงสัยกล้ามเนื้อหัวใจขาดเลือด', 'stemi'],
+    ['ECG shows ST elevation, needs PCI', 'stemi'],
     ['possible preterm labour at 31 weeks', 'preterm'],
     ['เด็กต้องนอนโรงพยาบาลคืนนี้', 'peds'],
     ['twisted ankle after a fall', 'injury'],

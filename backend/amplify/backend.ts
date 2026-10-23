@@ -1,5 +1,6 @@
 import { defineBackend } from '@aws-amplify/backend';
-import { RemovalPolicy, Tags } from 'aws-cdk-lib';
+import { Names, RemovalPolicy, Stack, Tags } from 'aws-cdk-lib';
+import { CfnGuardrail } from 'aws-cdk-lib/aws-bedrock';
 import {
   AccountRecovery,
   CfnUserPoolGroup,
@@ -14,10 +15,11 @@ import { postConfirmation } from './auth/post-confirmation/resource';
 import { data } from './data/resource';
 import { agentRunner } from './functions/agent-runner/resource';
 import { inviteStaff } from './functions/invite-staff/resource';
+import { patientUnderstand } from './functions/patient-understand/resource';
 import { registerHospital } from './functions/register-hospital/resource';
 import { updateStatus } from './functions/update-status/resource';
 
-const backend = defineBackend({ auth, postConfirmation, data, agentRunner, inviteStaff, registerHospital, updateStatus });
+const backend = defineBackend({ auth, postConfirmation, data, agentRunner, inviteStaff, patientUnderstand, registerHospital, updateStatus });
 
 // Tag every resource so Cost Explorer shows spend per stage (AGENTS.md section 5).
 const app = backend.stack.node.root;
@@ -31,10 +33,88 @@ cfnUserPoolClient.writeAttributes = ['email', 'custom:role', 'custom:requestedHo
 // Sign-in errors never reveal whether an email is registered (Requirement 1.6).
 cfnUserPoolClient.preventUserExistenceErrors = 'ENABLED';
 
-// Bedrock, Knowledge Base, and Amazon Location permissions are intentionally not attached here.
-// AGENTS.md forbids coding-agent IAM changes; the team lead must grant the narrowly scoped
-// `bedrock:InvokeModel`, `bedrock:Retrieve`, and `geo:CalculateRouteMatrix` permissions before
-// enabling the model path. Until then the coordinator takes its fixed-rule backup path.
+// Amazon Nova on Bedrock (AGENTS.md 4a): Amazon's own models only, direct in-region model IDs.
+// Nova Lite understands patient descriptions and runs the agent while developing; Nova Pro runs the
+// referral agent on the demo stage. Paid per token only; nothing is billed while idle.
+const MODEL_ID_FAST = 'amazon.nova-lite-v1:0';
+const MODEL_ID_STRONG = 'amazon.nova-pro-v1:0';
+
+// One guardrail on every model call (AGENTS.md 4b.7, requirement 12.8). It stops answers that
+// diagnose or advise treatment (checked on the model's output only, so patients can still describe
+// symptoms), blocks prompt attacks in what users write, and masks phone numbers and emails.
+// No idle cost; charged per text unit checked. It lives next to the functions that use it.
+const aiStack = Stack.of(backend.patientUnderstand.resources.lambda);
+const blockedMessage = 'Medora can\'t help with that. In an emergency, call 1669. / Medora ช่วยเรื่องนี้ไม่ได้ กรณีฉุกเฉินโทร 1669';
+const guardrail = new CfnGuardrail(aiStack, 'MedoraGuardrail', {
+  name: Names.uniqueResourceName(aiStack, { maxLength: 50, separator: '-' }).replace(/[^0-9a-zA-Z_-]/g, ''),
+  description: 'Medora: no diagnosis or treatment advice; prompt-attack filter; masks phone numbers and emails.',
+  blockedInputMessaging: blockedMessage,
+  blockedOutputsMessaging: blockedMessage,
+  topicPolicyConfig: {
+    topicsConfig: [
+      {
+        name: 'diagnosis-or-treatment-advice',
+        type: 'DENY',
+        definition:
+          'Telling a person what medical condition or illness they have, or recommending treatments, medicines, doses, tests or home remedies.',
+        examples: [
+          'You probably have appendicitis.',
+          'Take 500 mg of paracetamol every six hours.',
+          'This sounds like a stroke, give aspirin now.',
+          'คุณน่าจะเป็นไส้ติ่งอักเสบ',
+        ],
+        inputEnabled: false,
+        outputEnabled: true,
+      },
+    ],
+  },
+  contentPolicyConfig: {
+    filtersConfig: [{ type: 'PROMPT_ATTACK', inputStrength: 'MEDIUM', outputStrength: 'NONE' }],
+  },
+  sensitiveInformationPolicyConfig: {
+    piiEntitiesConfig: [
+      { type: 'PHONE', action: 'ANONYMIZE' },
+      { type: 'EMAIL', action: 'ANONYMIZE' },
+    ],
+  },
+});
+
+// The agent's own guardrail, attached to every Converse call it makes (AGENTS.md 4b.7): it screens
+// the case, tool results and staff notes for prompt attacks. It has no "no diagnosis" rule, because
+// Nova's private <thinking> names conditions while it picks a pathway; instead every update and reason
+// the agent stores is checked with the full guardrail above before anyone sees it (agent-runner).
+const agentGuardrail = new CfnGuardrail(aiStack, 'MedoraAgentGuardrail', {
+  name: Names.uniqueResourceName(aiStack, { maxLength: 44, separator: '-' }).replace(/[^0-9a-zA-Z_-]/g, '') + '-agent',
+  description: 'Medora referral agent: prompt-attack filter on every model call.',
+  blockedInputMessaging: blockedMessage,
+  blockedOutputsMessaging: blockedMessage,
+  contentPolicyConfig: {
+    filtersConfig: [{ type: 'PROMPT_ATTACK', inputStrength: 'MEDIUM', outputStrength: 'NONE' }],
+  },
+});
+
+// Each function may call only the models it uses and only its guardrails (AGENTS.md 4b.3).
+const modelArn = (id: string): string => `arn:aws:bedrock:${aiStack.region}::foundation-model/${id}`;
+
+backend.patientUnderstand.addEnvironment('MODEL_ID_FAST', MODEL_ID_FAST);
+backend.patientUnderstand.addEnvironment('GUARDRAIL_ID', guardrail.attrGuardrailId);
+backend.patientUnderstand.addEnvironment('GUARDRAIL_VERSION', 'DRAFT');
+backend.patientUnderstand.resources.lambda.addToRolePolicy(new PolicyStatement({ actions: ['bedrock:InvokeModel'], resources: [modelArn(MODEL_ID_FAST)] }));
+backend.patientUnderstand.resources.lambda.addToRolePolicy(new PolicyStatement({ actions: ['bedrock:ApplyGuardrail'], resources: [guardrail.attrGuardrailArn] }));
+
+backend.agentRunner.addEnvironment('MODEL_ID_FAST', MODEL_ID_FAST);
+backend.agentRunner.addEnvironment('MODEL_ID_STRONG', MODEL_ID_STRONG);
+backend.agentRunner.addEnvironment('GUARDRAIL_ID', guardrail.attrGuardrailId);
+backend.agentRunner.addEnvironment('GUARDRAIL_VERSION', 'DRAFT');
+backend.agentRunner.addEnvironment('AGENT_GUARDRAIL_ID', agentGuardrail.attrGuardrailId);
+backend.agentRunner.resources.lambda.addToRolePolicy(
+  new PolicyStatement({ actions: ['bedrock:InvokeModel'], resources: [modelArn(MODEL_ID_FAST), modelArn(MODEL_ID_STRONG)] }),
+);
+backend.agentRunner.resources.lambda.addToRolePolicy(
+  new PolicyStatement({ actions: ['bedrock:ApplyGuardrail'], resources: [guardrail.attrGuardrailArn, agentGuardrail.attrGuardrailArn] }),
+);
+// The knowledge base (bedrock:Retrieve) and Amazon Location route matrix are not set up yet; until
+// they are, the agent uses registered hospital profiles and the on-device drive-time estimate.
 
 // Staff pool (docs/roles.md, AGENTS.md section 4b): hospital accounts only, by invitation, with
 // authenticator-app (TOTP) MFA required and no SMS. The default Amplify pool above stays the

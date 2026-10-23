@@ -10,7 +10,7 @@ import type { PathwayKey, RankableHospital, RankedHospital } from './types';
 
 const REFERRAL_KEYWORDS: Array<{ pathway: PathwayKey; en: RegExp; th: string[] }> = [
   { pathway: 'stroke', en: /\b(stroke|face droop|slurred speech|one.?sided weakness)\b/i, th: ['หลอดเลือดสมอง', 'หน้าเบี้ยว', 'พูดไม่ชัด', 'อ่อนแรงครึ่งซีก'] },
-  { pathway: 'stemi', en: /\b(heart attack|stemi|chest pain)\b/i, th: ['หัวใจขาดเลือด', 'เจ็บหน้าอก', 'กล้ามเนื้อหัวใจ'] },
+  { pathway: 'stemi', en: /\b(heart attack|stemi|chest pain|st[- ]elevation)\b/i, th: ['หัวใจขาดเลือด', 'เจ็บหน้าอก', 'กล้ามเนื้อหัวใจ'] },
   { pathway: 'preterm', en: /\b(preterm|premature|early labour)\b/i, th: ['คลอดก่อนกำหนด', 'เจ็บครรภ์ก่อนกำหนด'] },
   { pathway: 'peds', en: /\b(child admission|paediatric|pediatric)\b/i, th: ['เด็กต้องนอนโรงพยาบาล', 'กุมาร'] },
 ];
