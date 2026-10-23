@@ -148,19 +148,15 @@ class LiveDataStore {
     this.stop();
     if (!session || !backendConfigured) return;
 
-    const hospitalFilter = session.hospitalId ? { hospitalId: { eq: session.hospitalId } } : undefined;
-    const ownerFilter = { ownerId: { eq: session.userId } };
-    const ownOrHospital = session.hospitalId
-      ? { or: [ownerFilter, { hospitalId: { eq: session.hospitalId } }, { fromHospitalId: { eq: session.hospitalId } }] }
-      : ownerFilter;
-
-    this.observe('careRequests', client.models.CareRequest, ownOrHospital);
-    this.observe('messages', client.models.Message, session.hospitalId ? { or: [ownerFilter, hospitalFilter] } : ownerFilter);
-    // Referral has no hospitalId field; a filter on one makes AppSync reject the whole subscription.
-    this.observe('referrals', client.models.Referral, session.hospitalId ? { or: [ownerFilter, { fromHospitalId: { eq: session.hospitalId } }] } : ownerFilter);
-    this.observe('transfers', client.models.Transfer, ownerFilter);
-    this.observe('activities', client.models.Activity, session.hospitalId ? { or: [ownerFilter, hospitalFilter] } : ownerFilter);
-    this.observe('devices', client.models.Device, { userId: { eq: session.userId } });
+    // No client filters: every model's AppSync owner rules already return only the caller's own rows
+    // or their hospital's, and AppSync rejects a subscription whose filter repeats a field the owner
+    // rule also filters on ("same fieldName multiple time"), which silently stopped live updates.
+    this.observe('careRequests', client.models.CareRequest);
+    this.observe('messages', client.models.Message);
+    this.observe('referrals', client.models.Referral);
+    this.observe('transfers', client.models.Transfer);
+    this.observe('activities', client.models.Activity);
+    this.observe('devices', client.models.Device);
     // Every signed-in user sees the public labels; changes by staff arrive live (requirement 9.2).
     this.observe('publicDirectory', client.models.PublicDirectory, undefined, (items) =>
       items.flatMap((row) => {
@@ -171,11 +167,11 @@ class LiveDataStore {
 
     // Exact status data is hospital-only. Public availability is deliberately supplied by a
     // separate labelled query rather than leaking beds, equipment faults, or staff rosters.
-    if (hospitalFilter) {
-      this.observe('hospitalProfiles', client.models.HospitalProfile, hospitalFilter);
-      this.observe('specialists', client.models.Specialist, hospitalFilter);
-      this.observe('hospitalStatuses', client.models.HospitalStatus, hospitalFilter);
-      this.observe('traceSteps', client.models.TraceStep, hospitalFilter);
+    if (session.hospitalId) {
+      this.observe('hospitalProfiles', client.models.HospitalProfile);
+      this.observe('specialists', client.models.Specialist);
+      this.observe('hospitalStatuses', client.models.HospitalStatus);
+      this.observe('traceSteps', client.models.TraceStep);
     }
   }
 
