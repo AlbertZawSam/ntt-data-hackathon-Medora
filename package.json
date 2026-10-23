@@ -16,11 +16,8 @@
     "sandbox:delete": "npm run sandbox:delete -w @medora/backend --",
     "test": "npm test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
-<<<<<<< HEAD
     "start:patient": "npm run start:patient -w @medora/frontend --",
-    "start:hospital": "npm run start:hospital -w @medora/frontend --"
-=======
+    "start:hospital": "npm run start:hospital -w @medora/frontend --",
     "seed": "tsx scripts/seed.ts"
->>>>>>> 8a5d4019346fa10d073fc981a5c9dacec47b8a63
   }
 }

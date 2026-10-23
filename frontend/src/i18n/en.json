@@ -227,7 +227,6 @@
   "staff.status.cathDown": "Down",
   "staff.status.freeInAbout": "Free in about {{min}} min",
   "staff.status.myUnit": "My unit",
-<<<<<<< HEAD
   "patient.care.finding": "Finding hospitals that can help now…",
   "patient.care.findError": "We couldn't check hospitals right now. If it's urgent, call 1669.",
   "patient.care.nearbyTitle": "Hospitals near you",
@@ -367,8 +366,7 @@
   "emergency.noCached": "Search for care first to see the nearest hospital here. In an emergency, call 1669.",
   "doctor.refer.mapTitle": "Map of asked hospitals",
   "doctor.transfers.minLeft": "{{min}} min left (simulated)",
-  "doctor.transfers.mapTitle": "Ambulance position (simulated)"
-=======
+  "doctor.transfers.mapTitle": "Ambulance position (simulated)",
   "patient.care.checking": "Checking…",
   "patient.care.lookingFor": "Looking for: {{need}}",
   "patient.care.youSaid": "You said: {{summary}}",
@@ -395,5 +393,4 @@
   "skip.notNow": "can't take this kind of patient right now",
   "emergency.nearestDrive": "{{name}} · about {{min}} min by car",
   "emergency.noNearest": "We can't show an open emergency department right now. Call 1669."
->>>>>>> 8a5d4019346fa10d073fc981a5c9dacec47b8a63
 }

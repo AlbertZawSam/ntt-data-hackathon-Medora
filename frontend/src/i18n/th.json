@@ -227,7 +227,6 @@
   "staff.status.cathDown": "ใช้งานไม่ได้",
   "staff.status.freeInAbout": "ว่างในอีกประมาณ {{min}} นาที",
   "staff.status.myUnit": "หน่วยของฉัน",
-<<<<<<< HEAD
   "patient.care.finding": "กำลังค้นหาโรงพยาบาลที่ช่วยได้ตอนนี้…",
   "patient.care.findError": "ตอนนี้ตรวจสอบโรงพยาบาลไม่ได้ หากเร่งด่วนโทร 1669",
   "patient.care.nearbyTitle": "โรงพยาบาลใกล้คุณ",
@@ -367,8 +366,7 @@
   "emergency.noCached": "ค้นหาการดูแลก่อนเพื่อดูโรงพยาบาลที่ใกล้ที่สุดที่นี่ หากฉุกเฉินโทร 1669",
   "doctor.refer.mapTitle": "แผนที่โรงพยาบาลที่สอบถาม",
   "doctor.transfers.minLeft": "เหลืออีก {{min}} นาที (จำลอง)",
-  "doctor.transfers.mapTitle": "ตำแหน่งรถพยาบาล (จำลอง)"
-=======
+  "doctor.transfers.mapTitle": "ตำแหน่งรถพยาบาล (จำลอง)",
   "patient.care.checking": "กำลังตรวจสอบ…",
   "patient.care.lookingFor": "กำลังหา: {{need}}",
   "patient.care.youSaid": "คุณบอกว่า: {{summary}}",
@@ -395,5 +393,4 @@
   "skip.notNow": "ไม่สามารถรับผู้ป่วยประเภทนี้ได้ในขณะนี้",
   "emergency.nearestDrive": "{{name}} · ขับรถประมาณ {{min}} นาที",
   "emergency.noNearest": "ขณะนี้ไม่สามารถแสดงห้องฉุกเฉินที่เปิดอยู่ได้ โทร 1669"
->>>>>>> 8a5d4019346fa10d073fc981a5c9dacec47b8a63
 }

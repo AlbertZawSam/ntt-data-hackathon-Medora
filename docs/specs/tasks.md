@@ -82,12 +82,7 @@ Paths follow the npm workspaces layout in `AGENTS.md` section 6: `frontend/`, `b
   - Layer 1 on the phone (offline) and layer 2 in the `safety-gate` Lambda; 1669 screen with the nearest open emergency department; logged.
   - _Requirements: 4.1 to 4.5_
 
-<<<<<<< HEAD
 - [x] 13. Find care **P0** (RC2)
-=======
-- [-] 13. Find care **P0** (RC2)
-  - _Done: `patient-understand` Lambda (safety gate layer 2, then Nova Lite with the guardrail, keyword fallback), `PublicDirectory` labels kept current by `update-status`, ranked results with freshness and "skipped because", disclaimer. Left: the map (5.4)._
->>>>>>> 8a5d4019346fa10d073fc981a5c9dacec47b8a63
   - `patient-understand` Lambda (Nova Lite, JSON output, keyword fallback); hospitals that can help now with simple labels; map; "skipped because" for closer hospitals; disclaimer.
   - _Requirements: 5.1 to 5.7_
 
@@ -117,7 +112,7 @@ Paths follow the npm workspaces layout in `AGENTS.md` section 6: `frontend/`, `b
   - _Requirements: 12.8, 18.6, 22.1, 22.2_
 
 - [-] 19. Agent and tools, first version **P0**
-  - _Done: `agent-runner` on Nova (greedy decoding, pathway enum), guardrail on the case input and on every update and reason it stores, `<thinking>` never stored; verified with a heart-attack referral (stemi, 2 hospitals asked in parallel, accepted by rule, recommended in 58 s). Left: return early from `ask_hospitals` once every request has replied, and a Thai referral run._
+  - _Done: `agent-runner` on Nova (greedy decoding, pathway enum), guardrail on the case input and on every update and reason it stores, `<thinking>` never stored; verified with a heart-attack referral (stemi, 2 hospitals asked in parallel, accepted by rule, recommended in 58 s). `ask_hospitals` now returns as soon as every request has replied (polls every 2 s, never past the policy wait; tested in `backend/tests/askHospitals.test.ts`). Left: a Thai referral run against the deployed sandbox._
   - `agent-step` Lambda in `backend/amplify/functions/` (Nova Pro; Nova Lite while developing; the existing `agent-runner` is the starting point) with the Converse tool-use loop, greedy decoding on tool-calling turns, input validation that returns correctable errors, and tools `assess_case`, `rank_hospitals`, `ask_hospitals`, `recommend`, `report_no_placement`; in this first version the Lambda creates requests and waits for replies itself. Trace steps, timing, rule-based backup.
   - Replies in the doctor's language; at most 8 turns, a token cap per call and a daily run limit per user.
   - _Requirements: 12.1 to 12.7, 12.9, 12.10, 2.3, 16.2, 22.4_

@@ -57,9 +57,6 @@ interface Client {
     Device: Model<Device>;
     Reservation: Model<Reservation>;
   };
-  queries: {
-    understandNeed: (input: { text: string; lang?: string }) => Promise<{ data?: unknown; errors?: unknown[] }>;
-  };
   mutations: {
     startReferral: (input: { referralId: string }) => Promise<{ errors?: unknown[] }>;
     registerHospital: (input: HospitalInput) => Promise<{ data?: string | null; errors?: unknown[] }>;
@@ -85,6 +82,7 @@ interface Client {
     inviteStaff: (input: { email: string; group: string; unit?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
   };
   queries: {
+    understandNeed: (input: { text: string; lang?: string }) => Promise<{ data?: unknown; errors?: unknown[] }>;
     findSpecialists: (input: { lat: number; lng: number; specialty?: string; language?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     findCare: (input: { description: string; lat: number; lng: number }) => Promise<{ data?: string | null; errors?: unknown[] }>;
   };

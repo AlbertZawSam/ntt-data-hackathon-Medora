@@ -24,11 +24,7 @@ import { patientUnderstand } from './functions/patient-understand/resource';
 import { registerHospital } from './functions/register-hospital/resource';
 import { updateStatus } from './functions/update-status/resource';
 
-<<<<<<< HEAD
-const backend = defineBackend({ auth, postConfirmation, data, agentRunner, adminSettings, careActions, referralActions, specialistActions, findCare, inviteStaff, registerHospital, updateStatus });
-=======
-const backend = defineBackend({ auth, postConfirmation, data, agentRunner, inviteStaff, patientUnderstand, registerHospital, updateStatus });
->>>>>>> 8a5d4019346fa10d073fc981a5c9dacec47b8a63
+const backend = defineBackend({ auth, postConfirmation, data, agentRunner, adminSettings, careActions, referralActions, specialistActions, findCare, inviteStaff, patientUnderstand, registerHospital, updateStatus });
 
 // Tag every resource so Cost Explorer shows spend per stage (AGENTS.md section 5).
 const app = backend.stack.node.root;
@@ -42,30 +38,6 @@ cfnUserPoolClient.writeAttributes = ['email', 'custom:role'];
 // Sign-in errors never reveal whether an email is registered (Requirement 1.6).
 cfnUserPoolClient.preventUserExistenceErrors = 'ENABLED';
 
-<<<<<<< HEAD
-// Bedrock permissions are opt-in: AGENTS.md says coding agents don't change IAM on their own, so the
-// team lead turns this on for the sandbox by setting MEDORA_ATTACH_BEDROCK_IAM=true. The statements
-// name the two Nova model ARNs (and the guardrail when GUARDRAIL_ID is set), never `*`. Until then
-// both model paths fail safe: find-care uses its keyword fallback and the coordinator its fixed rules.
-// Knowledge Base and Amazon Location permissions are added the same way once those resources exist.
-if (process.env.MEDORA_ATTACH_BEDROCK_IAM === 'true') {
-  const region = 'us-east-1';
-  const resources = [
-    `arn:aws:bedrock:${region}::foundation-model/amazon.nova-lite-v1:0`,
-    `arn:aws:bedrock:${region}::foundation-model/amazon.nova-pro-v1:0`,
-  ];
-  const guardrailArn = process.env.GUARDRAIL_ARN;
-  // find-care only calls Nova Lite; the referral coordinator may also use Nova Pro.
-  const perFunction = [
-    { fn: backend.findCare, models: resources.slice(0, 1) },
-    { fn: backend.agentRunner, models: resources },
-  ];
-  for (const { fn, models } of perFunction) {
-    fn.resources.lambda.addToRolePolicy(new PolicyStatement({ actions: ['bedrock:InvokeModel'], resources: models }));
-    if (guardrailArn) fn.resources.lambda.addToRolePolicy(new PolicyStatement({ actions: ['bedrock:ApplyGuardrail'], resources: [guardrailArn] }));
-  }
-}
-=======
 // Amazon Nova on Bedrock (AGENTS.md 4a): Amazon's own models only, direct in-region model IDs.
 // Nova Lite understands patient descriptions and runs the agent while developing; Nova Pro runs the
 // referral agent on the demo stage. Paid per token only; nothing is billed while idle.
@@ -148,7 +120,14 @@ backend.agentRunner.resources.lambda.addToRolePolicy(
 );
 // The knowledge base (bedrock:Retrieve) and Amazon Location route matrix are not set up yet; until
 // they are, the agent uses registered hospital profiles and the on-device drive-time estimate.
->>>>>>> 8a5d4019346fa10d073fc981a5c9dacec47b8a63
+// find-care's Bedrock permissions are opt-in: AGENTS.md says coding agents don't change IAM on their own,
+// so the team lead turns this on for the sandbox by setting MEDORA_ATTACH_BEDROCK_IAM=true. The statement
+// names the Nova Lite ARN and this stack's guardrail, never `*`. Until then find-care uses its keyword
+// fallback.
+if (process.env.MEDORA_ATTACH_BEDROCK_IAM === 'true') {
+  backend.findCare.resources.lambda.addToRolePolicy(new PolicyStatement({ actions: ['bedrock:InvokeModel'], resources: [modelArn(MODEL_ID_FAST)] }));
+  backend.findCare.resources.lambda.addToRolePolicy(new PolicyStatement({ actions: ['bedrock:ApplyGuardrail'], resources: [guardrail.attrGuardrailArn] }));
+}
 
 // Staff pool (docs/roles.md, AGENTS.md section 4b): hospital accounts only, by invitation, with
 // authenticator-app (TOTP) MFA required and no SMS. The default Amplify pool above stays the
@@ -224,18 +203,13 @@ backend.updateStatus.addEnvironment('STAFF_USER_POOL_ID', staffPool.userPoolId);
 backend.careActions.addEnvironment('PUBLIC_USER_POOL_ID', backend.auth.resources.userPool.userPoolId);
 backend.careActions.addEnvironment('STAFF_USER_POOL_ID', staffPool.userPoolId);
 
-// Model ids come from the environment, never from screens or prompts (AGENTS.md 4a). Direct in-region
-// ids; the stronger model is used for the demo stage and final evaluation only.
-const MODEL_ID_FAST = 'amazon.nova-lite-v1:0';
-const MODEL_ID_STRONG = 'amazon.nova-pro-v1:0';
+// find-care reads its model ids from the environment (AGENTS.md 4a); agent-runner's are set with its
+// guardrails above.
 // Demo switch (task 21): simulated hospital replies, off unless DEMO_REPLIES=true is set for the demo stage.
 if (process.env.DEMO_REPLIES === 'true') backend.agentRunner.addEnvironment('DEMO_REPLIES', 'true');
-for (const fn of [backend.findCare, backend.agentRunner]) {
-  fn.addEnvironment('MODEL_ID_FAST', MODEL_ID_FAST);
-  fn.addEnvironment('MODEL_ID_STRONG', MODEL_ID_STRONG);
-  if (process.env.GUARDRAIL_ID) fn.addEnvironment('GUARDRAIL_ID', process.env.GUARDRAIL_ID);
-  if (process.env.GUARDRAIL_VERSION) fn.addEnvironment('GUARDRAIL_VERSION', process.env.GUARDRAIL_VERSION);
-}
+backend.findCare.addEnvironment('MODEL_ID_FAST', MODEL_ID_FAST);
+backend.findCare.addEnvironment('GUARDRAIL_ID', guardrail.attrGuardrailId);
+backend.findCare.addEnvironment('GUARDRAIL_VERSION', 'DRAFT');
 
 // register-hospital gets one Cognito action on the staff pool only. IAM can't narrow it to one
 // attribute, so the guarantee that it writes only custom:hospitalId lives in the handler. The first

@@ -102,15 +102,11 @@ const schema = a.schema({
       referralId: a.string(),
       slot: a.json(),
       doctorName: a.string(),
-<<<<<<< HEAD
       /** Bilingual hospital name copied at request time, so patients never read hospital profiles. */
       hospitalName: a.json(),
-      acceptedAtMs: a.integer(),
+      acceptedAtMs: a.float(),
       couldTreat: a.boolean(),
-      createdAtMs: a.integer().required(),
-=======
       createdAtMs: a.float().required(),
->>>>>>> 8a5d4019346fa10d073fc981a5c9dacec47b8a63
     })
     .secondaryIndexes((index) => [
       index('hospitalId').sortKeys(['createdAtMs']),
@@ -130,7 +126,7 @@ const schema = a.schema({
       hospitalId: a.string().required(),
       kind: a.string().required(),
       state: a.string().required(),
-      createdAtMs: a.integer().required(),
+      createdAtMs: a.float().required(),
       expiresAtMs: a.integer().required(),
     })
     .secondaryIndexes((index) => [index('hospitalId'), index('requestId')])
@@ -267,7 +263,7 @@ const schema = a.schema({
     .query()
     .arguments({ text: a.string().required(), lang: a.string() })
     .returns(a.json())
-    .authorization((allow) => [allow.authenticated()])
+    .authorization((allow) => [allow.group('patients')])
     .handler(a.handler.function(patientUnderstand)),
 
   /**

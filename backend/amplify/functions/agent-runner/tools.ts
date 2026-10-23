@@ -11,6 +11,9 @@ import type {
   RankedHospital,
 } from '@medora/shared/logic/types';
 
+/** How often `ask_hospitals` looks for answers while it waits (seconds). */
+const REPLY_POLL_SEC = 2;
+
 export const TOOL_NAMES = [
   'assess_case',
   'search_knowledge_base',
@@ -219,7 +222,14 @@ export class ReferralTools {
       }
       await this.store.trace('demo_reply', { en: 'Simulated hospital replies (demo)', th: 'จำลองการตอบกลับของโรงพยาบาล (สาธิต)' }, { en: 'Demo stage: hospitals without an auto-accept rule replied with preset notes.', th: 'โหมดสาธิต: โรงพยาบาลที่ไม่มีกฎตอบรับอัตโนมัติตอบกลับด้วยหมายเหตุที่ตั้งไว้' });
     }
-    await new Promise<void>((resolve) => setTimeout(resolve, remaining * 1_000));
+    // Wait only until every request has an answer, never past the policy interval.
+    let left = remaining;
+    while (left > 0) {
+      const step = Math.min(REPLY_POLL_SEC, left);
+      await new Promise<void>((resolve) => setTimeout(resolve, step * 1_000));
+      left -= step;
+      if (!(await this.store.requests(this.referral.id)).some((request) => request.status === 'waiting')) break;
+    }
     await this.store.updateReferral(this.referral.id, { rows: await this.decisionRows() });
     return { ok: true, replies: await this.replies() };
   }

@@ -89,40 +89,24 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-<<<<<<< HEAD
 /** AWSJSON arrives from AppSync as a string; accept an already-parsed object too. */
 function parsed(value: unknown): unknown {
   if (typeof value !== 'string') return value;
   try {
     return JSON.parse(value) as unknown;
-=======
-/** AWSJSON fields arrive from AppSync as JSON text; accept an already-parsed object too. */
-function fromJson(value: unknown): unknown {
-  if (typeof value !== 'string') return value;
-  try {
-    return JSON.parse(value);
->>>>>>> 8a5d4019346fa10d073fc981a5c9dacec47b8a63
   } catch {
     return null;
   }
 }
 
 function toBi(raw: unknown): Bi | null {
-<<<<<<< HEAD
   const value = parsed(raw);
-=======
-  const value = fromJson(raw);
->>>>>>> 8a5d4019346fa10d073fc981a5c9dacec47b8a63
   if (!isRecord(value) || typeof value.en !== 'string' || typeof value.th !== 'string') return null;
   return { en: value.en, th: value.th };
 }
 
 function toStatus(raw: unknown): HospitalStatus | null {
-<<<<<<< HEAD
   const value = parsed(raw);
-=======
-  const value = fromJson(raw);
->>>>>>> 8a5d4019346fa10d073fc981a5c9dacec47b8a63
   if (!isRecord(value)) return null;
   const { beds, nicu, depts, equip, oncall, rules, conflict, updatedAt } = value;
   if (
@@ -149,18 +133,6 @@ function toStatus(raw: unknown): HospitalStatus | null {
     conflict,
     updatedAt,
   };
-}
-
-/**
- * AppSync AWSJSON fields take a JSON string; the Amplify data client does not stringify objects
- * (see register-hospital). Returns a copy with the named fields stringified.
- */
-function withJsonStrings<T extends object>(input: T, fields: string[]): T {
-  const copy = { ...input } as Record<string, unknown>;
-  for (const field of fields) {
-    if (copy[field] !== undefined && copy[field] !== null && typeof copy[field] !== 'string') copy[field] = JSON.stringify(copy[field]);
-  }
-  return copy as T;
 }
 
 /**
@@ -292,11 +264,7 @@ class AmplifyReferralStore implements ReferralStore {
   }
 
   async createRequest(request: Omit<CareRequest, 'id'>): Promise<CareRequest> {
-<<<<<<< HEAD
     const result = await this.client.models.CareRequest.create(toWire(request as unknown as Record<string, unknown>) as unknown as Omit<CareRequestRecord, 'id'>);
-=======
-    const result = await this.client.models.CareRequest.create(withJsonStrings(request, ['patient', 'slot']) as Omit<CareRequestRecord, 'id'>);
->>>>>>> 8a5d4019346fa10d073fc981a5c9dacec47b8a63
     dataError(result.errors, 'create referral request');
     if (!result.data) throw new Error('Referral request was not created.');
     return fromWire(result.data, ['patient', 'slot', 'hospitalName']) as unknown as CareRequest;
@@ -308,11 +276,7 @@ class AmplifyReferralStore implements ReferralStore {
   }
 
   async updateReferral(id: string, changes: Record<string, unknown>): Promise<void> {
-<<<<<<< HEAD
     const result = await this.client.models.Referral.update({ id, ...toWire(changes) });
-=======
-    const result = await this.client.models.Referral.update({ id, ...withJsonStrings(changes, ['chosenName', 'why', 'rows']) });
->>>>>>> 8a5d4019346fa10d073fc981a5c9dacec47b8a63
     dataError(result.errors, 'update referral');
   }
 
@@ -323,12 +287,7 @@ class AmplifyReferralStore implements ReferralStore {
       hospitalId: this.referral.fromHospitalId,
       n: this.traceNumber,
       kind,
-<<<<<<< HEAD
       ...toWire({ title, detail }),
-=======
-      title: JSON.stringify(title),
-      detail: JSON.stringify(detail),
->>>>>>> 8a5d4019346fa10d073fc981a5c9dacec47b8a63
     } as never);
     dataError(result.errors, 'write trace step');
   }
@@ -338,12 +297,7 @@ class AmplifyReferralStore implements ReferralStore {
       hospitalId: this.referral.fromHospitalId,
       ownerId: this.referral.ownerId,
       at: new Date(this.now()).toISOString(),
-<<<<<<< HEAD
       ...toWire({ actor: { en: 'Referral agent', th: 'เอเจนต์ส่งต่อ' }, text }),
-=======
-      actor: JSON.stringify({ en: 'Referral agent', th: 'เอเจนต์ส่งต่อ' }),
-      text: JSON.stringify(text),
->>>>>>> 8a5d4019346fa10d073fc981a5c9dacec47b8a63
     } as never);
     dataError(result.errors, 'write activity');
   }
