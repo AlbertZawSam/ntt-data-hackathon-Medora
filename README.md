@@ -81,6 +81,21 @@ Without AWS access, `npm start` still works: the app opens and says it isn't con
 
 Never commit `amplify_outputs.json`, `.env`, `google-services.json` or AWS keys.
 
+### Test the hospital and doctor screens
+
+Each teammate does this against their own sandbox (accounts are per sandbox):
+
+```bash
+npm run sandbox                                  # leave it running
+npm run seed                                     # 8 synthetic hospitals; prints their ids
+npm run test-logins -- H-a154080ed58d7b39        # Siam Central: doctor, admin and one nurse per unit
+npm run web
+```
+
+`test-logins` opens a local page with every account: copy buttons for the email and password, and a live 6-digit code for the authenticator step, so no phone is needed. In the app, click **"Hospital staff? Sign in here"**. Use another hospital id from `npm run seed` for a second hospital. The page and its data stay in `scripts/.local/` (ignored by Git): never commit or share them. After `npm run sandbox:delete`, run it again to make new accounts.
+
+Doctors who sign up in the patient app wait for an admin's approval, which no screen offers yet; use the invited doctor account from `test-logins` instead.
+
 ## How to build
 
 1. **Cost guardrails first:** sign in with `aws configure sso`, then the team lead runs `bash scripts/create-budget-alarms.sh <team emails>` and `bash scripts/create-anomaly-detection.sh <team email>`.

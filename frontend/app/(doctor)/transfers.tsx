@@ -1,4 +1,5 @@
 /**
+<<<<<<< HEAD
  * Transfer tracking: the doctor's own confirmed transfers with a simulated ambulance moving on the map
  * and the minutes left (simulated in the demo; a real position feed would replace it).
  * Requirements: 13.4, 17.3
@@ -15,16 +16,40 @@ import { fonts, fontSizes, radii, spacing, useTheme } from '../../src/ui/theme';
 
 /** The stored transfer: the schema calls the start time `startedAt`. */
 type StoredTransfer = { id: string; referralId: string; toHospitalId: string; ownerId: string; etaMin: number; status: string; startedAt?: number };
+=======
+ * Transfer tracking for the doctor's confirmed referrals: where the ambulance is along the drive and
+ * the minutes left, simulated in the demo from the start time and drive estimate. Requirements: 13.3
+ */
+import { useRouter, type Href } from 'expo-router';
+import React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { transferProgress } from '@medora/shared/logic/transfer';
+import type { Transfer } from '@medora/shared/logic/types';
+import { pick } from '../../src/i18n/t';
+import { markTransferArrived } from '../../src/services/data';
+import { useApp, useT } from '../../src/state/AppProvider';
+import { Button } from '../../src/ui/Button';
+import { FormScreen } from '../../src/ui/FormScreen';
+import { fonts, fontSizes, radii, spacing, useTheme } from '../../src/ui/theme';
+>>>>>>> 38fa272389a910585d497b15309be3c249db8472
 
 export default function DoctorTransfersScreen(): React.JSX.Element {
   const t = useT();
   const theme = useTheme();
+<<<<<<< HEAD
   const { data, lang, session } = useApp();
   const [now, setNow] = React.useState(Date.now());
+=======
+  const router = useRouter();
+  const { data, session } = useApp();
+  const [now, setNow] = React.useState(Date.now());
+
+>>>>>>> 38fa272389a910585d497b15309be3c249db8472
   React.useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 5_000);
     return () => clearInterval(timer);
   }, []);
+<<<<<<< HEAD
   const origin = data.hospitalProfiles.find((p) => p.hospitalId === session?.hospitalId);
   const rows = React.useMemo(
     () => (data.transfers as unknown as StoredTransfer[]).filter((x) => x.ownerId === session?.userId),
@@ -79,4 +104,74 @@ const styles = StyleSheet.create({
   name: { fontSize: fontSizes.lg, fontFamily: fonts.semibold },
   status: { fontSize: fontSizes.md, fontFamily: fonts.semibold },
   note: { fontSize: fontSizes.sm, fontFamily: fonts.regular },
+=======
+
+  const transfers = React.useMemo(
+    () => data.transfers.filter((item) => item.ownerId === session?.userId).sort((left, right) => right.startedAt - left.startedAt),
+    [data.transfers, session?.userId],
+  );
+
+  return (
+    <FormScreen title={t('doctor.transfers.title')} subtitle={t('doctor.transfers.simulated')}>
+      {transfers.length === 0 ? <Text style={[styles.muted, { color: theme.textMuted }]}>{t('doctor.transfers.empty')}</Text> : null}
+      {transfers.map((transfer) => (
+        <TransferCard key={transfer.id} transfer={transfer} now={now} />
+      ))}
+      <Button variant="link" label={t('doctor.transfers.back')} onPress={() => router.push('/(doctor)/refer' as Href)} />
+    </FormScreen>
+  );
+}
+
+function TransferCard({ transfer, now }: { transfer: Transfer; now: number }): React.JSX.Element {
+  const t = useT();
+  const theme = useTheme();
+  const { data, lang } = useApp();
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState(false);
+  const referral = data.referrals.find((item) => item.id === transfer.referralId);
+  const name = referral?.chosenName ? pick(referral.chosenName, lang) : transfer.toHospitalId;
+  const progress = transferProgress(transfer, now);
+  const arrived = transfer.status === 'arrived';
+
+  return (
+    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: arrived ? theme.success : theme.border }]}>
+      <Text style={[styles.title, { color: theme.text }]}>{t('doctor.transfers.toHospital', { name })}</Text>
+      {referral ? (
+        <Text numberOfLines={2} style={[styles.muted, { color: theme.textMuted }]}>
+          {referral.text}
+        </Text>
+      ) : null}
+      <View style={[styles.track, { backgroundColor: theme.border }]} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(progress.fraction * 100) }}>
+        <View style={[styles.fill, { width: `${Math.round(progress.fraction * 100)}%`, backgroundColor: arrived ? theme.success : theme.primary }]} />
+      </View>
+      <Text style={[styles.status, { color: arrived ? theme.success : progress.due ? theme.warning : theme.text }]}>
+        {arrived ? t('doctor.transfers.arrived') : progress.due ? t('doctor.transfers.due') : t('doctor.transfers.minutesLeft', { min: progress.minutesLeft })}
+      </Text>
+      {error ? <Text style={[styles.muted, { color: theme.emergency }]}>{t('doctor.transfers.error')}</Text> : null}
+      {!arrived ? (
+        <Button
+          variant="secondary"
+          label={t('doctor.transfers.markArrived')}
+          busy={busy}
+          onPress={() => {
+            setBusy(true);
+            setError(false);
+            void markTransferArrived(transfer)
+              .catch(() => setError(true))
+              .finally(() => setBusy(false));
+          }}
+        />
+      ) : null}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: { alignSelf: 'stretch', borderWidth: 1, borderRadius: radii.md, padding: spacing.md, gap: spacing.sm },
+  fill: { height: '100%', borderRadius: radii.sm },
+  muted: { fontFamily: fonts.regular, fontSize: fontSizes.sm },
+  status: { fontFamily: fonts.semibold, fontSize: fontSizes.md },
+  title: { fontFamily: fonts.semibold, fontSize: fontSizes.lg },
+  track: { height: 10, borderRadius: radii.sm, overflow: 'hidden' },
+>>>>>>> 38fa272389a910585d497b15309be3c249db8472
 });

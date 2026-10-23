@@ -111,20 +111,31 @@ Paths follow the npm workspaces layout in `AGENTS.md` section 6: `frontend/`, `b
   - In us-east-1, confirm access to `amazon.nova-pro-v1:0`, `amazon.nova-lite-v1:0` and `amazon.titan-embed-text-v2:0` with one `converse` test call each (no Marketplace needed). Set `MODEL_ID_STRONG`, `MODEL_ID_FAST`, `EMBEDDING_MODEL_ID`; create a Guardrail (no diagnosis or treatment advice, personal data masked) in `GUARDRAIL_ID`.
   - _Requirements: 12.8, 18.6, 22.1, 22.2_
 
+<<<<<<< HEAD
 - [-] 19. Agent and tools, first version **P0**
   - _Done: `agent-runner` on Nova (greedy decoding, pathway enum), guardrail on the case input and on every update and reason it stores, `<thinking>` never stored; verified with a heart-attack referral (stemi, 2 hospitals asked in parallel, accepted by rule, recommended in 58 s). `ask_hospitals` now returns as soon as every request has replied (polls every 2 s, never past the policy wait; tested in `backend/tests/askHospitals.test.ts`). Left: a Thai referral run against the deployed sandbox._
+=======
+- [x] 19. Agent and tools, first version **P0**
+  - _Done: `agent-runner` on Nova (greedy decoding, pathway enum), guardrail on the case input and on every update and reason it stores, `<thinking>` never stored; verified with a heart-attack referral (stemi, 2 hospitals asked in parallel, accepted by rule, recommended in 58 s). `ask_hospitals` returns as soon as every request has replied; Thai referral run verified (preterm, recommended in 18 s)._
+>>>>>>> 38fa272389a910585d497b15309be3c249db8472
   - `agent-step` Lambda in `backend/amplify/functions/` (Nova Pro; Nova Lite while developing; the existing `agent-runner` is the starting point) with the Converse tool-use loop, greedy decoding on tool-calling turns, input validation that returns correctable errors, and tools `assess_case`, `rank_hospitals`, `ask_hospitals`, `recommend`, `report_no_placement`; in this first version the Lambda creates requests and waits for replies itself. Trace steps, timing, rule-based backup.
   - Replies in the doctor's language; at most 8 turns, a token cap per call and a daily run limit per user.
   - _Requirements: 12.1 to 12.7, 12.9, 12.10, 2.3, 16.2, 22.4_
 
+<<<<<<< HEAD
 - [x] 20. Doctor screens **P0**
   - _Done in code: tap-to-fill sample cases (stroke, heart attack, premature baby), scrolling `Screen` shell. Not yet run against a deployed sandbox._
+=======
+- [-] 20. Doctor screens **P0**
+>>>>>>> 38fa272389a910585d497b15309be3c249db8472
   - Description with samples, onset minutes, live trace, map with asked, declined and chosen hospitals, decision table, recommendation with reasons, confirm or set aside, simulated transfer tracking.
   - _Requirements: 13.1 to 13.4, 17.3_
+  - Done: sample cases, live trace with elapsed time, decision table saved by the agent (`shared/logic/decisionTable.ts`), recommendation with reasons and time to recommendation, confirm (creates the transfer) or set aside with a reason, simulated transfer tracking. Left: the map, and one bed fewer on arrival (13.4).
 
 - [x] 21. Demo replies **P0**
   - Optional switch: hospitals without an auto-accept rule reply after 8 seconds with preset notes (Rama Nine for stroke: neurologist free in about 40 minutes).
   - _Requirements: 17.2_
+  - `shared/logic/demoReplies.ts`; `DEMO_REPLIES` on `agent-runner` (on by default, `MEDORA_DEMO_REPLIES=false` switches it off); only seeded demo hospitals reply. The agent also stops waiting once every asked hospital has replied (stroke sample: 21 s).
 
 - [ ] 22. Move the referral to Step Functions Standard **P1**
   - States from `design.md`: `AgentStep`, `AskHospitals` (Map with task tokens and timeouts), `WaitForDoctor`, `StartTransfer`, `BackupPath`; conversation state in `AgentState`; replies and the doctor's decision return task tokens.

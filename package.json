@@ -16,10 +16,15 @@
     "sandbox:delete": "npm run sandbox:delete -w @medora/backend --",
     "test": "npm test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
+<<<<<<< HEAD
     "start:patient": "npm run start:patient -w @medora/frontend --",
     "start:hospital": "npm run start:hospital -w @medora/frontend --",
     "seed": "tsx scripts/seed.ts",
     "kb": "tsx scripts/build-kb.ts",
     "upload-kb": "tsx scripts/upload-kb.ts"
+=======
+    "seed": "tsx scripts/seed.ts",
+    "test-logins": "node scripts/test-logins.mjs"
+>>>>>>> 38fa272389a910585d497b15309be3c249db8472
   }
 }
