@@ -6,7 +6,7 @@ import React from 'react';
 import { StyleSheet, Switch, Text, View } from 'react-native';
 import { LANGUAGES, SPECIALTIES, validateSpecialistInput, type Slot } from '@medora/shared/logic/specialists';
 import type { StringKey } from '../../src/i18n/t';
-import { deleteSpecialist, saveSpecialist } from '../../src/services/data';
+import { removeSpecialist, saveSpecialist } from '../../src/services/data';
 import { useApp, useT } from '../../src/state/AppProvider';
 import { Button } from '../../src/ui/Button';
 import { Field } from '../../src/ui/Field';
@@ -66,7 +66,7 @@ export default function AdminSpecialistsScreen(): React.JSX.Element {
         <View key={r.id} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Text style={[styles.name, { color: theme.text }]}>{r.name}</Text>
           <Text style={[styles.note, { color: theme.textMuted }]}>{t(`specialty.${r.specialty}` as StringKey)}</Text>
-          <Button variant="secondary" label={t('admin.specialists.deleteButton')} onPress={() => void deleteSpecialist(r.id)} />
+          <Button variant="secondary" label={t('admin.specialists.deleteButton')} onPress={() => void removeSpecialist(r.id)} />
         </View>
       ))}
       <Text style={[styles.name, { color: theme.text }]}>{t('admin.specialists.addButton')}</Text>

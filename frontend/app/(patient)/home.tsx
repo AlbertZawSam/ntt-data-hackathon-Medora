@@ -5,10 +5,11 @@
 import { useRouter, type Href } from 'expo-router';
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { searchPlaces } from '@medora/shared/logic/places';
+import { PLACES, searchPlaces } from '@medora/shared/logic/places';
 import { LanguageToggle } from '../../src/components/LanguageToggle';
+import { MapView } from '../../src/components/MapView';
 import { call1669 } from '../../src/services/emergency';
-import { choosePlace, locateMe, useChosenLocation, type GpsOutcome } from '../../src/services/location';
+import { choosePlace, choosePoint, locateMe, useChosenLocation, type GpsOutcome } from '../../src/services/location';
 import { pick } from '../../src/i18n/t';
 import { useApp, useT } from '../../src/state/AppProvider';
 import { Button } from '../../src/ui/Button';
@@ -23,7 +24,8 @@ export default function PatientHomeScreen(): React.JSX.Element {
   const location = useChosenLocation();
   const [query, setQuery] = React.useState('');
   const [locating, setLocating] = React.useState(false);
-  const [notice, setNotice] = React.useState<GpsOutcome | null>(null);
+  const [notice, setNotice] = React.useState<GpsOutcome | 'outsidePick' | null>(null);
+  const [picking, setPicking] = React.useState(false);
   const matches = React.useMemo(() => searchPlaces(query), [query]);
 
   const onUseMyLocation = async (): Promise<void> => {
@@ -34,7 +36,9 @@ export default function PatientHomeScreen(): React.JSX.Element {
   };
 
   const noticeText =
-    notice === 'outsideBangkok'
+    notice === 'outsidePick'
+      ? t('patient.home.pickOutside')
+      : notice === 'outsideBangkok'
       ? t('patient.home.outsideBangkok')
       : notice === 'denied' || notice === 'unavailable'
         ? t('patient.home.locationUnavailable')
@@ -43,7 +47,9 @@ export default function PatientHomeScreen(): React.JSX.Element {
   const where =
     location.source === 'gps'
       ? t('patient.home.locationGps')
-      : t('patient.home.locationPlace', { place: location.place ? pick(location.place.name, lang) : '' });
+      : location.source === 'map'
+        ? t('patient.home.locationMap')
+        : t('patient.home.locationPlace', { place: location.place ? pick(location.place.name, lang) : '' });
 
   return (
     <ScrollView style={{ backgroundColor: theme.background }} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -69,6 +75,17 @@ export default function PatientHomeScreen(): React.JSX.Element {
             {where}
           </Text>
           <Button label={t('patient.home.useMyLocation')} variant="secondary" busy={locating} onPress={() => void onUseMyLocation()} />
+          <Button label={picking ? t('patient.home.hideMap') : t('patient.home.pickOnMap')} variant="secondary" onPress={() => setPicking(!picking)} />
+          {picking ? (
+            <MapView
+              accessibilityLabel={t('map.alt.pick')}
+              markers={[
+                ...PLACES.map((p) => ({ id: p.key, point: p, kind: 'place' as const })),
+                { id: 'me', point: location, kind: 'me' as const, label: t('map.you') },
+              ]}
+              onPick={(point) => setNotice(choosePoint(point) ? null : 'outsidePick')}
+            />
+          ) : null}
           {noticeText ? (
             <Text accessibilityLiveRegion="polite" style={[styles.notice, { color: theme.warning }]}>
               {noticeText}

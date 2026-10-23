@@ -10,6 +10,8 @@ import { Stack, useRouter, useSegments, type Href } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import React from 'react';
 import { redirectFor } from '@medora/shared/logic/session';
+import { roleAllowedInVariant } from '@medora/shared/logic/variant';
+import { appVariant } from '../src/services/variant';
 import { AppProvider, useApp } from '../src/state/AppProvider';
 import { useTheme } from '../src/ui/theme';
 
@@ -20,14 +22,19 @@ void SplashScreen.preventAutoHideAsync();
  * can't open another role's screens. Requirements: 1.3, 1.4, 18.1, 18.6
  */
 function useAuthGate(enabled: boolean): void {
-  const { session } = useApp();
+  const { session, signOut } = useApp();
   const segments = useSegments();
   const router = useRouter();
   React.useEffect(() => {
     if (!enabled) return;
+    // The patient app is for patients only and the hospital app for hospital roles only.
+    if (session && !roleAllowedInVariant(appVariant, session)) {
+      void signOut();
+      return;
+    }
     const target = redirectFor(session, segments);
     if (target) router.replace(target as Href);
-  }, [enabled, session, segments, router]);
+  }, [enabled, session, segments, router, signOut]);
 }
 
 function Navigator(): React.JSX.Element | null {

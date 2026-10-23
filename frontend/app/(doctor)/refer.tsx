@@ -3,7 +3,9 @@ import { StyleSheet, Text, View } from 'react-native';
 import { pick } from '../../src/i18n/t';
 import { DataServiceError, confirmReferral, setAsideReferral, startReferral } from '../../src/services/data';
 import type { StringKey } from '../../src/i18n/t';
+import { MapView, type MapMarker } from '../../src/components/MapView';
 import { ScreenStub } from '../../src/components/ScreenStub';
+import type { DecisionRow } from '@medora/shared/logic/types';
 import { useApp, useT } from '../../src/state/AppProvider';
 import { Button } from '../../src/ui/Button';
 import { Field } from '../../src/ui/Field';
@@ -59,6 +61,19 @@ export default function DoctorReferScreen(): React.JSX.Element {
     [data.careRequests, referral],
   );
 
+  const origin = data.hospitalProfiles.find((p) => p.hospitalId === session?.hospitalId);
+  const rows = (Array.isArray(referral?.rows) ? referral?.rows : []) as DecisionRow[];
+  const markers: MapMarker[] = [
+    ...(origin ? [{ id: 'origin', point: origin, kind: 'me' as const, label: pick(origin.name, lang) }] : []),
+    ...rows.map((r): MapMarker => ({
+      id: r.hospitalId,
+      point: r,
+      kind: r.hospitalId === referral?.chosenId ? 'chosen' : r.status === 'accepted' ? 'accepted' : r.status === 'waiting' ? 'asked' : 'declined',
+      label: pick(r.name, lang),
+    })),
+  ];
+  const chosen = rows.find((r) => r.hospitalId === referral?.chosenId);
+
   /** Only the doctor decides: confirming or setting aside is their action, never the agent's. */
   const decide = (action: 'confirm' | 'aside'): void => {
     if (!referral) return;
@@ -113,6 +128,12 @@ export default function DoctorReferScreen(): React.JSX.Element {
         ))}
       </View>
 
+      {rows.length > 0 ? (
+        <View style={[styles.panel, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('doctor.refer.mapTitle')}</Text>
+          <MapView accessibilityLabel={t('map.alt.referral')} markers={markers} route={origin && chosen ? [origin, chosen] : undefined} />
+        </View>
+      ) : null}
       {referral?.status === 'awaiting' ? (
         <View style={[styles.panel, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('doctor.refer.recommendationTitle')}</Text>

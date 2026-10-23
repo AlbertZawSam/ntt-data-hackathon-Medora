@@ -349,5 +349,22 @@
   "forgot.submit": "Reset password",
   "forgot.done": "Password changed. You can sign in now.",
   "forgot.back": "Back to sign in",
-  "common.home": "Home"
+  "common.home": "Home",
+  "patient.home.pickOnMap": "Pick on the map",
+  "patient.home.hideMap": "Hide the map",
+  "patient.home.locationMap": "Using the point you picked",
+  "patient.home.pickOutside": "That point is outside Bangkok. Pick a spot inside the city.",
+  "map.alt.pick": "Map of Bangkok. Tap to set your location.",
+  "map.alt.results": "Map showing you and the hospitals nearby; crossed-out hospitals can't help now.",
+  "map.alt.specialists": "Map showing you and the hospitals with the specialist.",
+  "map.alt.referral": "Map showing your hospital and the hospitals the agent asked.",
+  "map.alt.transfer": "Map showing the ambulance moving to the receiving hospital.",
+  "map.you": "You",
+  "map.legend": "Green can help, amber limited or may be outdated, crossed out can't help now.",
+  "patient.care.mapTitle": "Map",
+  "emergency.nearestOpen": "Nearest hospital that can help now: {{name}} (about {{min}} min)",
+  "emergency.noCached": "Search for care first to see the nearest hospital here. In an emergency, call 1669.",
+  "doctor.refer.mapTitle": "Map of asked hospitals",
+  "doctor.transfers.minLeft": "{{min}} min left (simulated)",
+  "doctor.transfers.mapTitle": "Ambulance position (simulated)"
 }

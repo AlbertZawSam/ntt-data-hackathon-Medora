@@ -8,6 +8,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { LANGUAGES, SPECIALTIES, specialtyForNeed, type PublicSpecialist } from '@medora/shared/logic/specialists';
 import { pick, type StringKey } from '../../src/i18n/t';
+import { MapView } from '../../src/components/MapView';
 import { bookSpecialist, findSpecialists } from '../../src/services/data';
 import { getLastNeed } from '../../src/services/lastNeed';
 import { useChosenLocation } from '../../src/services/location';
@@ -73,6 +74,16 @@ export default function PatientSpecialistsScreen(): React.JSX.Element {
       {error ? <Text style={[styles.note, { color: theme.emergency }]}>{t(error)}</Text> : null}
       {booked ? <Text accessibilityLiveRegion="polite" style={[styles.note, { color: theme.success }]}>{t('patient.specialists.booked', { doctor: booked })}</Text> : null}
       {list?.length === 0 ? <Text style={[styles.note, { color: theme.textMuted }]}>{t('patient.specialists.noResults')}</Text> : null}
+      {list && list.length > 0 ? (
+        <MapView
+          accessibilityLabel={t('map.alt.specialists')}
+          markers={[
+            { id: 'me', point: location, kind: 'me', label: t('map.you') },
+            ...list.map((s) => ({ id: s.id, point: s, kind: 'ok' as const, label: pick(s.hospitalName, lang) })),
+          ]}
+          route={[location, list[0]]}
+        />
+      ) : null}
       {list?.map((s) => (
         <View key={s.id} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Text style={[styles.name, { color: theme.text }]}>{s.name ?? t('patient.specialists.nameHidden')}</Text>

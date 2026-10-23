@@ -9,7 +9,9 @@ import { StyleSheet, Text, View } from 'react-native';
 import { ARRIVAL_MODES, type ArrivalMode, type PublicHospital } from '@medora/shared/logic/care';
 import type { NeedKey } from '@medora/shared/logic/types';
 import { pick, type StringKey } from '../../src/i18n/t';
+import { MapView, type MapMarker } from '../../src/components/MapView';
 import { findCare, submitRequest } from '../../src/services/data';
+import { setLastResults } from '../../src/services/lastResults';
 import { setLastNeed } from '../../src/services/lastNeed';
 import { checkEmergency, logEmergencyCheck } from '../../src/services/emergency';
 import { useChosenLocation } from '../../src/services/location';
@@ -63,6 +65,7 @@ export default function PatientCareScreen(): React.JSX.Element {
       setLastNeed(result.need);
       setAiUsed(result.aiUsed);
       setHospitals(result.hospitals);
+      setLastResults(result.hospitals);
       setPhase('results');
     } catch {
       setError('patient.care.findError');
@@ -93,6 +96,11 @@ export default function PatientCareScreen(): React.JSX.Element {
   };
 
   const canHelp = hospitals.some((h) => h.label !== 'notAvailable');
+  const best = hospitals.find((h) => h.label !== 'notAvailable');
+  const markers: MapMarker[] = [
+    { id: 'me', point: location, kind: 'me', label: t('map.you') },
+    ...hospitals.map((h): MapMarker => ({ id: h.id, point: h, kind: h.label === 'available' ? 'ok' : h.label === 'notAvailable' ? 'no' : 'limited', label: pick(h.name, lang) })),
+  ];
 
   return (
     <Screen title={t('patient.care.title')}>
@@ -117,6 +125,8 @@ export default function PatientCareScreen(): React.JSX.Element {
           {!aiUsed ? <Text style={[styles.note, { color: theme.warning }]}>{t('patient.care.aiUnavailable')}</Text> : null}
           {sent ? <Text accessibilityLiveRegion="polite" style={[styles.note, { color: theme.success }]}>{t('patient.care.requestSent')}</Text> : null}
           {error ? <Text style={[styles.error, { color: theme.emergency }]}>{t(error)}</Text> : null}
+          <MapView accessibilityLabel={t('map.alt.results')} markers={markers} route={best ? [location, best] : undefined} />
+          <Text style={[styles.note, { color: theme.textMuted }]}>{t('map.legend')}</Text>
           <Text style={[styles.section, { color: theme.text }]}>{t('patient.care.nearbyTitle')}</Text>
           {!canHelp ? <Text style={[styles.note, { color: theme.emergency }]}>{t('patient.care.nobodyHelp')}</Text> : null}
           {hospitals.map((h) => (

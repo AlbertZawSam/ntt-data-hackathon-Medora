@@ -7,7 +7,7 @@ import * as ExpoLocation from 'expo-location';
 import React from 'react';
 import { DEFAULT_PLACE, isInBangkok, type LatLng, type Place } from '@medora/shared/logic/places';
 
-export type LocationSource = 'gps' | 'place' | 'default';
+export type LocationSource = 'gps' | 'place' | 'map' | 'default';
 
 export interface ChosenLocation extends LatLng {
   source: LocationSource;
@@ -60,4 +60,11 @@ export async function locateMe(): Promise<GpsOutcome> {
   } catch {
     return 'unavailable';
   }
+}
+
+/** Sets the location from a tap on the map. A point outside Bangkok is refused. */
+export function choosePoint(point: LatLng): boolean {
+  if (!isInBangkok(point)) return false;
+  set({ ...point, source: 'map' });
+  return true;
 }

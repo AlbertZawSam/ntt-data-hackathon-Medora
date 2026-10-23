@@ -347,7 +347,7 @@ const schema = a.schema({
     .authorization((allow) => [allow.group('admins')])
     .handler(a.handler.function(specialistActions)),
 
-  deleteSpecialist: a
+  removeSpecialist: a
     .mutation()
     .arguments({ id: a.id().required() })
     .returns(a.string())

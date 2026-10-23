@@ -15,7 +15,7 @@ Paths follow the npm workspaces layout in `AGENTS.md` section 6: `frontend/`, `b
 
 ## Milestone 1: Foundation
 
-- [ ] 1. Project skeleton with two app variants **P0** (all)
+- [x] 1. Project skeleton with two app variants **P0** (all)
   - Folders from `AGENTS.md` section 6; route groups `frontend/app/(patient)` for Medora and `frontend/app/(hospital)` with `staff`, `doctor`, `admin` screens for Medora for Hospitals.
   - Expo app variants (`APP_VARIANT=patient|hospital`): name, icon, bundle ID and the screen group to include.
   - Brand theme (green #0B6E57, saffron #F2A33A, ink #0E2A23, Bai Jamjuree), light and dark.
@@ -143,7 +143,7 @@ Paths follow the npm workspaces layout in `AGENTS.md` section 6: `frontend/`, `b
   - Stroke (with and without the 40-minute note), heart attack, preterm, child; 10 runs each on Nova Lite, then 10 on Nova Pro, in English and Thai. Pass: capable accepted hospital, window respected, sources cited, never approves, prompt-injection note ignored. Record in `docs/evals.md`.
   - _Requirements: 12.5, 12.10_
 
-- [ ] 26. Security tests **P1**
+- [x] 26. Security tests **P1**
   - A patient account can't read operational data; a staff account can't write another hospital's status; staff sign-in requires MFA.
   - _Requirements: 1.4, 1.6, 18.3_
 

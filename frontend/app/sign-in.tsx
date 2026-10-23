@@ -3,6 +3,7 @@ import React from 'react';
 import type { StringKey } from '../src/i18n/t';
 import { staffPoolConfigured } from '../src/services/amplify';
 import { AuthError, confirmTotp, finishPasswordReset, requestPasswordReset, setNewPassword, signIn, totpSetupDetails, type PoolKind, type SignInNext } from '../src/services/auth';
+import { policy } from '../src/services/variant';
 import { useApp, useT } from '../src/state/AppProvider';
 import { Button } from '../src/ui/Button';
 import { Field } from '../src/ui/Field';
@@ -22,7 +23,7 @@ export default function SignInScreen(): React.JSX.Element {
   const [password, setPassword] = React.useState('');
   const [newPassword, setNewPasswordValue] = React.useState('');
   const theme = useTheme();
-  const [pool, setPool] = React.useState<PoolKind>('public');
+  const [pool, setPool] = React.useState<PoolKind>(policy.defaultPool);
   const [code, setCode] = React.useState('');
   const [step, setStep] = React.useState<'credentials' | 'newPassword' | 'totpSetup' | 'totpCode' | 'forgot' | 'forgotCode'>('credentials');
   const [info, setInfo] = React.useState<StringKey | null>(null);
@@ -218,10 +219,10 @@ export default function SignInScreen(): React.JSX.Element {
       />
       <Button label={t('signIn.submitButton')} busy={busy} onPress={submit} />
       <Button variant="link" label={t('signIn.forgot')} onPress={() => { setErrorKey(null); setInfo(null); setStep('forgot'); }} />
-      {pool === 'public' ? (
+      {pool === 'public' && policy.showSignUp ? (
         <Button variant="link" label={t('signIn.noAccount')} onPress={() => router.push('/sign-up')} />
       ) : null}
-      {staffPoolConfigured ? (
+      {staffPoolConfigured && policy.showPoolSwitch ? (
         <Button
           variant="link"
           label={t(pool === 'staff' ? 'signIn.patientLink' : 'signIn.staffLink')}

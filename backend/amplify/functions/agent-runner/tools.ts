@@ -219,7 +219,19 @@ export class ReferralTools {
       await this.store.trace('demo_reply', { en: 'Simulated hospital replies (demo)', th: 'จำลองการตอบกลับของโรงพยาบาล (สาธิต)' }, { en: 'Demo stage: hospitals without an auto-accept rule replied with preset notes.', th: 'โหมดสาธิต: โรงพยาบาลที่ไม่มีกฎตอบรับอัตโนมัติตอบกลับด้วยหมายเหตุที่ตั้งไว้' });
     }
     await new Promise<void>((resolve) => setTimeout(resolve, remaining * 1_000));
+    await this.store.updateReferral(this.referral.id, { rows: await this.decisionRows() });
     return { ok: true, replies: await this.replies() };
+  }
+
+  /** What the doctor sees for each hospital asked: place, drive and answer. Never counts or equipment faults. */
+  private async decisionRows(): Promise<Array<Record<string, unknown>>> {
+    const requests = await this.store.requests(this.referral.id);
+    return requests.flatMap((request) => {
+      const row = this.state?.assessment.ranked.find((candidate) => candidate.hospital.id === request.hospitalId);
+      return row
+        ? [{ hospitalId: request.hospitalId, name: row.hospital.name, lat: row.hospital.lat, lng: row.hospital.lng, driveMin: Math.round(row.driveMin), status: request.status, auto: request.auto }]
+        : [];
+    });
   }
 
   async checkReplies(input: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -255,6 +267,7 @@ export class ReferralTools {
       etaMin: Math.round(row?.driveMin ?? accepted.etaMin),
       why: { en: reasonEn, th: reasonTh },
       requestIds: requests.map((request) => request.id),
+      rows: await this.decisionRows(),
       recommendedAtMs: this.store.now(),
       elapsedSec: Math.max(0, Math.round((this.store.now() - this.referral.startedAtMs) / 1_000)),
     });

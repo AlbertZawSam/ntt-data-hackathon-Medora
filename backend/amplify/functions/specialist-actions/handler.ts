@@ -92,7 +92,7 @@ async function saveSpecialist(client: Client, event: AppSyncResolverEvent<Rec>):
   return id;
 }
 
-async function deleteSpecialist(client: Client, event: AppSyncResolverEvent<Rec>): Promise<string> {
+async function removeSpecialist(client: Client, event: AppSyncResolverEvent<Rec>): Promise<string> {
   const me = admin(event);
   const existing = must(await client.models.Specialist.get({ id: String(event.arguments.id) }), 'no-specialist');
   if (existing.hospitalId !== me.hospitalId) throw new Error('not-admin');
@@ -173,8 +173,8 @@ export const handler = async (event: AppSyncResolverEvent<Rec>): Promise<string>
   switch (event.info.fieldName) {
     case 'saveSpecialist':
       return saveSpecialist(client, event);
-    case 'deleteSpecialist':
-      return deleteSpecialist(client, event);
+    case 'removeSpecialist':
+      return removeSpecialist(client, event);
     case 'findSpecialists':
       return findSpecialists(client, event);
     case 'bookSpecialist':

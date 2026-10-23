@@ -73,7 +73,7 @@ interface Client {
     openReferral: (input: { text: string; onsetMin?: number; lang: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     decideReferral: (input: { referralId: string; decision: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     saveSpecialist: (input: { id?: string; name: string; specialty: string; languages: string[]; namePublic: boolean; slots: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
-    deleteSpecialist: (input: { id: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
+    removeSpecialist: (input: { id: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     bookSpecialist: (input: { specialistId: string; slotId: string; name?: string; phone?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     setAutoAcceptRules: (input: { rules: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     inviteStaff: (input: { email: string; group: string; unit?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
@@ -375,6 +375,6 @@ export async function saveSpecialist(input: { id?: string; name: string; special
   ensureData(await client.mutations.saveSpecialist({ ...input, slots: JSON.stringify(input.slots) }), 'Save specialist');
 }
 
-export async function deleteSpecialist(id: string): Promise<void> {
-  ensureData(await client.mutations.deleteSpecialist({ id }), 'Delete specialist');
+export async function removeSpecialist(id: string): Promise<void> {
+  ensureData(await client.mutations.removeSpecialist({ id }), 'Delete specialist');
 }

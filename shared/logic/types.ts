@@ -201,6 +201,17 @@ export interface Referral {
   createdAtMs?: number;
 }
 
+/** One hospital the agent asked, as shown to the doctor: a name, a place on the map, the drive and the answer; never bed counts or faults. */
+export interface DecisionRow {
+  hospitalId: string;
+  name: Bi;
+  lat: number;
+  lng: number;
+  driveMin: number;
+  status: CareRequestStatus;
+  auto: boolean;
+}
+
 export interface TraceStep {
   id: string;
   referralId: string;

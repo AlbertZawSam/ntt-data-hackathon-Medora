@@ -19,7 +19,7 @@ beforeEach(() => {
   for (const level of ['info', 'warn', 'error'] as const) jest.spyOn(console, level).mockImplementation(() => undefined);
 });
 
-describe('saveSpecialist and deleteSpecialist', () => {
+describe('saveSpecialist and removeSpecialist', () => {
   it('lets an admin save a specialist for their own hospital only', async () => {
     const id = await call(staffEvent('saveSpecialist', specialist, admin));
     expect(fake.tables('Specialist').find((r) => r.id === id)).toMatchObject({ hospitalId: 'H1', name: 'Dr A' });
@@ -30,8 +30,8 @@ describe('saveSpecialist and deleteSpecialist', () => {
     await expect(call(staffEvent('saveSpecialist', { ...specialist, languages: [] }, admin))).rejects.toThrow('bad-languages');
     const id = await call(staffEvent('saveSpecialist', specialist, admin));
     await expect(call(staffEvent('saveSpecialist', { ...specialist, id }, { ...admin, hospitalId: 'H9' }))).rejects.toThrow('not-admin');
-    await expect(call(staffEvent('deleteSpecialist', { id }, { ...admin, hospitalId: 'H9' }))).rejects.toThrow('not-admin');
-    await call(staffEvent('deleteSpecialist', { id }, admin));
+    await expect(call(staffEvent('removeSpecialist', { id }, { ...admin, hospitalId: 'H9' }))).rejects.toThrow('not-admin');
+    await call(staffEvent('removeSpecialist', { id }, admin));
     expect(fake.tables('Specialist')).toHaveLength(0);
   });
 });
