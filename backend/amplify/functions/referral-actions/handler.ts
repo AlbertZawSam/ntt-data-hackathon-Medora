@@ -25,7 +25,7 @@ interface Client {
   models: {
     Referral: Model<ReferralRow>;
     CareRequest: Model<{ id: string; hospitalId: string; status: string }>;
-    Transfer: Model<{ id: string }>;
+    Transfer: Model<{ id: string; ownerId: string; status: string }>;
     Activity: Model<{ id: string }>;
   };
 }
@@ -109,6 +109,12 @@ async function decide(client: Client, event: AppSyncResolverEvent<Rec>): Promise
   if (fresh.status !== 'awaiting') throw new Error('bad-state');
   must(await client.models.Referral.update({ id: referral.id, status: check.status }), 'save-failed');
 
+  // Setting a recommendation aside releases the chosen hospital: its accepted request is withdrawn.
+  if (check.status === 'set_aside' && referral.chosenId) {
+    for (const request of asked.data.filter((r) => r.hospitalId === referral.chosenId && r.status === 'accepted')) {
+      must(await client.models.CareRequest.update({ id: request.id, status: 'cancelled' }), 'withdraw-failed');
+    }
+  }
   if (check.status === 'confirmed' && referral.chosenId) {
     must(
       await client.models.Transfer.create({
@@ -129,6 +135,20 @@ async function decide(client: Client, event: AppSyncResolverEvent<Rec>): Promise
   return check.status;
 }
 
+/** The owning doctor marks their simulated transfer as arrived (requirement 13.3). */
+async function arrive(client: Client, event: AppSyncResolverEvent<Rec>): Promise<string> {
+  const me = doctor(event);
+  const transfer = must(await client.models.Transfer.get({ id: String(event.arguments.transferId) }), 'no-transfer');
+  if (transfer.ownerId !== me.userId) {
+    console.warn('referral-actions refused: not-owner');
+    throw new Error('not-owner');
+  }
+  if (transfer.status !== 'in_progress') throw new Error('bad-state');
+  must(await client.models.Transfer.update({ id: transfer.id, status: 'arrived' }), 'save-failed');
+  await log(client, me.hospitalId, me.userId, `Transfer ${transfer.id}: arrived`, `การส่งต่อ ${transfer.id}: ถึงแล้ว`);
+  return 'arrived';
+}
+
 export const handler = async (event: AppSyncResolverEvent<Rec>): Promise<string> => {
   const client = await dataClient();
   switch (event.info.fieldName) {
@@ -136,6 +156,8 @@ export const handler = async (event: AppSyncResolverEvent<Rec>): Promise<string>
       return openReferral(client, event);
     case 'decideReferral':
       return decide(client, event);
+    case 'arriveTransfer':
+      return arrive(client, event);
     default:
       throw new Error('unknown-action');
   }

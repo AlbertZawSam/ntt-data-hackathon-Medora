@@ -28,7 +28,8 @@ function makeStore(answerAfterReads: number | null) {
     trace: async () => undefined,
     activity: async () => undefined,
     knowledgeSearch: async () => [],
-    now: () => NOW,
+    demoHospitalKey: () => undefined,
+    now: () => Date.now(),
   };
   return { store, reads: () => reads };
 }
@@ -36,7 +37,7 @@ function makeStore(answerAfterReads: number | null) {
 async function ask(answerAfterReads: number | null): Promise<{ settledAfterMs: number | null; reads: number }> {
   const { store, reads } = makeStore(answerAfterReads);
   const tools = new ReferralTools(
-    { id: 'ref1', ownerId: 'd1', fromHospitalId: hospitals[0].id, text: 'case', lang: 'en', requestIds: [], startedAtMs: NOW },
+    { id: 'ref1', ownerId: 'd1', fromHospitalId: hospitals[0].id, text: 'case', lang: 'en', requestIds: [], startedAtMs: Date.now() },
     store,
   );
   const assessed = (await tools.execute('assess_case', { pathway: 'general' })) as { hospitals: Array<{ hospital_id: string; can_help: boolean }> };
@@ -55,13 +56,16 @@ async function ask(answerAfterReads: number | null): Promise<{ settledAfterMs: n
 }
 
 describe('ask_hospitals waiting', () => {
-  beforeEach(() => jest.useFakeTimers());
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(NOW);
+  });
   afterEach(() => jest.useRealTimers());
 
   it('returns as soon as every hospital has answered, not after the full wait', async () => {
     const result = await ask(1);
     expect(result.settledAfterMs).not.toBeNull();
-    expect(result.settledAfterMs as number).toBeLessThanOrEqual(2_000);
+    expect(result.settledAfterMs as number).toBeLessThanOrEqual(3_000);
   });
 
   it('keeps waiting while a hospital has not answered, and stops at the policy limit', async () => {

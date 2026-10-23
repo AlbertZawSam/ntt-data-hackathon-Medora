@@ -9,7 +9,6 @@ import type { PublicSpecialist, Slot } from '@medora/shared/logic/specialists';
 import type { ArrivalMode, PublicHospital, QuickReplyKey } from '@medora/shared/logic/care';
 import type {
   AutoAcceptRules,
-  Bi,
   NeedKey,
   Activity,
   Bi,
@@ -76,6 +75,7 @@ interface Client {
     sendMessage: (input: { requestId: string; key?: string; text?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     openReferral: (input: { text: string; onsetMin?: number; lang: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     decideReferral: (input: { referralId: string; decision: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
+    arriveTransfer: (input: { transferId: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     saveSpecialist: (input: { id?: string; name: string; specialty: string; languages: string[]; namePublic: boolean; slots: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     removeSpecialist: (input: { id: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     bookSpecialist: (input: { specialistId: string; slotId: string; name?: string; phone?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
@@ -197,20 +197,11 @@ class LiveDataStore {
 
     // Exact status data is hospital-only. Public availability is deliberately supplied by a
     // separate labelled query rather than leaking beds, equipment faults, or staff rosters.
-<<<<<<< HEAD
-    if (hospitalFilter) {
-      this.observe('hospitalProfiles', client.models.HospitalProfile, hospitalFilter);
-      this.observe('specialists', client.models.Specialist, hospitalFilter);
-      this.observe('hospitalStatuses', client.models.HospitalStatus, hospitalFilter);
-      this.observe('reservations', client.models.Reservation, hospitalFilter);
-      this.observe('traceSteps', client.models.TraceStep, hospitalFilter);
-=======
     if (session.hospitalId) {
       this.observe('hospitalProfiles', client.models.HospitalProfile);
       this.observe('specialists', client.models.Specialist);
       this.observe('hospitalStatuses', client.models.HospitalStatus);
       this.observe('traceSteps', client.models.TraceStep);
->>>>>>> 38fa272389a910585d497b15309be3c249db8472
     }
   }
 
@@ -302,51 +293,22 @@ function ownAwaiting(session: Session, referral: Referral): string {
 }
 
 /**
- * The doctor confirms the agent's recommendation (requirement 13.2): the referral becomes confirmed
- * and a transfer starts, readable by both hospitals. Only the referral's owner can update it (AppSync
- * owner rule). The ambulance crew's SMS link is simulated in the demo.
+ * The doctor confirms the agent's recommendation (requirement 13.2). The server checks the doctor owns
+ * the referral and that the chosen hospital accepted, then confirms it and starts the transfer, readable
+ * by both hospitals; the app cannot write these records itself. The ambulance crew's SMS link is simulated.
  */
 export async function confirmReferral(session: Session, referral: Referral): Promise<void> {
-  const toHospitalId = ownAwaiting(session, referral);
-  const updated = await client.models.Referral.update({ id: referral.id, status: 'confirmed' });
-  ensureData(updated, 'Confirm referral');
-  const created = await client.models.Transfer.create({
-    referralId: referral.id,
-    hospitalIds: [referral.fromHospitalId, toHospitalId],
-    fromHospitalId: referral.fromHospitalId,
-    toHospitalId,
-    ownerId: session.userId,
-    startedAt: Date.now(),
-    etaMin: Math.max(1, Math.round(referral.etaMin ?? 15)),
-    status: 'in_progress',
-  });
-  if (created.errors?.length || !created.data) {
-    // Put the recommendation back so the doctor can retry, rather than a confirmed referral with no transfer.
-    await client.models.Referral.update({ id: referral.id, status: 'awaiting' }).catch(() => undefined);
-    throw new DataServiceError('Start transfer failed.');
-  }
-  await writeActivity({
-    hospitalId: referral.fromHospitalId,
-    ownerId: session.userId,
-    actor: { en: 'Doctor', th: 'แพทย์' },
-    text: { en: 'Doctor confirmed the transfer', th: 'แพทย์ยืนยันการส่งต่อแล้ว' },
-  }).catch(() => undefined);
+  ownAwaiting(session, referral);
+  ensureData(await client.mutations.decideReferral({ referralId: referral.id, decision: 'confirm' }), 'Confirm referral');
 }
 
 /**
- * The doctor sets the recommendation aside with a reason ("Not this one"): the referral is closed
- * and the chosen hospital's accepted request is withdrawn, so its bed is not held.
+ * The doctor sets the recommendation aside with a reason ("Not this one"). The server closes the referral
+ * and withdraws the chosen hospital's accepted request, so its bed is not held; the reason is logged here.
  */
-export async function setAsideReferral(session: Session, referral: Referral, reason: SetAsideReason, requests: CareRequest[]): Promise<void> {
-  const chosenId = ownAwaiting(session, referral);
-  const updated = await client.models.Referral.update({ id: referral.id, status: 'set_aside' });
-  ensureData(updated, 'Set aside referral');
-  for (const request of requests) {
-    if (request.referralId === referral.id && request.hospitalId === chosenId && request.status === 'accepted') {
-      const withdrawn = await client.models.CareRequest.update({ id: request.id, status: 'cancelled' });
-      ensureData(withdrawn, 'Withdraw request');
-    }
-  }
+export async function setAsideReferral(session: Session, referral: Referral, reason: SetAsideReason): Promise<void> {
+  ownAwaiting(session, referral);
+  ensureData(await client.mutations.decideReferral({ referralId: referral.id, decision: 'set_aside' }), 'Set aside referral');
   const why = SET_ASIDE_TEXT[reason];
   await writeActivity({
     hospitalId: referral.fromHospitalId,
@@ -356,10 +318,9 @@ export async function setAsideReferral(session: Session, referral: Referral, rea
   }).catch(() => undefined);
 }
 
-/** Marks a simulated transfer as arrived (requirement 13.3). */
+/** Marks a simulated transfer as arrived (requirement 13.3). The server checks the doctor owns the transfer. */
 export async function markTransferArrived(transfer: Transfer): Promise<void> {
-  const result = await client.models.Transfer.update({ id: transfer.id, status: 'arrived' });
-  ensureData(result, 'Mark transfer arrived');
+  ensureData(await client.mutations.arriveTransfer({ transferId: transfer.id }), 'Mark transfer arrived');
 }
 
 /**
@@ -462,15 +423,6 @@ export async function sendMessage(requestId: string, message: { key: QuickReplyK
 /** Admin: invite staff, a doctor or another admin into the admin's own hospital. */
 export async function inviteStaff(input: { email: string; group: string; unit?: string }): Promise<void> {
   ensureData(await client.mutations.inviteStaff(input), 'Invite staff');
-}
-
-/** Doctor: confirm the recommended transfer. The server checks the doctor owns it and the hospital accepted. */
-export async function confirmReferral(referral: Referral): Promise<void> {
-  ensureData(await client.mutations.decideReferral({ referralId: referral.id, decision: 'confirm' }), 'Confirm referral');
-}
-
-export async function setAsideReferral(referralId: string): Promise<void> {
-  ensureData(await client.mutations.decideReferral({ referralId, decision: 'set_aside' }), 'Set aside referral');
 }
 
 /** Admin: save the hospital's auto-accept rules. The server checks the admin's hospital and the rule shape. */

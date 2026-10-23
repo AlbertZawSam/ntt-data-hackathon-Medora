@@ -53,4 +53,25 @@ describe('decideReferral', () => {
     expect(fake.tables('Referral')[0].status).toBe('set_aside');
     expect(fake.tables('Transfer')).toHaveLength(0);
   });
+  it("withdraws the chosen hospital's accepted request when set aside", async () => {
+    await call(staffEvent('decideReferral', { referralId: 'f1', decision: 'set_aside' }, doctor));
+    expect(fake.tables('CareRequest')[0].status).toBe('cancelled');
+  });
+});
+
+describe('arriveTransfer', () => {
+  beforeEach(() => {
+    fake.tables('Transfer').push({ id: 't1', referralId: 'f1', ownerId: 'd1', status: 'in_progress' });
+  });
+  it('lets the owning doctor mark it arrived, once', async () => {
+    await call(staffEvent('arriveTransfer', { transferId: 't1' }, doctor));
+    expect(fake.tables('Transfer')[0].status).toBe('arrived');
+    await expect(call(staffEvent('arriveTransfer', { transferId: 't1' }, doctor))).rejects.toThrow('bad-state');
+  });
+  it("refuses another doctor's transfer, nurses and patients", async () => {
+    await expect(call(staffEvent('arriveTransfer', { transferId: 't1' }, { ...doctor, sub: 'd2' }))).rejects.toThrow('not-owner');
+    await expect(call(staffEvent('arriveTransfer', { transferId: 't1' }, { groups: ['hospital_staff'], hospitalId: 'H1', unit: 'ward', sub: 'n1' }))).rejects.toThrow('not-doctor');
+    await expect(call(patientEvent('arriveTransfer', { transferId: 't1' }))).rejects.toThrow();
+    expect(fake.tables('Transfer')[0].status).toBe('in_progress');
+  });
 });

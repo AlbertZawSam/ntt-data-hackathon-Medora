@@ -361,6 +361,14 @@ const schema = a.schema({
     .authorization((allow) => [allow.group('doctors')])
     .handler(a.handler.function(referralActions)),
 
+  /** Only the doctor who owns a transfer marks it arrived (simulated tracking in the demo). */
+  arriveTransfer: a
+    .mutation()
+    .arguments({ transferId: a.id().required() })
+    .returns(a.string())
+    .authorization((allow) => [allow.group('doctors')])
+    .handler(a.handler.function(referralActions)),
+
   /** An admin creates or replaces one specialist (with clinic slots) of their own hospital. */
   saveSpecialist: a
     .mutation()

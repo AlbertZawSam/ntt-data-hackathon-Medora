@@ -5,28 +5,6 @@
  */
 import { useRouter, type Href } from 'expo-router';
 import React from 'react';
-<<<<<<< HEAD
-import { StyleSheet, Text, View } from 'react-native';
-import { pick } from '../../src/i18n/t';
-import { DataServiceError, confirmReferral, setAsideReferral, startReferral } from '../../src/services/data';
-import type { StringKey } from '../../src/i18n/t';
-import { MapView, type MapMarker } from '../../src/components/MapView';
-import type { DecisionRow } from '@medora/shared/logic/types';
-import { useApp, useT } from '../../src/state/AppProvider';
-import { Button } from '../../src/ui/Button';
-import { Field } from '../../src/ui/Field';
-import { Screen } from '../../src/ui/Screen';
-import { fonts, fontSizes, radii, spacing, useTheme } from '../../src/ui/theme';
-
-/** Synthetic cases the doctor can tap to fill the form (task 20). Onset is minutes since symptoms began. */
-const SAMPLES: Array<{ key: 'stroke' | 'stemi' | 'preterm'; onset: string }> = [
-  { key: 'stroke', onset: '45' },
-  { key: 'stemi', onset: '40' },
-  { key: 'preterm', onset: '' },
-];
-
-/** Live doctor view for the asynchronous, bounded referral coordinator. */
-=======
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { parseDecisionRows, type DecisionRow } from '@medora/shared/logic/decisionTable';
 import type { Referral } from '@medora/shared/logic/types';
@@ -52,7 +30,6 @@ const SAMPLES = [
 
 const RECENT = 5;
 
->>>>>>> 38fa272389a910585d497b15309be3c249db8472
 export default function DoctorReferScreen(): React.JSX.Element {
   const t = useT();
   const theme = useTheme();
@@ -64,12 +41,8 @@ export default function DoctorReferScreen(): React.JSX.Element {
   const [error, setError] = React.useState<string | null>(null);
   const [activeId, setActiveId] = React.useState<string | null>(null);
   const [deciding, setDeciding] = React.useState(false);
-<<<<<<< HEAD
-  const [decisionError, setDecisionError] = React.useState(false);
-=======
   const [askReason, setAskReason] = React.useState(false);
   const [now, setNow] = React.useState(Date.now());
->>>>>>> 38fa272389a910585d497b15309be3c249db8472
 
   const owned = React.useMemo(
     () => data.referrals.filter((item) => item.ownerId === session?.userId).sort((left, right) => right.startedAtMs - left.startedAtMs),
@@ -116,51 +89,6 @@ export default function DoctorReferScreen(): React.JSX.Element {
       .finally(() => setBusy(false));
   };
 
-<<<<<<< HEAD
-  const asked = React.useMemo(
-    () => (referral ? data.careRequests.filter((r) => r.referralId === referral.id) : []),
-    [data.careRequests, referral],
-  );
-
-  const origin = data.hospitalProfiles.find((p) => p.hospitalId === session?.hospitalId);
-  const rows = (Array.isArray(referral?.rows) ? referral?.rows : []) as DecisionRow[];
-  const markers: MapMarker[] = [
-    ...(origin ? [{ id: 'origin', point: origin, kind: 'me' as const, label: pick(origin.name, lang) }] : []),
-    ...rows.map((r): MapMarker => ({
-      id: r.hospitalId,
-      point: r,
-      kind: r.hospitalId === referral?.chosenId ? 'chosen' : r.status === 'accepted' ? 'accepted' : r.status === 'waiting' ? 'asked' : 'declined',
-      label: pick(r.name, lang),
-    })),
-  ];
-  const chosen = rows.find((r) => r.hospitalId === referral?.chosenId);
-
-  /** Only the doctor decides: confirming or setting aside is their action, never the agent's. */
-  const decide = (action: 'confirm' | 'aside'): void => {
-    if (!referral) return;
-    setDeciding(true);
-    setDecisionError(false);
-    void (action === 'confirm' ? confirmReferral(referral) : setAsideReferral(referral.id))
-      .catch(() => setDecisionError(true))
-      .finally(() => setDeciding(false));
-  };
-
-  const recommendationSeconds =
-    referral?.recommendedAtMs === undefined ? undefined : Math.max(0, Math.round((referral.recommendedAtMs - referral.startedAtMs) / 1_000));
-
-  return (
-    <Screen title={t('doctor.refer.title')}>
-      <View style={[styles.badge, { backgroundColor: theme.surface, borderColor: theme.primary }]}>
-        <Text style={[styles.badgeText, { color: theme.primary }]}>{t('doctor.refer.agentBadge')}</Text>
-      </View>
-      <Text style={[styles.copy, { color: theme.textMuted }]}>{t('doctor.refer.agentPrinciple')}</Text>
-      <Text style={[styles.copy, { color: theme.textMuted }]}>{t('doctor.refer.samplesTitle')}</Text>
-      <View style={styles.samples}>
-        {SAMPLES.map((sample) => (
-          <Button
-            key={sample.key}
-            variant="secondary"
-=======
   const confirm = (target: Referral): void => {
     if (!session) return;
     setDeciding(true);
@@ -174,7 +102,7 @@ export default function DoctorReferScreen(): React.JSX.Element {
     if (!session) return;
     setDeciding(true);
     setError(null);
-    void setAsideReferral(session, target, reason, data.careRequests)
+    void setAsideReferral(session, target, reason)
       .then(() => setAskReason(false))
       .catch(() => setError(t('doctor.refer.setAsideError')))
       .finally(() => setDeciding(false));
@@ -195,7 +123,6 @@ export default function DoctorReferScreen(): React.JSX.Element {
         {SAMPLES.map((sample) => (
           <Chip
             key={sample.key}
->>>>>>> 38fa272389a910585d497b15309be3c249db8472
             label={t(`doctor.refer.sample.${sample.key}` as StringKey)}
             onPress={() => {
               setDescription(t(`doctor.refer.sample.${sample.key}.text` as StringKey));
@@ -222,57 +149,6 @@ export default function DoctorReferScreen(): React.JSX.Element {
         keyboardType="number-pad"
         maxLength={5}
       />
-<<<<<<< HEAD
-      <Text style={[styles.copy, { color: theme.textMuted }]}>{t('doctor.refer.startHint')}</Text>
-      {error ? <Text style={[styles.error, { color: theme.emergency }]}>{error}</Text> : null}
-      <Button label={t('doctor.refer.startButton')} busy={busy} onPress={submit} />
-
-      <View style={[styles.panel, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('doctor.refer.traceTitle')}</Text>
-        {referral?.status === 'running' ? <Text style={[styles.status, { color: theme.warning }]}>{t('doctor.refer.running')}</Text> : null}
-        {referral?.status === 'awaiting' ? <Text style={[styles.status, { color: theme.success }]}>{t('doctor.refer.awaiting')}</Text> : null}
-        {referral?.status === 'failed' ? <Text style={[styles.status, { color: theme.emergency }]}>{t('doctor.refer.failed')}</Text> : null}
-        {trace.length === 0 ? <Text style={[styles.copy, { color: theme.textMuted }]}>{t('doctor.refer.noTrace')}</Text> : null}
-        {trace.map((step) => (
-          <View key={step.id} style={[styles.traceRow, { borderTopColor: theme.border }]}>
-            <Text style={[styles.traceTitle, { color: theme.text }]}>{pick(step.title, lang)}</Text>
-            <Text style={[styles.copy, { color: theme.textMuted }]}>{pick(step.detail, lang)}</Text>
-          </View>
-        ))}
-      </View>
-
-      {rows.length > 0 ? (
-        <View style={[styles.panel, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('doctor.refer.mapTitle')}</Text>
-          <MapView accessibilityLabel={t('map.alt.referral')} markers={markers} route={origin && chosen ? [origin, chosen] : undefined} />
-        </View>
-      ) : null}
-      {referral?.status === 'awaiting' ? (
-        <View style={[styles.panel, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('doctor.refer.recommendationTitle')}</Text>
-          <Text style={[styles.traceTitle, { color: theme.text }]}>{referral.chosenName ? pick(referral.chosenName, lang) : t('doctor.refer.noHospital')}</Text>
-          {referral.why ? <Text style={[styles.copy, { color: theme.textMuted }]}>{pick(referral.why, lang)}</Text> : null}
-          {recommendationSeconds !== undefined ? <Text style={[styles.copy, { color: theme.textMuted }]}>{t('doctor.refer.timeToRecommendation', { seconds: recommendationSeconds })}</Text> : null}
-          {referral.etaMin !== undefined ? <Text style={[styles.copy, { color: theme.textMuted }]}>{t('doctor.refer.etaMin', { min: referral.etaMin })}</Text> : null}
-          {decisionError ? <Text style={[styles.error, { color: theme.emergency }]}>{t('doctor.refer.confirmError')}</Text> : null}
-          <Button label={t('doctor.refer.confirmTransfer')} busy={deciding} disabled={!referral.chosenId} onPress={() => decide('confirm')} />
-          <Button variant="secondary" label={t('doctor.refer.notThisOne')} disabled={deciding} onPress={() => decide('aside')} />
-        </View>
-      ) : null}
-      {referral?.status === 'confirmed' ? <Text style={[styles.status, { color: theme.success }]}>{t('doctor.refer.confirmed')}</Text> : null}
-      {referral?.status === 'set_aside' ? <Text style={[styles.copy, { color: theme.textMuted }]}>{t('doctor.refer.setAsideDone')}</Text> : null}
-      {asked.length > 0 ? (
-        <View style={[styles.panel, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('doctor.refer.decisionTitle')}</Text>
-          {asked.map((r) => (
-            <Text key={r.id} style={[styles.copy, { color: theme.textMuted }]}>
-              {t('doctor.refer.decisionRow', { name: r.hospitalName ? pick(r.hospitalName, lang) : r.hospitalId, status: t(`request.status.${r.status}` as StringKey) })}
-            </Text>
-          ))}
-        </View>
-      ) : null}
-    </Screen>
-=======
       <Text style={[styles.muted, { color: theme.textMuted }]}>{t('doctor.refer.startHint')}</Text>
       {error ? (
         <Text accessibilityLiveRegion="polite" style={[styles.error, { color: theme.emergency }]}>
@@ -452,7 +328,6 @@ function Chip({ label, onPress, disabled = false }: { label: string; onPress: ()
     >
       <Text style={[styles.chipText, { color: theme.primary }]}>{label}</Text>
     </Pressable>
->>>>>>> 38fa272389a910585d497b15309be3c249db8472
   );
 }
 
@@ -467,14 +342,10 @@ const styles = StyleSheet.create({
   decision: { borderTopWidth: 1, paddingTop: spacing.sm, gap: spacing.xs },
   description: { minHeight: 112, paddingTop: spacing.sm },
   error: { fontFamily: fonts.medium, fontSize: fontSizes.sm, textAlign: 'center' },
-<<<<<<< HEAD
-  samples: { gap: spacing.xs },
-=======
   flex: { flex: 1 },
   itemTitle: { fontFamily: fonts.medium, fontSize: fontSizes.md },
   label: { fontFamily: fonts.medium, fontSize: fontSizes.sm },
   muted: { fontFamily: fonts.regular, fontSize: fontSizes.sm },
->>>>>>> 38fa272389a910585d497b15309be3c249db8472
   panel: { alignSelf: 'stretch', borderWidth: 1, borderRadius: radii.md, padding: spacing.md, gap: spacing.sm },
   recent: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderTopWidth: 1, paddingTop: spacing.sm, minHeight: 44 },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },

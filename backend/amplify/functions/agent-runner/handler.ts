@@ -2,12 +2,9 @@ import { getAmplifyDataClientConfig } from '@aws-amplify/backend/function/runtim
 import { BedrockAgentRuntimeClient, RetrieveCommand } from '@aws-sdk/client-bedrock-agent-runtime';
 import { ApplyGuardrailCommand, BedrockRuntimeClient, ConverseCommand, type Message, type Tool } from '@aws-sdk/client-bedrock-runtime';
 import { CalculateRouteMatrixCommand, LocationClient } from '@aws-sdk/client-location';
-<<<<<<< HEAD
 import { activeHolds, withHolds, type Reservation } from '@medora/shared/logic/reservations';
-=======
 import { createHash } from 'node:crypto';
 import { DEMO_HOSPITALS } from '@medora/shared/logic/demoHospitals';
->>>>>>> 38fa272389a910585d497b15309be3c249db8472
 import { classifyReferralPathway } from '@medora/shared/logic/referral';
 import type { Bi, CareRequest, HospitalStatus } from '@medora/shared/logic/types';
 import { Amplify } from 'aws-amplify';
@@ -179,7 +176,6 @@ function referralRun(record: ReferralRecord): ReferralRun {
   };
 }
 
-<<<<<<< HEAD
 /** AppSync AWSJSON fields take JSON strings; the data client doesn't stringify objects for us. */
 const JSON_KEYS = ['patient', 'slot', 'hospitalName', 'title', 'detail', 'actor', 'text', 'chosenName', 'why', 'rows'];
 function toWire<T extends Record<string, unknown>>(input: T, keys: string[] = JSON_KEYS): T {
@@ -196,10 +192,8 @@ function fromWire<T extends Record<string, unknown>>(record: T, keys: string[]):
   }
   return out as T;
 }
-=======
 /** Demo hospital ids (as `scripts/seed.ts` makes them) to their keys, for demo replies only. */
 const DEMO_KEYS = new Map(DEMO_HOSPITALS.map((hospital) => [`H-${createHash('sha256').update(`medora-demo:${hospital.key}`).digest('hex').slice(0, 16)}`, hospital.key]));
->>>>>>> 38fa272389a910585d497b15309be3c249db8472
 
 class AmplifyReferralStore implements ReferralStore {
   private traceNumber = 0;
