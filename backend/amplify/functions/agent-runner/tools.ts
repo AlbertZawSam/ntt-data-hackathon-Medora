@@ -1,4 +1,6 @@
 import { operationalText } from '@medora/shared/logic/agentText';
+import { decisionRows } from '@medora/shared/logic/decisionTable';
+import { DEMO_REPLY_AFTER_SEC, demoReply } from '@medora/shared/logic/demoReplies';
 import { PATHWAYS } from '@medora/shared/logic/pathways';
 import { assessReferral, delayExceedsWindow, nextHospitals, statedDelayMin, type ReferralAssessment } from '@medora/shared/logic/referral';
 import { ruleAccepts } from '@medora/shared/logic/rules';
@@ -45,8 +47,14 @@ export interface ReferralStore {
   trace(kind: string, title: Bi, detail: Bi): Promise<void>;
   activity(text: Bi): Promise<void>;
   knowledgeSearch(query: string): Promise<Array<{ hospitalId: string; text: string; source: string }>>;
+  /** The demo hospital key when demo replies are switched on (task 21), else null. */
+  demoHospitalKey(hospitalId: string): string | null;
   now(): number;
 }
+
+const POLL_MS = 2_000;
+
+const sleep = (ms: number): Promise<void> => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 interface AssessmentState {
   assessment: ReferralAssessment;
@@ -131,7 +139,7 @@ export class ReferralTools {
       assessment: assessReferral(hospitals.filter((hospital) => hospital.id !== origin.id), origin, pathway, this.store.now(), this.referral.onsetMin, driveMinById),
     };
     const { assessment } = this.state;
-    await this.store.updateReferral(this.referral.id, { pathway });
+    await this.store.updateReferral(this.referral.id, { pathway, rows: decisionRows(assessment.ranked, []) });
     await this.store.trace(
       'assess_case',
       { en: 'Case assessed', th: 'ประเมินเคสแล้ว' },
@@ -197,9 +205,12 @@ export class ReferralTools {
       { en: `Asked ${ids.length} hospital(s); waiting up to ${waitSeconds} seconds for staff replies.`, th: `ส่งคำขอ ${ids.length} แห่ง; รอการตอบกลับจากเจ้าหน้าที่ไม่เกิน ${waitSeconds} วินาที` },
     );
 
-    // The Lambda is asynchronous. It only waits for the explicit, bounded policy interval and
-    // never invents a staff reply; an enabled hospital rule is the sole automatic acceptance.
-    await new Promise<void>((resolve) => setTimeout(resolve, waitSeconds * 1_000));
+    // The Lambda is asynchronous. It waits at most the bounded policy interval and returns as soon
+    // as every asked hospital has replied. It never invents a staff reply, except preset replies from
+    // demo hospitals when the demo switch is on (requirement 17.2).
+    await this.saveRows();
+    await this.waitForReplies(ids, waitSeconds);
+    await this.saveRows();
     return { ok: true, replies: await this.replies() };
   }
 
@@ -210,14 +221,15 @@ export class ReferralTools {
       return toolError('give_up_on_pending must be true or false.');
     }
     if (input.give_up_on_pending === true) return { ok: true, replies: await this.replies() };
-    await new Promise<void>((resolve) => setTimeout(resolve, waitSeconds * 1_000));
+    await this.waitForReplies([...this.asked], waitSeconds);
+    await this.saveRows();
     return { ok: true, replies: await this.replies() };
   }
 
   async recommend(input: Record<string, unknown>): Promise<Record<string, unknown>> {
     const hospitalId = typeof input.hospital_id === 'string' ? input.hospital_id : '';
-    const reasonEn = typeof input.reason_en === 'string' ? input.reason_en.trim().slice(0, 500) : '';
-    const reasonTh = typeof input.reason_th === 'string' ? input.reason_th.trim().slice(0, 500) : '';
+    const reasonEn = this.withNames(typeof input.reason_en === 'string' ? input.reason_en.trim().slice(0, 500) : '', 'en');
+    const reasonTh = this.withNames(typeof input.reason_th === 'string' ? input.reason_th.trim().slice(0, 500) : '', 'th');
     if (!hospitalId || !reasonEn || !reasonTh) return toolError('hospital_id, reason_en, and reason_th are required.');
     const requests = await this.store.requests(this.referral.id);
     const accepted = requests.find((request) => request.hospitalId === hospitalId && request.status === 'accepted');
@@ -229,8 +241,10 @@ export class ReferralTools {
     for (const request of requests) {
       if (request.id !== accepted.id && request.status === 'waiting') await this.store.updateRequest(request.id, { status: 'cancelled' });
     }
+    const finalRequests = requests.map((request) => (request.id !== accepted.id && request.status === 'waiting' ? { ...request, status: 'cancelled' as const } : request));
     await this.store.updateReferral(this.referral.id, {
       status: 'awaiting',
+      ...(this.state ? { rows: decisionRows(this.state.assessment.ranked, finalRequests, hospitalId) } : {}),
       chosenId: hospitalId,
       chosenName: row?.hospital.name,
       etaMin: Math.round(row?.driveMin ?? accepted.etaMin),
@@ -249,11 +263,12 @@ export class ReferralTools {
   }
 
   async reportNoPlacement(input: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const reasonEn = typeof input.reason_en === 'string' ? input.reason_en.trim().slice(0, 500) : '';
-    const reasonTh = typeof input.reason_th === 'string' ? input.reason_th.trim().slice(0, 500) : '';
+    const reasonEn = this.withNames(typeof input.reason_en === 'string' ? input.reason_en.trim().slice(0, 500) : '', 'en');
+    const reasonTh = this.withNames(typeof input.reason_th === 'string' ? input.reason_th.trim().slice(0, 500) : '', 'th');
     if (!reasonEn || !reasonTh) return toolError('reason_en and reason_th are required.');
     await this.store.updateReferral(this.referral.id, {
       status: 'failed',
+      ...(this.state ? { rows: decisionRows(this.state.assessment.ranked, await this.store.requests(this.referral.id)) } : {}),
       why: { en: reasonEn, th: reasonTh },
       recommendedAtMs: this.store.now(),
     });
@@ -301,6 +316,59 @@ export class ReferralTools {
     );
   }
 
+  private async waitForReplies(ids: string[], waitSeconds: number): Promise<void> {
+    const started = this.store.now();
+    const deadline = started + waitSeconds * 1_000;
+    let demoDone = false;
+    for (;;) {
+      const pending = (await this.store.requests(this.referral.id)).filter((request) => ids.includes(request.hospitalId) && request.status === 'waiting');
+      if (pending.length === 0 || this.store.now() >= deadline) return;
+      if (!demoDone && this.store.now() - started >= DEMO_REPLY_AFTER_SEC * 1_000) {
+        demoDone = true;
+        await this.demoReplies(pending);
+        continue;
+      }
+      await sleep(Math.min(POLL_MS, Math.max(0, deadline - this.store.now())));
+    }
+  }
+
+  private async demoReplies(pending: CareRequest[]): Promise<void> {
+    if (!this.state) return;
+    let replied = 0;
+    for (const request of pending) {
+      const key = this.store.demoHospitalKey(request.hospitalId);
+      if (!key) continue;
+      const reply = demoReply(key, this.state.assessment.pathway);
+      await this.store.updateRequest(request.id, {
+        status: reply.status,
+        ...(reply.reason ? { reason: reply.reason } : {}),
+        ...(reply.note ? { note: reply.note } : {}),
+      });
+      replied += 1;
+    }
+    if (replied > 0) {
+      await this.store.trace(
+        'demo_replies',
+        { en: 'Demo replies', th: 'การตอบกลับสำหรับสาธิต' },
+        { en: `${replied} demo hospital(s) replied with preset answers.`, th: `โรงพยาบาลสาธิต ${replied} แห่งตอบกลับด้วยคำตอบที่ตั้งไว้` },
+      );
+    }
+  }
+
+  /** Saves the doctor's decision table: reason codes and replies only, never notes or raw status. */
+  private async saveRows(): Promise<void> {
+    if (!this.state) return;
+    const requests = await this.store.requests(this.referral.id);
+    await this.store.updateReferral(this.referral.id, { rows: decisionRows(this.state.assessment.ranked, requests) });
+  }
+
+  /** The doctor reads hospital names, not ids: replaces any hospital id in the model's text. */
+  private withNames(text: string, lang: 'en' | 'th'): string {
+    let out = text;
+    for (const hospital of this.state?.hospitals ?? []) out = out.split(hospital.id).join(hospital.name[lang]);
+    return out;
+  }
+
   private async replies(): Promise<Array<Record<string, unknown>>> {
     const requests = await this.store.requests(this.referral.id);
     return requests.map((request) => ({
@@ -316,6 +384,7 @@ export class ReferralTools {
   private publicRow(row: RankedHospital): Record<string, unknown> {
     return {
       hospital_id: row.hospital.id,
+      name: row.hospital.name.en,
       drive_min: Math.round(row.driveMin),
       score: Math.round(row.score * 10) / 10,
       can_help: row.eligible,

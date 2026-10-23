@@ -107,6 +107,9 @@ backend.agentRunner.addEnvironment('MODEL_ID_STRONG', MODEL_ID_STRONG);
 backend.agentRunner.addEnvironment('GUARDRAIL_ID', guardrail.attrGuardrailId);
 backend.agentRunner.addEnvironment('GUARDRAIL_VERSION', 'DRAFT');
 backend.agentRunner.addEnvironment('AGENT_GUARDRAIL_ID', agentGuardrail.attrGuardrailId);
+// Demo replies (task 21): seeded demo hospitals answer referrals after 8 seconds with preset replies.
+// Only the synthetic hospitals from scripts/seed.ts are affected. Set MEDORA_DEMO_REPLIES=false to switch off.
+backend.agentRunner.addEnvironment('DEMO_REPLIES', process.env.MEDORA_DEMO_REPLIES === 'false' ? 'false' : 'true');
 backend.agentRunner.resources.lambda.addToRolePolicy(
   new PolicyStatement({ actions: ['bedrock:InvokeModel'], resources: [modelArn(MODEL_ID_FAST), modelArn(MODEL_ID_STRONG)] }),
 );

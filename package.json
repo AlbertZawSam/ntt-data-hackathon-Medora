@@ -16,6 +16,7 @@
     "sandbox:delete": "npm run sandbox:delete -w @medora/backend --",
     "test": "npm test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "test-logins": "node scripts/test-logins.mjs"
   }
 }

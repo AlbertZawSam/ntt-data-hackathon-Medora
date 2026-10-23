@@ -6,6 +6,7 @@
 import { generateClient } from 'aws-amplify/data';
 import type {
   Activity,
+  Bi,
   CareRequest,
   Device,
   HospitalProfile,
@@ -147,18 +148,15 @@ class LiveDataStore {
     this.stop();
     if (!session || !backendConfigured) return;
 
-    const hospitalFilter = session.hospitalId ? { hospitalId: { eq: session.hospitalId } } : undefined;
-    const ownerFilter = { ownerId: { eq: session.userId } };
-    const ownOrHospital = session.hospitalId
-      ? { or: [ownerFilter, { hospitalId: { eq: session.hospitalId } }, { fromHospitalId: { eq: session.hospitalId } }] }
-      : ownerFilter;
-
-    this.observe('careRequests', client.models.CareRequest, ownOrHospital);
-    this.observe('messages', client.models.Message, session.hospitalId ? { or: [ownerFilter, hospitalFilter] } : ownerFilter);
-    this.observe('referrals', client.models.Referral, ownOrHospital);
-    this.observe('transfers', client.models.Transfer, ownerFilter);
-    this.observe('activities', client.models.Activity, session.hospitalId ? { or: [ownerFilter, hospitalFilter] } : ownerFilter);
-    this.observe('devices', client.models.Device, { userId: { eq: session.userId } });
+    // No client filters: every model's AppSync owner rules already return only the caller's own rows
+    // or their hospital's, and AppSync rejects a subscription whose filter repeats a field the owner
+    // rule also filters on ("same fieldName multiple time"), which silently stopped live updates.
+    this.observe('careRequests', client.models.CareRequest);
+    this.observe('messages', client.models.Message);
+    this.observe('referrals', client.models.Referral);
+    this.observe('transfers', client.models.Transfer);
+    this.observe('activities', client.models.Activity);
+    this.observe('devices', client.models.Device);
     // Every signed-in user sees the public labels; changes by staff arrive live (requirement 9.2).
     this.observe('publicDirectory', client.models.PublicDirectory, undefined, (items) =>
       items.flatMap((row) => {
@@ -169,11 +167,11 @@ class LiveDataStore {
 
     // Exact status data is hospital-only. Public availability is deliberately supplied by a
     // separate labelled query rather than leaking beds, equipment faults, or staff rosters.
-    if (hospitalFilter) {
-      this.observe('hospitalProfiles', client.models.HospitalProfile, hospitalFilter);
-      this.observe('specialists', client.models.Specialist, hospitalFilter);
-      this.observe('hospitalStatuses', client.models.HospitalStatus, hospitalFilter);
-      this.observe('traceSteps', client.models.TraceStep, hospitalFilter);
+    if (session.hospitalId) {
+      this.observe('hospitalProfiles', client.models.HospitalProfile);
+      this.observe('specialists', client.models.Specialist);
+      this.observe('hospitalStatuses', client.models.HospitalStatus);
+      this.observe('traceSteps', client.models.TraceStep);
     }
   }
 
@@ -250,6 +248,85 @@ export async function startReferral(
   const invoked = await client.mutations.startReferral({ referralId: created.data.id });
   ensureData(invoked, 'Start referral');
   return created.data.id;
+}
+
+/** Why a doctor set a recommendation aside; stored as a key, shown in both languages. */
+export const SET_ASIDE_REASONS = ['tooFar', 'patientChoice', 'clinical', 'other'] as const;
+export type SetAsideReason = (typeof SET_ASIDE_REASONS)[number];
+
+const SET_ASIDE_TEXT: Record<SetAsideReason, Bi> = {
+  tooFar: { en: 'too far for this patient', th: 'ไกลเกินไปสำหรับผู้ป่วยรายนี้' },
+  patientChoice: { en: "patient's or family's choice", th: 'ผู้ป่วยหรือญาติเลือกที่อื่น' },
+  clinical: { en: 'clinical judgement', th: 'ดุลยพินิจทางคลินิก' },
+  other: { en: 'other reason', th: 'เหตุผลอื่น' },
+};
+
+function ownAwaiting(session: Session, referral: Referral): string {
+  if (referral.ownerId !== session.userId || referral.status !== 'awaiting' || !referral.chosenId) {
+    throw new DataServiceError('Referral is not awaiting this doctor.');
+  }
+  return referral.chosenId;
+}
+
+/**
+ * The doctor confirms the agent's recommendation (requirement 13.2): the referral becomes confirmed
+ * and a transfer starts, readable by both hospitals. Only the referral's owner can update it (AppSync
+ * owner rule). The ambulance crew's SMS link is simulated in the demo.
+ */
+export async function confirmReferral(session: Session, referral: Referral): Promise<void> {
+  const toHospitalId = ownAwaiting(session, referral);
+  const updated = await client.models.Referral.update({ id: referral.id, status: 'confirmed' });
+  ensureData(updated, 'Confirm referral');
+  const created = await client.models.Transfer.create({
+    referralId: referral.id,
+    hospitalIds: [referral.fromHospitalId, toHospitalId],
+    fromHospitalId: referral.fromHospitalId,
+    toHospitalId,
+    ownerId: session.userId,
+    startedAt: Date.now(),
+    etaMin: Math.max(1, Math.round(referral.etaMin ?? 15)),
+    status: 'in_progress',
+  });
+  if (created.errors?.length || !created.data) {
+    // Put the recommendation back so the doctor can retry, rather than a confirmed referral with no transfer.
+    await client.models.Referral.update({ id: referral.id, status: 'awaiting' }).catch(() => undefined);
+    throw new DataServiceError('Start transfer failed.');
+  }
+  await writeActivity({
+    hospitalId: referral.fromHospitalId,
+    ownerId: session.userId,
+    actor: { en: 'Doctor', th: 'แพทย์' },
+    text: { en: 'Doctor confirmed the transfer', th: 'แพทย์ยืนยันการส่งต่อแล้ว' },
+  }).catch(() => undefined);
+}
+
+/**
+ * The doctor sets the recommendation aside with a reason ("Not this one"): the referral is closed
+ * and the chosen hospital's accepted request is withdrawn, so its bed is not held.
+ */
+export async function setAsideReferral(session: Session, referral: Referral, reason: SetAsideReason, requests: CareRequest[]): Promise<void> {
+  const chosenId = ownAwaiting(session, referral);
+  const updated = await client.models.Referral.update({ id: referral.id, status: 'set_aside' });
+  ensureData(updated, 'Set aside referral');
+  for (const request of requests) {
+    if (request.referralId === referral.id && request.hospitalId === chosenId && request.status === 'accepted') {
+      const withdrawn = await client.models.CareRequest.update({ id: request.id, status: 'cancelled' });
+      ensureData(withdrawn, 'Withdraw request');
+    }
+  }
+  const why = SET_ASIDE_TEXT[reason];
+  await writeActivity({
+    hospitalId: referral.fromHospitalId,
+    ownerId: session.userId,
+    actor: { en: 'Doctor', th: 'แพทย์' },
+    text: { en: `Doctor set the recommendation aside: ${why.en}`, th: `แพทย์ไม่เลือกโรงพยาบาลที่แนะนำ: ${why.th}` },
+  }).catch(() => undefined);
+}
+
+/** Marks a simulated transfer as arrived (requirement 13.3). */
+export async function markTransferArrived(transfer: Transfer): Promise<void> {
+  const result = await client.models.Transfer.update({ id: transfer.id, status: 'arrived' });
+  ensureData(result, 'Mark transfer arrived');
 }
 
 /**
