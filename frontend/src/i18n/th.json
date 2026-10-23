@@ -338,5 +338,16 @@
   "metrics.timeToRecommend": "เวลามัธยฐานถึงข้อเสนอแนะ: {{sec}} วินาที",
   "metrics.insideWindow": "จัดหาที่รับภายในช่วงเวลารักษา: {{pct}}%",
   "metrics.fresh": "รายการสถานะที่อัปเดตใน 30 นาทีล่าสุด: {{pct}}%",
-  "metrics.none": "ยังไม่มีข้อมูล"
+  "metrics.none": "ยังไม่มีข้อมูล",
+  "signIn.forgot": "ลืมรหัสผ่าน?",
+  "forgot.title": "รีเซ็ตรหัสผ่าน",
+  "forgot.hint": "กรอกอีเมลของคุณ หากมีบัญชีนี้ เราจะส่งรหัสให้",
+  "forgot.sendCode": "ส่งรหัส",
+  "forgot.codeHint": "หากอีเมลนี้มีบัญชี รหัสกำลังถูกส่งไป กรอกรหัสพร้อมรหัสผ่านใหม่",
+  "forgot.codePlaceholder": "รหัสยืนยัน",
+  "forgot.newPassword": "รหัสผ่านใหม่",
+  "forgot.submit": "รีเซ็ตรหัสผ่าน",
+  "forgot.done": "เปลี่ยนรหัสผ่านแล้ว เข้าสู่ระบบได้เลย",
+  "forgot.back": "กลับไปเข้าสู่ระบบ",
+  "common.home": "หน้าแรก"
 }

@@ -8,7 +8,7 @@ import { StyleSheet, Text } from 'react-native';
 import { UNITS, ALL_UNITS } from '@medora/shared/logic/access';
 import type { StringKey } from '../../src/i18n/t';
 import { inviteStaff } from '../../src/services/data';
-import { useApp, useT } from '../../src/state/AppProvider';
+import { useT } from '../../src/state/AppProvider';
 import { Button } from '../../src/ui/Button';
 import { Field } from '../../src/ui/Field';
 import { StatusReminder } from '../../src/components/StatusReminder';
@@ -20,7 +20,6 @@ const GROUPS = ['hospital_staff', 'doctors', 'admins'] as const;
 export default function AdminStaffInviteScreen(): React.JSX.Element {
   const t = useT();
   const theme = useTheme();
-  const { signOut } = useApp();
   const [email, setEmail] = React.useState('');
   const [group, setGroup] = React.useState<(typeof GROUPS)[number]>('hospital_staff');
   const [unit, setUnit] = React.useState<string>('ward');
@@ -58,7 +57,6 @@ export default function AdminStaffInviteScreen(): React.JSX.Element {
       {state === 'error' ? <Text accessibilityLiveRegion="polite" style={[styles.note, { color: theme.emergency }]}>{t('admin.staffInvite.error')}</Text> : null}
       {state === 'badEmail' ? <Text style={[styles.note, { color: theme.emergency }]}>{t('admin.staffInvite.badEmail')}</Text> : null}
       <Button label={t('admin.staffInvite.submitButton')} busy={state === 'busy'} onPress={() => void submit()} />
-      <Button variant="link" label={t('common.signOut')} onPress={() => void signOut()} />
     </Screen>
   );
 }

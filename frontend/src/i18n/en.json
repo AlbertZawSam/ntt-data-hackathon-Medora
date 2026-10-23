@@ -338,5 +338,16 @@
   "metrics.timeToRecommend": "Median time to recommendation: {{sec}} s",
   "metrics.insideWindow": "Placement inside the treatment window: {{pct}}%",
   "metrics.fresh": "Status items updated in the last 30 minutes: {{pct}}%",
-  "metrics.none": "No data yet"
+  "metrics.none": "No data yet",
+  "signIn.forgot": "Forgot password?",
+  "forgot.title": "Reset your password",
+  "forgot.hint": "Enter your email and we'll send a code if the account exists.",
+  "forgot.sendCode": "Send code",
+  "forgot.codeHint": "If that email has an account, a code is on its way. Enter it with your new password.",
+  "forgot.codePlaceholder": "Verification code",
+  "forgot.newPassword": "New password",
+  "forgot.submit": "Reset password",
+  "forgot.done": "Password changed. You can sign in now.",
+  "forgot.back": "Back to sign in",
+  "common.home": "Home"
 }

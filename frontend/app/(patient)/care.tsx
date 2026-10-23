@@ -152,7 +152,6 @@ export default function PatientCareScreen(): React.JSX.Element {
         </>
       )}
       <Text style={[styles.disclaimer, { color: theme.textMuted }]}>{t('patient.care.disclaimer')}</Text>
-      <Button variant="link" label={t('emergency.back')} onPress={() => router.replace('/(patient)/home' as Href)} />
     </Screen>
   );
 }

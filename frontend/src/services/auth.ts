@@ -3,10 +3,12 @@
  * Requirements: 1.1, 1.2, 1.4, 1.6, 18.3
  */
 import {
+  confirmResetPassword,
   confirmSignIn,
   confirmSignUp,
   fetchAuthSession,
   resendSignUpCode,
+  resetPassword,
   signIn as amplifySignIn,
   signOut as amplifySignOut,
   signUp as amplifySignUp,
@@ -159,5 +161,38 @@ export async function getSession(refresh = false): Promise<Session | null> {
     return tokens?.idToken ? sessionFromClaims(tokens.idToken.payload, { staffPool: isStaffPoolToken(tokens.idToken.payload) }) : null;
   } catch {
     return null;
+  }
+}
+
+/**
+ * Forgot password, step 1: asks the pool to email a code. The answer is the same whether or not the
+ * email has an account (the pools hide that), so the screen never reveals it. The staff pool sends
+ * to email only; there is no SMS.
+ */
+export async function requestPasswordReset(email: string, pool: PoolKind = 'public'): Promise<void> {
+  const previous = activePool();
+  try {
+    configurePool(pool);
+    await resetPassword({ username: clean(email) });
+  } catch (err) {
+    const name = err instanceof Error ? err.name : '';
+    // An unknown or unconfirmed account looks the same as success; only throttling and network errors show.
+    if (name !== 'LimitExceededException' && name !== 'TooManyRequestsException' && name !== 'NetworkError') return;
+    throw toAuthError(err, 'auth.error.generic');
+  } finally {
+    configurePool(previous);
+  }
+}
+
+/** Forgot password, step 2: the emailed code plus a new password. */
+export async function finishPasswordReset(email: string, code: string, newPassword: string, pool: PoolKind = 'public'): Promise<void> {
+  const previous = activePool();
+  try {
+    configurePool(pool);
+    await confirmResetPassword({ username: clean(email), confirmationCode: code.trim(), newPassword });
+  } catch (err) {
+    throw toAuthError(err, 'auth.error.code');
+  } finally {
+    configurePool(previous);
   }
 }

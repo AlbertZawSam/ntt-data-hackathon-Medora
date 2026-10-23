@@ -85,7 +85,6 @@ export default function PatientSpecialistsScreen(): React.JSX.Element {
         </View>
       ))}
       <Button variant="secondary" label={t('patient.requests.title')} onPress={() => router.push('/(patient)/requests' as Href)} />
-      <Button variant="link" label={t('common.back')} onPress={() => router.replace('/(patient)/home' as Href)} />
     </Screen>
   );
 }
