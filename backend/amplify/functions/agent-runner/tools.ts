@@ -1,4 +1,5 @@
 import { operationalText } from '@medora/shared/logic/agentText';
+import { decisionRows } from '@medora/shared/logic/decisionTable';
 import { PATHWAYS } from '@medora/shared/logic/pathways';
 import { assessReferral, delayExceedsWindow, nextHospitals, statedDelayMin, type ReferralAssessment } from '@medora/shared/logic/referral';
 import { ruleAccepts } from '@medora/shared/logic/rules';
@@ -131,7 +132,7 @@ export class ReferralTools {
       assessment: assessReferral(hospitals.filter((hospital) => hospital.id !== origin.id), origin, pathway, this.store.now(), this.referral.onsetMin, driveMinById),
     };
     const { assessment } = this.state;
-    await this.store.updateReferral(this.referral.id, { pathway });
+    await this.store.updateReferral(this.referral.id, { pathway, rows: decisionRows(assessment.ranked, []) });
     await this.store.trace(
       'assess_case',
       { en: 'Case assessed', th: 'ประเมินเคสแล้ว' },
@@ -199,7 +200,9 @@ export class ReferralTools {
 
     // The Lambda is asynchronous. It only waits for the explicit, bounded policy interval and
     // never invents a staff reply; an enabled hospital rule is the sole automatic acceptance.
+    await this.saveRows();
     await new Promise<void>((resolve) => setTimeout(resolve, waitSeconds * 1_000));
+    await this.saveRows();
     return { ok: true, replies: await this.replies() };
   }
 
@@ -211,6 +214,7 @@ export class ReferralTools {
     }
     if (input.give_up_on_pending === true) return { ok: true, replies: await this.replies() };
     await new Promise<void>((resolve) => setTimeout(resolve, waitSeconds * 1_000));
+    await this.saveRows();
     return { ok: true, replies: await this.replies() };
   }
 
@@ -229,8 +233,10 @@ export class ReferralTools {
     for (const request of requests) {
       if (request.id !== accepted.id && request.status === 'waiting') await this.store.updateRequest(request.id, { status: 'cancelled' });
     }
+    const finalRequests = requests.map((request) => (request.id !== accepted.id && request.status === 'waiting' ? { ...request, status: 'cancelled' as const } : request));
     await this.store.updateReferral(this.referral.id, {
       status: 'awaiting',
+      ...(this.state ? { rows: decisionRows(this.state.assessment.ranked, finalRequests, hospitalId) } : {}),
       chosenId: hospitalId,
       chosenName: row?.hospital.name,
       etaMin: Math.round(row?.driveMin ?? accepted.etaMin),
@@ -254,6 +260,7 @@ export class ReferralTools {
     if (!reasonEn || !reasonTh) return toolError('reason_en and reason_th are required.');
     await this.store.updateReferral(this.referral.id, {
       status: 'failed',
+      ...(this.state ? { rows: decisionRows(this.state.assessment.ranked, await this.store.requests(this.referral.id)) } : {}),
       why: { en: reasonEn, th: reasonTh },
       recommendedAtMs: this.store.now(),
     });
@@ -299,6 +306,13 @@ export class ReferralTools {
       { en: 'Agent update', th: 'อัปเดตจากเอเจนต์' },
       { en: clean, th: clean },
     );
+  }
+
+  /** Saves the doctor's decision table: reason codes and replies only, never notes or raw status. */
+  private async saveRows(): Promise<void> {
+    if (!this.state) return;
+    const requests = await this.store.requests(this.referral.id);
+    await this.store.updateReferral(this.referral.id, { rows: decisionRows(this.state.assessment.ranked, requests) });
   }
 
   private async replies(): Promise<Array<Record<string, unknown>>> {

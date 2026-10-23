@@ -209,18 +209,19 @@ export interface TraceStep {
 
 export type TransferStatus = 'in_progress' | 'arrived' | 'cancelled';
 
+/** A confirmed transfer, as stored (the `Transfer` model); tracking is simulated in the demo. */
 export interface Transfer {
   id: string;
   referralId: string;
-  careRequestId: string;
+  /** Sending and receiving hospital, so staff of both can read it. */
+  hospitalIds: string[];
   fromHospitalId: string;
   toHospitalId: string;
   ownerId: string;
+  /** Milliseconds since the epoch. */
+  startedAt: number;
   etaMin: number;
   status: TransferStatus;
-  lat?: number;
-  lng?: number;
-  createdAtMs: number;
 }
 
 export interface Activity {

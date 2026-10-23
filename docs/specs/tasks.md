@@ -118,9 +118,10 @@ Paths follow the npm workspaces layout in `AGENTS.md` section 6: `frontend/`, `b
   - Replies in the doctor's language; at most 8 turns, a token cap per call and a daily run limit per user.
   - _Requirements: 12.1 to 12.7, 12.9, 12.10, 2.3, 16.2, 22.4_
 
-- [ ] 20. Doctor screens **P0**
+- [-] 20. Doctor screens **P0**
   - Description with samples, onset minutes, live trace, map with asked, declined and chosen hospitals, decision table, recommendation with reasons, confirm or set aside, simulated transfer tracking.
   - _Requirements: 13.1 to 13.4, 17.3_
+  - Done: sample cases, live trace with elapsed time, decision table saved by the agent (`shared/logic/decisionTable.ts`), recommendation with reasons and time to recommendation, confirm (creates the transfer) or set aside with a reason, simulated transfer tracking. Left: the map, and one bed fewer on arrival (13.4).
 
 - [ ] 21. Demo replies **P0**
   - Optional switch: hospitals without an auto-accept rule reply after 8 seconds with preset notes (Rama Nine for stroke: neurologist free in about 40 minutes).
