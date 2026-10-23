@@ -8,3 +8,6 @@ amplify_outputs.json
 google-services.json
 .env
 .DS_Store
+
+# Local test logins (passwords and authenticator secrets for synthetic test accounts)
+scripts/.local/
