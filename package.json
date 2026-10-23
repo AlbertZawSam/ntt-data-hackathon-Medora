@@ -19,6 +19,7 @@
     "start:patient": "npm run start:patient -w @medora/frontend --",
     "start:hospital": "npm run start:hospital -w @medora/frontend --",
     "seed": "tsx scripts/seed.ts",
-    "kb": "tsx scripts/build-kb.ts"
+    "kb": "tsx scripts/build-kb.ts",
+    "upload-kb": "tsx scripts/upload-kb.ts"
   }
 }

@@ -1,6 +1,6 @@
 import { defineBackend } from '@aws-amplify/backend';
 import { Names, RemovalPolicy, Stack, Tags } from 'aws-cdk-lib';
-import { CfnGuardrail } from 'aws-cdk-lib/aws-bedrock';
+import { CfnDataSource, CfnGuardrail, CfnKnowledgeBase } from 'aws-cdk-lib/aws-bedrock';
 import {
   AccountRecovery,
   CfnUserPoolGroup,
@@ -9,7 +9,9 @@ import {
   StringAttribute,
   UserPool,
 } from 'aws-cdk-lib/aws-cognito';
-import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import { PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
+import { BlockPublicAccess, Bucket, BucketEncryption } from 'aws-cdk-lib/aws-s3';
+import { CfnIndex, CfnVectorBucket } from 'aws-cdk-lib/aws-s3vectors';
 import { auth } from './auth/resource';
 import { postConfirmation } from './auth/post-confirmation/resource';
 import { data } from './data/resource';
@@ -118,8 +120,7 @@ backend.agentRunner.resources.lambda.addToRolePolicy(
 backend.agentRunner.resources.lambda.addToRolePolicy(
   new PolicyStatement({ actions: ['bedrock:ApplyGuardrail'], resources: [guardrail.attrGuardrailArn, agentGuardrail.attrGuardrailArn] }),
 );
-// The knowledge base (bedrock:Retrieve) and Amazon Location route matrix are not set up yet; until
-// they are, the agent uses registered hospital profiles and the on-device drive-time estimate.
+// Amazon Location route matrix is not set up yet; the agent uses the on-device drive-time estimate.
 // find-care's Bedrock permissions are opt-in: AGENTS.md says coding agents don't change IAM on their own,
 // so the team lead turns this on for the sandbox by setting MEDORA_ATTACH_BEDROCK_IAM=true. The statement
 // names the Nova Lite ARN and this stack's guardrail, never `*`. Until then find-care uses its keyword
@@ -127,6 +128,99 @@ backend.agentRunner.resources.lambda.addToRolePolicy(
 if (process.env.MEDORA_ATTACH_BEDROCK_IAM === 'true') {
   backend.findCare.resources.lambda.addToRolePolicy(new PolicyStatement({ actions: ['bedrock:InvokeModel'], resources: [modelArn(MODEL_ID_FAST)] }));
   backend.findCare.resources.lambda.addToRolePolicy(new PolicyStatement({ actions: ['bedrock:ApplyGuardrail'], resources: [guardrail.attrGuardrailArn] }));
+}
+
+// Knowledge base (task 23, requirements 14.1 to 14.3). Opt-in: the team lead sets MEDORA_ENABLE_KB=true
+// for the sandbox, then runs `npm run upload-kb`. Until then the agent uses registered hospital profiles
+// and says so in the trace. Cost: S3 Vectors and S3 have no hourly charge (cents per month for these 25
+// small documents); Titan Text Embeddings V2 is paid per token at ingestion and per search query.
+let knowledgeBaseOutput: Record<string, string> | undefined;
+if (process.env.MEDORA_ENABLE_KB === 'true') {
+  const kbStack = backend.createStack('knowledge-base');
+  const EMBEDDING_MODEL_ID = 'amazon.titan-embed-text-v2:0';
+  const isDemoStage = process.env.AWS_BRANCH === 'demo';
+  const embeddingArn = `arn:aws:bedrock:${kbStack.region}::foundation-model/${EMBEDDING_MODEL_ID}`;
+
+  // Private source bucket (AGENTS.md 4b.4): block public access, TLS only, AWS-managed encryption.
+  const docsBucket = new Bucket(kbStack, 'KbDocs', {
+    blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
+    enforceSSL: true,
+    encryption: BucketEncryption.S3_MANAGED,
+    // Sandboxes are deleted every day, so they empty and remove the bucket; the demo stage keeps it.
+    removalPolicy: isDemoStage ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY,
+    autoDeleteObjects: !isDemoStage,
+  });
+  const vectorBucket = new CfnVectorBucket(kbStack, 'KbVectors', {
+    encryptionConfiguration: { sseType: 'AES256' },
+  });
+  // Titan V2 makes 1024 float32 numbers per document. Bedrock keeps the text in AMAZON_BEDROCK_TEXT, which
+  // is too large to filter on, so it must be non-filterable (and can't be changed after creation).
+  const vectorIndex = new CfnIndex(kbStack, 'KbIndex', {
+    vectorBucketArn: vectorBucket.attrVectorBucketArn,
+    dataType: 'float32',
+    dimension: 1024,
+    distanceMetric: 'cosine',
+    metadataConfiguration: { nonFilterableMetadataKeys: ['AMAZON_BEDROCK_TEXT'] },
+  });
+
+  const kbRole = new Role(kbStack, 'KbRole', {
+    assumedBy: new ServicePrincipal('bedrock.amazonaws.com', {
+      conditions: {
+        StringEquals: { 'aws:SourceAccount': kbStack.account },
+        // Any knowledge base in this account: the role can't name its own knowledge base without a circular dependency.
+        ArnLike: { 'aws:SourceArn': `arn:aws:bedrock:${kbStack.region}:${kbStack.account}:knowledge-base/*` },
+      },
+    }),
+  });
+  kbRole.addToPolicy(new PolicyStatement({ actions: ['bedrock:InvokeModel'], resources: [embeddingArn] }));
+  // The account condition stops the role from being used to read a bucket in another account.
+  const ownAccount = { StringEquals: { 'aws:ResourceAccount': kbStack.account } };
+  kbRole.addToPolicy(new PolicyStatement({ actions: ['s3:ListBucket'], resources: [docsBucket.bucketArn], conditions: ownAccount }));
+  kbRole.addToPolicy(new PolicyStatement({ actions: ['s3:GetObject'], resources: [docsBucket.arnForObjects('*')], conditions: ownAccount }));
+  kbRole.addToPolicy(
+    new PolicyStatement({
+      actions: ['s3vectors:PutVectors', 's3vectors:GetVectors', 's3vectors:DeleteVectors', 's3vectors:QueryVectors', 's3vectors:GetIndex'],
+      resources: [vectorIndex.attrIndexArn],
+    }),
+  );
+
+  const knowledgeBase = new CfnKnowledgeBase(kbStack, 'KnowledgeBase', {
+    name: Names.uniqueResourceName(kbStack, { maxLength: 60, separator: '-' }).replace(/[^0-9a-zA-Z_-]/g, ''),
+    description: 'Medora: registered capability of each hospital department (synthetic data), English and Thai.',
+    roleArn: kbRole.roleArn,
+    knowledgeBaseConfiguration: {
+      type: 'VECTOR',
+      vectorKnowledgeBaseConfiguration: {
+        embeddingModelArn: embeddingArn,
+        embeddingModelConfiguration: { bedrockEmbeddingModelConfiguration: { dimensions: 1024, embeddingDataType: 'FLOAT32' } },
+      },
+    },
+    storageConfiguration: {
+      type: 'S3_VECTORS',
+      s3VectorsConfiguration: { indexArn: vectorIndex.attrIndexArn },
+    },
+  });
+  // The role's policy must exist before Bedrock validates access to the index.
+  knowledgeBase.node.addDependency(kbRole);
+  const dataSource = new CfnDataSource(kbStack, 'KbDataSource', {
+    knowledgeBaseId: knowledgeBase.attrKnowledgeBaseId,
+    name: 'hospital-capabilities',
+    dataSourceConfiguration: { type: 'S3', s3Configuration: { bucketArn: docsBucket.bucketArn } },
+    // One document per department is already small: no chunking (requirement 14.1).
+    vectorIngestionConfiguration: { chunkingConfiguration: { chunkingStrategy: 'NONE' } },
+  });
+
+  // The agent may only search this one knowledge base (AGENTS.md 4b.3).
+  backend.agentRunner.addEnvironment('KB_ID', knowledgeBase.attrKnowledgeBaseId);
+  backend.agentRunner.resources.lambda.addToRolePolicy(
+    new PolicyStatement({ actions: ['bedrock:Retrieve'], resources: [knowledgeBase.attrKnowledgeBaseArn] }),
+  );
+  knowledgeBaseOutput = {
+    knowledgeBaseId: knowledgeBase.attrKnowledgeBaseId,
+    dataSourceId: dataSource.attrDataSourceId,
+    docsBucket: docsBucket.bucketName,
+    region: kbStack.region,
+  };
 }
 
 // Staff pool (docs/roles.md, AGENTS.md section 4b): hospital accounts only, by invitation, with
@@ -230,5 +324,6 @@ backend.addOutput({
       userPoolClientId: staffClient.userPoolClientId,
       region: staffStack.region,
     },
+    ...(knowledgeBaseOutput ? { knowledgeBase: knowledgeBaseOutput } : {}),
   },
 });

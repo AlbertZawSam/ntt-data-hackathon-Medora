@@ -133,7 +133,7 @@ Paths follow the npm workspaces layout in `AGENTS.md` section 6: `frontend/`, `b
 ## Milestone 7: Knowledge base (RAG) (RC3)
 
 - [-] 23. Knowledge base **P1**
-  - _Done: 25 bilingual documents (one per hospital department) and their Bedrock metadata files in `shared/data/kb/`, generated offline by `npm run kb` from the synthetic hospital data and checked by tests; the agent's `search_knowledge_base` already reads `KB_ID` and falls back to hospital profiles. Left: private bucket, S3 Vectors knowledge base with Titan V2 and its IAM (`bedrock:Retrieve`), upload, `KB_ID` on the agent, Thai and mixed-language retrieval tests._
+  - _Done in code: 25 bilingual documents with Bedrock metadata in `shared/data/kb/` (`npm run kb`, checked by tests); an opt-in stack in `backend.ts` (`MEDORA_ENABLE_KB=true`): private S3 bucket (Block Public Access, TLS only), S3 Vectors bucket and index (1024, cosine, float32), knowledge base with Titan V2 and no chunking, a role scoped to those, `KB_ID` and `bedrock:Retrieve` on that one knowledge base for the agent; `npm run upload-kb` uploads and runs ingestion. Left: deploy with the flag, run `npm run upload-kb`, and test Thai and mixed Thai-English retrieval (nothing here has run against AWS yet)._
   - Upload `shared/data/kb/` to a private bucket in us-east-1; knowledge base with Titan Text Embeddings V2, no chunking, S3 Vectors; test retrieval with Thai and mixed Thai-English questions; `search_knowledge_base` tool; sources shown in the trace.
   - _Requirements: 14.1, 14.2, 14.3, 22.5_
 
