@@ -9,7 +9,6 @@
  * Writes three tables per hospital: HospitalProfile, HospitalStatus and PublicDirectory. Synthetic data only.
  * Cost: 24 DynamoDB writes per run, well under one US cent.
  */
-import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { AppSyncClient, paginateListGraphqlApis } from '@aws-sdk/client-appsync';
@@ -17,13 +16,9 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { DEMO_HOSPITALS, demoStatus } from '@medora/shared/logic/demoHospitals';
 import { publicEntry } from '@medora/shared/logic/publicDirectory';
+import { seedHospitalId } from './seed-id';
 
 const REGION = 'us-east-1';
-
-/** Same format as ids made by register-hospital (H- and 16 hex digits), so the other scripts accept them. */
-export function seedHospitalId(key: string): string {
-  return `H-${createHash('sha256').update(`medora-demo:${key}`).digest('hex').slice(0, 16)}`;
-}
 
 async function findApiId(url: string): Promise<string> {
   const appsync = new AppSyncClient({ region: REGION });
