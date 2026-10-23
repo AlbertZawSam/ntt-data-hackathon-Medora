@@ -149,6 +149,10 @@ export interface CareRequest {
   slot?: { day: string; time: string };
   doctorName?: string;
   hospitalName?: Bi;
+  /** When the request was accepted (by rule or staff); used for the time-to-accept metric. */
+  acceptedAtMs?: number;
+  /** Whether the accepting hospital could treat the need at that moment. */
+  couldTreat?: boolean;
   createdAtMs: number;
 }
 

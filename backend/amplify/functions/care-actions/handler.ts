@@ -6,6 +6,7 @@ import { callerFromClaims, canAnswerRequest } from '@medora/shared/logic/access'
 import {
   MAX_MESSAGE,
   QUICK_REPLY_KEYS,
+  couldTreat,
   decideNewRequest,
   transition,
   validateRequestInput,
@@ -13,7 +14,7 @@ import {
 } from '@medora/shared/logic/care';
 import { activeHolds, kindForNeed, newReservation, withHolds, type Reservation } from '@medora/shared/logic/reservations';
 import { GROUPS } from '@medora/shared/logic/session';
-import type { CareRequest, HospitalStatus } from '@medora/shared/logic/types';
+import type { CareRequest, HospitalStatus, NeedKey } from '@medora/shared/logic/types';
 
 type Result<T> = { data: T | null; errors?: unknown[] };
 type Record_ = Record<string, unknown>;
@@ -143,6 +144,7 @@ async function submitRequest(client: Client, event: AppSyncResolverEvent<Record_
       auto: decision.auto,
       reason: decision.reason,
       overrideUntil: decision.overrideUntil,
+      ...(decision.status === 'accepted' ? { acceptedAtMs: nowMs, couldTreat: couldTreat(status, input.needKey) } : {}),
       hospitalName: profile.data ? (typeof profile.data.name === 'string' ? profile.data.name : JSON.stringify(profile.data.name)) : undefined,
       patient: JSON.stringify({ name: input.name, phone: input.phone, mode: input.mode, description: input.description }),
       createdAtMs: nowMs,
@@ -190,7 +192,7 @@ async function answerRequest(client: Client, event: AppSyncResolverEvent<Record_
       status: move.status,
       ...(action === 'decline' || action === 'undo' ? { reason: reason ?? (action === 'undo' ? 'undone_by_staff' : undefined) } : {}),
       ...(note ? { note } : {}),
-      ...(action === 'accept' ? { reason: 'accepted_by_staff', auto: false } : {}),
+      ...(action === 'accept' ? { reason: 'accepted_by_staff', auto: false, acceptedAtMs: Date.now(), couldTreat: await couldTreatNow(client, request) } : {}),
     }),
     'save-failed',
   );
@@ -204,6 +206,13 @@ async function answerRequest(client: Client, event: AppSyncResolverEvent<Record_
   await log(client, request.hospitalId, sub, `Unit: ${caller.unit ?? '-'}`, `หน่วย: ${caller.unit ?? '-'}`, `Request ${request.id}: ${action}`, `คำขอ ${request.id}: ${action}`);
   console.info(`care-actions answer ok: action=${action}`);
   return 'ok';
+}
+
+/** Whether the hospital could treat this request's need at the moment staff accept it (success metric). */
+async function couldTreatNow(client: Client, request: RequestRecord): Promise<boolean | undefined> {
+  const row = await client.models.HospitalStatus.get({ id: request.hospitalId });
+  if (!row.data || !['maternity', 'child', 'injury', 'general'].includes(request.needKey)) return undefined;
+  return couldTreat(withHolds(parse<HospitalStatus>(row.data.status), await currentHolds(client, request.hospitalId)), request.needKey as NeedKey);
 }
 
 async function occupy(client: Client, hospitalId: string, kind: 'bed' | 'nicu'): Promise<void> {

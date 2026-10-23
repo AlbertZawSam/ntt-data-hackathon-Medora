@@ -87,6 +87,8 @@ const schema = a.schema({
       doctorName: a.string(),
       /** Bilingual hospital name copied at request time, so patients never read hospital profiles. */
       hospitalName: a.json(),
+      acceptedAtMs: a.integer(),
+      couldTreat: a.boolean(),
       createdAtMs: a.integer().required(),
     })
     .secondaryIndexes((index) => [

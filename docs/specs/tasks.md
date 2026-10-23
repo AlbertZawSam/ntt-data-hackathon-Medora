@@ -134,7 +134,7 @@ Paths follow the npm workspaces layout in `AGENTS.md` section 6: `frontend/`, `b
 
 ## Milestone 8: Metrics and evidence (all)
 
-- [ ] 24. Success metrics **P1**
+- [x] 24. Success metrics **P1**
   - Record the requirement 20 measures; a small summary screen in the hospital app's activity tab for the demo stage.
   - Activity log screen, newest first, for staff and doctors.
   - _Requirements: 20.1 to 20.4, 15.2_

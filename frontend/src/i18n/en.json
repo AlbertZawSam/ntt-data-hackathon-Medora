@@ -329,5 +329,14 @@
   "staff.status.holdConflict": "Your count is lower than the beds already promised to accepted patients. Please check it.",
   "staff.inbox.arrived": "Patient arrived",
   "reminder.remind": "Your unit's status hasn't been confirmed for a while. Please update it or tap \"Yes, all correct\".",
-  "reminder.adminAlert": "This hospital's status hasn't been confirmed for over two hours, so it shows as unclear to patients and doctors. Please ask your units to update it."
+  "reminder.adminAlert": "This hospital's status hasn't been confirmed for over two hours, so it shows as unclear to patients and doctors. Please ask your units to update it.",
+  "metrics.title": "Success measures",
+  "metrics.requests": "Patient requests accepted: {{accepted}} of {{total}}",
+  "metrics.timeToAccept": "Median time to an accepted request: {{sec}} s",
+  "metrics.couldTreat": "Accepting hospital could treat the need: {{pct}}%",
+  "metrics.referrals": "Referrals with a recommendation: {{n}} of {{total}}",
+  "metrics.timeToRecommend": "Median time to recommendation: {{sec}} s",
+  "metrics.insideWindow": "Placement inside the treatment window: {{pct}}%",
+  "metrics.fresh": "Status items updated in the last 30 minutes: {{pct}}%",
+  "metrics.none": "No data yet"
 }

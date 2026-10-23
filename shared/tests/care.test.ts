@@ -99,3 +99,15 @@ describe('toPublicHospital', () => {
     expect(toPublicHospital(evaluate([none], stroke, ORIGIN, { nowMs: NOW_MS })[0], stroke)).toMatchObject({ label: 'notAvailable', skipped: ['beds'] });
   });
 });
+
+import { couldTreat } from '../logic/care';
+
+describe('couldTreat', () => {
+  it('is true when the hospital passes the need and false when it fails', () => {
+    expect(couldTreat(openStatus(), 'child')).toBe(true);
+    expect(couldTreat(openStatus({ beds: 0 }), 'child')).toBe(false);
+    const diverting = openStatus();
+    diverting.depts.ed = 'diverting';
+    expect(couldTreat(diverting, 'general')).toBe(false);
+  });
+});

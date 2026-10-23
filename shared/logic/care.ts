@@ -5,7 +5,7 @@
  * Requirements: 5.4, 5.5, 6.1 to 6.6, 7.1 to 7.4, 18.6 (public users see simple labels only)
  */
 import { pathwayForNeed } from './pathways';
-import { dataAgeMin, freeBeds, freeNicu } from './ranking';
+import { dataAgeMin, failsFor, freeBeds, freeNicu } from './ranking';
 import { ruleAccepts } from './rules';
 import type { CareRequest, CareRequestStatus, HospitalStatus, NeedKey, Pathway, RankedHospital } from './types';
 
@@ -84,6 +84,12 @@ export function decideNewRequest(status: HospitalStatus, need: NeedKey, nowMs: n
     return { status: 'accepted', auto: true, reason: 'accepted_by_rule', overrideUntil: nowMs + UNDO_WINDOW_MS };
   }
   return { status: 'waiting', auto: false };
+}
+
+/** Whether the hospital could treat this need right now (for the success metrics, requirement 20.1). */
+export function couldTreat(status: HospitalStatus, need: NeedKey): boolean {
+  const target = targetForNeed(need);
+  return target === 'visit' ? status.depts.ed === 'open' : failsFor(status, target).length === 0;
 }
 
 export type RequestAction = 'accept' | 'decline' | 'undo' | 'cancel' | 'expire' | 'arrived';
