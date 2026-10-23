@@ -5,6 +5,8 @@ import type { AppSyncIdentityCognito, AppSyncResolverHandler } from 'aws-lambda'
 import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import { checkRegistration, validateHospitalInput } from '@medora/shared/logic/hospital';
+import { publicEntry } from '@medora/shared/logic/publicDirectory';
+import type { HospitalStatus } from '@medora/shared/logic/types';
 
 const cognito = new CognitoIdentityProviderClient();
 
@@ -29,6 +31,10 @@ interface HospitalClient {
     };
     HospitalStatus: {
       create: (input: Record<string, unknown>) => Promise<Result & { data: { id: string } | null }>;
+      delete: (input: { id: string }) => Promise<Result>;
+    };
+    PublicDirectory: {
+      create: (input: { id: string; hospitalId: string; entry: string }) => Promise<Result>;
       delete: (input: { id: string }) => Promise<Result>;
     };
   };
@@ -91,19 +97,20 @@ export const handler: AppSyncResolverHandler<Args, string> = async (event) => {
 
   // The live status starts empty and stale: nothing is open until the units say so. Its id is the
   // hospital id, which is how `update-status` finds it.
+  const initialStatus: HospitalStatus = {
+    beds: 0,
+    nicu: 0,
+    depts: {},
+    equip: {},
+    oncall: {},
+    rules: { minBeds: 1 },
+    conflict: false,
+    updatedAt: new Date(0).toISOString(),
+  };
   const status = await client.models.HospitalStatus.create({
     id: hospitalId,
     hospitalId,
-    status: JSON.stringify({
-      beds: 0,
-      nicu: 0,
-      depts: {},
-      equip: {},
-      oncall: {},
-      rules: { minBeds: 1 },
-      conflict: false,
-      updatedAt: new Date(0).toISOString(),
-    }),
+    status: JSON.stringify(initialStatus),
   });
   if (status.errors?.length || !status.data) {
     console.error(`register-hospital status failed: ${errorTypes(status.errors) || 'no-data'}`);
@@ -112,6 +119,14 @@ export const handler: AppSyncResolverHandler<Args, string> = async (event) => {
     );
     throw new Error('register-failed');
   }
+
+  // The public labels start as "not available" until the units update their status.
+  const listed = await client.models.PublicDirectory.create({
+    id: hospitalId,
+    hospitalId,
+    entry: JSON.stringify(publicEntry({ hospitalId, name: { en: nameEn, th: nameTh }, lat, lng, typicalWaitMin: 30 }, initialStatus)),
+  });
+  if (listed.errors?.length) console.error(`register-hospital directory failed: ${errorTypes(listed.errors)}`);
 
   try {
     await cognito.send(
@@ -123,6 +138,7 @@ export const handler: AppSyncResolverHandler<Args, string> = async (event) => {
     );
   } catch (error) {
     console.error(`register-hospital attribute failed: ${error instanceof Error ? error.name : 'unknown'}`);
+    await client.models.PublicDirectory.delete({ id: hospitalId }).catch(() => undefined);
     await client.models.HospitalStatus.delete({ id: status.data.id }).catch(() =>
       console.error(`register-hospital rollback failed: hospital=${hospitalId}`),
     );

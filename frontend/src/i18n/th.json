@@ -227,6 +227,7 @@
   "staff.status.cathDown": "ใช้งานไม่ได้",
   "staff.status.freeInAbout": "ว่างในอีกประมาณ {{min}} นาที",
   "staff.status.myUnit": "หน่วยของฉัน",
+<<<<<<< HEAD
   "patient.care.finding": "กำลังค้นหาโรงพยาบาลที่ช่วยได้ตอนนี้…",
   "patient.care.findError": "ตอนนี้ตรวจสอบโรงพยาบาลไม่ได้ หากเร่งด่วนโทร 1669",
   "patient.care.nearbyTitle": "โรงพยาบาลใกล้คุณ",
@@ -367,4 +368,32 @@
   "doctor.refer.mapTitle": "แผนที่โรงพยาบาลที่สอบถาม",
   "doctor.transfers.minLeft": "เหลืออีก {{min}} นาที (จำลอง)",
   "doctor.transfers.mapTitle": "ตำแหน่งรถพยาบาล (จำลอง)"
+=======
+  "patient.care.checking": "กำลังตรวจสอบ…",
+  "patient.care.lookingFor": "กำลังหา: {{need}}",
+  "patient.care.youSaid": "คุณบอกว่า: {{summary}}",
+  "patient.care.byAi": "AI แนะนำประเภทการดูแล นี่ไม่ใช่การวินิจฉัยโรค",
+  "patient.care.canHelp": "โรงพยาบาลที่ช่วยได้ตอนนี้",
+  "patient.care.bestMatch": "เหมาะที่สุด",
+  "patient.care.drive": "ขับรถประมาณ {{min}} นาที · {{km}} กม.",
+  "patient.care.skippedTitle": "โรงพยาบาลที่ใกล้กว่าแต่ข้ามไป",
+  "patient.care.loading": "กำลังโหลดโรงพยาบาล…",
+  "patient.care.newSearch": "อธิบายอาการอื่น",
+  "need.maternity": "การดูแลการตั้งครรภ์และการคลอด",
+  "need.child": "การดูแลเด็ก",
+  "need.injury": "การดูแลการบาดเจ็บ",
+  "need.general": "การดูแลทั่วไปที่ห้องฉุกเฉิน",
+  "label.available": "พร้อมรับ",
+  "label.limited": "รับได้จำกัด",
+  "label.unavailable": "ไม่พร้อมรับ",
+  "fresh.updatedAgo": "อัปเดต {{min}} นาทีที่แล้ว",
+  "fresh.outdated": "ข้อมูลอาจไม่เป็นปัจจุบัน",
+  "fresh.never": "ยังไม่มีการอัปเดต",
+  "skip.closed": "แผนกไม่รับผู้ป่วยในขณะนี้",
+  "skip.noSpecialist": "ไม่มีแพทย์เฉพาะทางประจำการในขณะนี้",
+  "skip.full": "ไม่มีเตียงว่างในขณะนี้",
+  "skip.notNow": "ไม่สามารถรับผู้ป่วยประเภทนี้ได้ในขณะนี้",
+  "emergency.nearestDrive": "{{name}} · ขับรถประมาณ {{min}} นาที",
+  "emergency.noNearest": "ขณะนี้ไม่สามารถแสดงห้องฉุกเฉินที่เปิดอยู่ได้ โทร 1669"
+>>>>>>> 8a5d4019346fa10d073fc981a5c9dacec47b8a63
 }

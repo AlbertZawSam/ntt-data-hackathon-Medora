@@ -1,3 +1,4 @@
+import { operationalText } from '@medora/shared/logic/agentText';
 import { PATHWAYS } from '@medora/shared/logic/pathways';
 import { DEMO_REPLY_DELAY_SEC, assessReferral, delayExceedsWindow, demoReplyFor, nextHospitals, statedDelayMin, type ReferralAssessment } from '@medora/shared/logic/referral';
 import { ruleAccepts } from '@medora/shared/logic/rules';
@@ -324,7 +325,7 @@ export class ReferralTools {
 
   /** Store a short operational update, never raw chain-of-thought. */
   async progress(summary: string): Promise<void> {
-    const clean = summary.replace(/\s+/g, ' ').trim().slice(0, 300);
+    const clean = operationalText(summary);
     if (!clean) return;
     await this.store.trace(
       'agent_progress',

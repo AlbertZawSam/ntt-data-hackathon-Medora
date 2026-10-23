@@ -227,6 +227,7 @@
   "staff.status.cathDown": "Down",
   "staff.status.freeInAbout": "Free in about {{min}} min",
   "staff.status.myUnit": "My unit",
+<<<<<<< HEAD
   "patient.care.finding": "Finding hospitals that can help now…",
   "patient.care.findError": "We couldn't check hospitals right now. If it's urgent, call 1669.",
   "patient.care.nearbyTitle": "Hospitals near you",
@@ -367,4 +368,32 @@
   "doctor.refer.mapTitle": "Map of asked hospitals",
   "doctor.transfers.minLeft": "{{min}} min left (simulated)",
   "doctor.transfers.mapTitle": "Ambulance position (simulated)"
+=======
+  "patient.care.checking": "Checking…",
+  "patient.care.lookingFor": "Looking for: {{need}}",
+  "patient.care.youSaid": "You said: {{summary}}",
+  "patient.care.byAi": "Type of care suggested by AI. This is not a diagnosis.",
+  "patient.care.canHelp": "Hospitals that can help now",
+  "patient.care.bestMatch": "Best match",
+  "patient.care.drive": "About {{min}} min by car · {{km}} km",
+  "patient.care.skippedTitle": "Closer hospitals we skipped",
+  "patient.care.loading": "Loading hospitals…",
+  "patient.care.newSearch": "Describe something else",
+  "need.maternity": "pregnancy and birth care",
+  "need.child": "care for a child",
+  "need.injury": "injury care",
+  "need.general": "general emergency care",
+  "label.available": "Available",
+  "label.limited": "Limited",
+  "label.unavailable": "Not available",
+  "fresh.updatedAgo": "Updated {{min}} min ago",
+  "fresh.outdated": "May be outdated",
+  "fresh.never": "Not updated yet",
+  "skip.closed": "the department isn't taking patients right now",
+  "skip.noSpecialist": "no specialist on duty right now",
+  "skip.full": "no free beds right now",
+  "skip.notNow": "can't take this kind of patient right now",
+  "emergency.nearestDrive": "{{name}} · about {{min}} min by car",
+  "emergency.noNearest": "We can't show an open emergency department right now. Call 1669."
+>>>>>>> 8a5d4019346fa10d073fc981a5c9dacec47b8a63
 }

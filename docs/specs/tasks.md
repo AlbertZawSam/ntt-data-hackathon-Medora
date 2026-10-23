@@ -25,8 +25,8 @@ Paths follow the npm workspaces layout in `AGENTS.md` section 6: `frontend/`, `b
   - `frontend/src/i18n/en.json`, `th.json`, `t.ts`, a `Bi` type for stored bilingual text, language toggle.
   - _Requirements: 2.1, 2.2_
 
-- [ ] 3. Shared logic in `shared/logic/` with unit tests in `shared/tests/` **P0**
-  - [ ] 3.1 Types; load `shared/data/hospitals.json`, `pathways.json`, `red_flags.json`.
+- [x] 3. Shared logic in `shared/logic/` with unit tests in `shared/tests/` **P0**
+  - [x] 3.1 Types; load `shared/data/hospitals.json`, `pathways.json`, `red_flags.json`.
   - [x] 3.2 `redFlags.ts` with tests for every English and Thai phrase and the safe examples. (RC2)
   - [x] 3.3 `ranking.ts` (failures, score, evaluate), `timeBudget.ts` (window, too far, ask policy), `rules.ts` (auto-accept, reserved beds not free). (RC1, RC3)
   - _Requirements: 4.1, 5.2, 5.3, 11.2, 12.3, 19.3_
@@ -43,7 +43,8 @@ Paths follow the npm workspaces layout in `AGENTS.md` section 6: `frontend/`, `b
 - [ ] 5. Data models and seed **P0**
   - [ ] 5.1 Models from `design.md` in `backend/amplify/data/resource.ts`: `Hospital`, `StatusItem`, `PublicDirectory`, `Specialist`, `ClinicSlot`, `CareRequest`, `Reservation`, `Message`, `Referral`, `AgentState`, `TraceStep`, `Transfer`, `Activity`, `Device`, `Metric`.
   - [ ] 5.2 Authorization rules: public data and own records for patients; own hospital for staff; settings for admins only.
-  - [ ] 5.3 `scripts/seed.mjs` from `shared/data/hospitals.json` (with item owner units); `scripts/reset-demo.mjs`; `scripts/create-test-users.mjs` for both pools, including unit accounts: Rama Nine ward nurse (`ward`) and radiology technologist (`radiology`); Chao Phraya NICU nurse (`nicu`) and emergency charge nurse (`er`).
+  - [x] 5.3 `scripts/seed.mjs` from `shared/data/hospitals.json` (with item owner units); `scripts/reset-demo.mjs`; `scripts/create-test-users.mjs` for both pools, including unit accounts: Rama Nine ward nurse (`ward`) and radiology technologist (`radiology`); Chao Phraya NICU nurse (`nicu`) and emergency charge nurse (`er`).
+    _Done as `scripts/seed.ts` (`npm run seed`): 8 synthetic hospitals from `shared/data/hospitals.json` into your own sandbox; running it again resets them (so no separate reset script). Staff accounts: `scripts/create-test-users.mjs <hospital id>`._
   - _Requirements: 18.3, 15.1, 17.1_
 
 - [ ] 6. Security baseline **P1** (trust)
@@ -77,11 +78,16 @@ Paths follow the npm workspaces layout in `AGENTS.md` section 6: `frontend/`, `b
   - GPS with permission handling, place search (built-in Bangkok places plus Amazon Location), pick on map, Call 1669.
   - _Requirements: 3.1 to 3.6_
 
-- [ ] 12. Two-layer emergency check **P0** (RC2)
+- [x] 12. Two-layer emergency check **P0** (RC2)
   - Layer 1 on the phone (offline) and layer 2 in the `safety-gate` Lambda; 1669 screen with the nearest open emergency department; logged.
   - _Requirements: 4.1 to 4.5_
 
+<<<<<<< HEAD
 - [x] 13. Find care **P0** (RC2)
+=======
+- [-] 13. Find care **P0** (RC2)
+  - _Done: `patient-understand` Lambda (safety gate layer 2, then Nova Lite with the guardrail, keyword fallback), `PublicDirectory` labels kept current by `update-status`, ranked results with freshness and "skipped because", disclaimer. Left: the map (5.4)._
+>>>>>>> 8a5d4019346fa10d073fc981a5c9dacec47b8a63
   - `patient-understand` Lambda (Nova Lite, JSON output, keyword fallback); hospitals that can help now with simple labels; map; "skipped because" for closer hospitals; disclaimer.
   - _Requirements: 5.1 to 5.7_
 
@@ -105,11 +111,13 @@ Paths follow the npm workspaces layout in `AGENTS.md` section 6: `frontend/`, `b
 
 ## Milestone 6: Doctor referrals with the AI agent (RC3)
 
-- [ ] 18. Enable Bedrock **P0**
+- [x] 18. Enable Bedrock **P0**
+  - _Done: one test call each to Nova Lite, Nova Pro and Titan V2 in us-east-1; `MODEL_ID_FAST`, `MODEL_ID_STRONG`, `GUARDRAIL_ID` set in `backend.ts`; Bedrock Guardrail `MedoraGuardrail` (no diagnosis or treatment advice on outputs, prompt-attack filter, phone and email masking) defined in code. `EMBEDDING_MODEL_ID` waits for the knowledge base (task 23)._
   - In us-east-1, confirm access to `amazon.nova-pro-v1:0`, `amazon.nova-lite-v1:0` and `amazon.titan-embed-text-v2:0` with one `converse` test call each (no Marketplace needed). Set `MODEL_ID_STRONG`, `MODEL_ID_FAST`, `EMBEDDING_MODEL_ID`; create a Guardrail (no diagnosis or treatment advice, personal data masked) in `GUARDRAIL_ID`.
   - _Requirements: 12.8, 18.6, 22.1, 22.2_
 
-- [ ] 19. Agent and tools, first version **P0**
+- [-] 19. Agent and tools, first version **P0**
+  - _Done: `agent-runner` on Nova (greedy decoding, pathway enum), guardrail on the case input and on every update and reason it stores, `<thinking>` never stored; verified with a heart-attack referral (stemi, 2 hospitals asked in parallel, accepted by rule, recommended in 58 s). Left: return early from `ask_hospitals` once every request has replied, and a Thai referral run._
   - `agent-step` Lambda in `backend/amplify/functions/` (Nova Pro; Nova Lite while developing; the existing `agent-runner` is the starting point) with the Converse tool-use loop, greedy decoding on tool-calling turns, input validation that returns correctable errors, and tools `assess_case`, `rank_hospitals`, `ask_hospitals`, `recommend`, `report_no_placement`; in this first version the Lambda creates requests and waits for replies itself. Trace steps, timing, rule-based backup.
   - Replies in the doctor's language; at most 8 turns, a token cap per call and a daily run limit per user.
   - _Requirements: 12.1 to 12.7, 12.9, 12.10, 2.3, 16.2, 22.4_

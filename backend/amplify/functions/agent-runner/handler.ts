@@ -1,6 +1,6 @@
 import { getAmplifyDataClientConfig } from '@aws-amplify/backend/function/runtime';
 import { BedrockAgentRuntimeClient, RetrieveCommand } from '@aws-sdk/client-bedrock-agent-runtime';
-import { BedrockRuntimeClient, ConverseCommand, type Message, type Tool } from '@aws-sdk/client-bedrock-runtime';
+import { ApplyGuardrailCommand, BedrockRuntimeClient, ConverseCommand, type Message, type Tool } from '@aws-sdk/client-bedrock-runtime';
 import { CalculateRouteMatrixCommand, LocationClient } from '@aws-sdk/client-location';
 import { activeHolds, withHolds, type Reservation } from '@medora/shared/logic/reservations';
 import { classifyReferralPathway } from '@medora/shared/logic/referral';
@@ -8,6 +8,7 @@ import type { Bi, CareRequest, HospitalStatus } from '@medora/shared/logic/types
 import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import { AGENT_SYSTEM_PROMPT, caseMessage } from './prompt';
+import { operationalText } from '@medora/shared/logic/agentText';
 import { ReferralTools, type AgentHospital, type ReferralRun, type ReferralStore } from './tools';
 
 const MAX_MODEL_TURNS = 8;
@@ -88,24 +89,40 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+<<<<<<< HEAD
 /** AWSJSON arrives from AppSync as a string; accept an already-parsed object too. */
 function parsed(value: unknown): unknown {
   if (typeof value !== 'string') return value;
   try {
     return JSON.parse(value) as unknown;
+=======
+/** AWSJSON fields arrive from AppSync as JSON text; accept an already-parsed object too. */
+function fromJson(value: unknown): unknown {
+  if (typeof value !== 'string') return value;
+  try {
+    return JSON.parse(value);
+>>>>>>> 8a5d4019346fa10d073fc981a5c9dacec47b8a63
   } catch {
     return null;
   }
 }
 
 function toBi(raw: unknown): Bi | null {
+<<<<<<< HEAD
   const value = parsed(raw);
+=======
+  const value = fromJson(raw);
+>>>>>>> 8a5d4019346fa10d073fc981a5c9dacec47b8a63
   if (!isRecord(value) || typeof value.en !== 'string' || typeof value.th !== 'string') return null;
   return { en: value.en, th: value.th };
 }
 
 function toStatus(raw: unknown): HospitalStatus | null {
+<<<<<<< HEAD
   const value = parsed(raw);
+=======
+  const value = fromJson(raw);
+>>>>>>> 8a5d4019346fa10d073fc981a5c9dacec47b8a63
   if (!isRecord(value)) return null;
   const { beds, nicu, depts, equip, oncall, rules, conflict, updatedAt } = value;
   if (
@@ -120,7 +137,9 @@ function toStatus(raw: unknown): HospitalStatus | null {
   ) {
     return null;
   }
+  // Optional items (reservations, ICU, cath lab busy time, notes) are kept: reserved beds count as not free.
   return {
+    ...(value as Partial<HospitalStatus>),
     beds,
     nicu,
     depts: depts as HospitalStatus['depts'],
@@ -132,9 +151,36 @@ function toStatus(raw: unknown): HospitalStatus | null {
   };
 }
 
-function dataError(errors: unknown[] | undefined, operation: string): void {
-  if (errors?.length) throw new Error(`${operation} failed: ${JSON.stringify(errors)}`);
+/**
+ * AppSync AWSJSON fields take a JSON string; the Amplify data client does not stringify objects
+ * (see register-hospital). Returns a copy with the named fields stringified.
+ */
+function withJsonStrings<T extends object>(input: T, fields: string[]): T {
+  const copy = { ...input } as Record<string, unknown>;
+  for (const field of fields) {
+    if (copy[field] !== undefined && copy[field] !== null && typeof copy[field] !== 'string') copy[field] = JSON.stringify(copy[field]);
+  }
+  return copy as T;
 }
+
+/**
+ * Throws with the operation and GraphQL error types only: full error messages can echo the input
+ * (patient text, notes), which must never reach the logs (AGENTS.md 4b.5).
+ */
+function dataError(errors: unknown[] | undefined, operation: string): void {
+  if (!errors?.length) return;
+  const types = errors.map((e) => (typeof (e as { errorType?: unknown })?.errorType === 'string' ? (e as { errorType: string }).errorType : 'unknown'));
+  throw new DataError(`${operation} failed: ${types.join(',')}`);
+}
+
+/** Our own data failures: their messages hold only the operation and error types, so they may be logged. */
+class DataError extends Error {
+  name = 'DataError';
+}
+
+/** Error names only, plus our own DataError messages; other messages (SDK, JSON.parse) can echo input. */
+const errorSummary = (error: unknown): string =>
+  error instanceof DataError ? `${error.name}: ${error.message}` : error instanceof Error ? error.name : 'unknown';
 
 async function dataClient(): Promise<DataClient> {
   const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(process.env as never);
@@ -246,7 +292,11 @@ class AmplifyReferralStore implements ReferralStore {
   }
 
   async createRequest(request: Omit<CareRequest, 'id'>): Promise<CareRequest> {
+<<<<<<< HEAD
     const result = await this.client.models.CareRequest.create(toWire(request as unknown as Record<string, unknown>) as unknown as Omit<CareRequestRecord, 'id'>);
+=======
+    const result = await this.client.models.CareRequest.create(withJsonStrings(request, ['patient', 'slot']) as Omit<CareRequestRecord, 'id'>);
+>>>>>>> 8a5d4019346fa10d073fc981a5c9dacec47b8a63
     dataError(result.errors, 'create referral request');
     if (!result.data) throw new Error('Referral request was not created.');
     return fromWire(result.data, ['patient', 'slot', 'hospitalName']) as unknown as CareRequest;
@@ -258,7 +308,11 @@ class AmplifyReferralStore implements ReferralStore {
   }
 
   async updateReferral(id: string, changes: Record<string, unknown>): Promise<void> {
+<<<<<<< HEAD
     const result = await this.client.models.Referral.update({ id, ...toWire(changes) });
+=======
+    const result = await this.client.models.Referral.update({ id, ...withJsonStrings(changes, ['chosenName', 'why', 'rows']) });
+>>>>>>> 8a5d4019346fa10d073fc981a5c9dacec47b8a63
     dataError(result.errors, 'update referral');
   }
 
@@ -269,7 +323,12 @@ class AmplifyReferralStore implements ReferralStore {
       hospitalId: this.referral.fromHospitalId,
       n: this.traceNumber,
       kind,
+<<<<<<< HEAD
       ...toWire({ title, detail }),
+=======
+      title: JSON.stringify(title),
+      detail: JSON.stringify(detail),
+>>>>>>> 8a5d4019346fa10d073fc981a5c9dacec47b8a63
     } as never);
     dataError(result.errors, 'write trace step');
   }
@@ -279,7 +338,12 @@ class AmplifyReferralStore implements ReferralStore {
       hospitalId: this.referral.fromHospitalId,
       ownerId: this.referral.ownerId,
       at: new Date(this.now()).toISOString(),
+<<<<<<< HEAD
       ...toWire({ actor: { en: 'Referral agent', th: 'เอเจนต์ส่งต่อ' }, text }),
+=======
+      actor: JSON.stringify({ en: 'Referral agent', th: 'เอเจนต์ส่งต่อ' }),
+      text: JSON.stringify(text),
+>>>>>>> 8a5d4019346fa10d073fc981a5c9dacec47b8a63
     } as never);
     dataError(result.errors, 'write activity');
   }
@@ -315,8 +379,20 @@ const TOOL_CONFIG: Tool[] = [
   {
     toolSpec: {
       name: 'assess_case',
-      description: 'Assess one named referral pathway against current hospitals and time budget. Call first.',
-      inputSchema: { json: { type: 'object', required: ['pathway'], properties: { pathway: { type: 'string' }, signs: { type: 'array', items: { type: 'string' } } } } },
+      description:
+        'Call first. Picks the care pathway the referring doctor describes and checks which hospitals can provide it in time. ' +
+        'Pathways: stroke (stroke care: neurology, CT); stemi (heart attack care: cardiology, cath lab); preterm (preterm labour: obstetrics, NICU); ' +
+        'peds (child admission); maternity (pregnancy or birth); injury (injury or trauma); general (anything else).',
+      inputSchema: {
+        json: {
+          type: 'object',
+          required: ['pathway'],
+          properties: {
+            pathway: { type: 'string', enum: ['stroke', 'stemi', 'preterm', 'peds', 'maternity', 'injury', 'general'] },
+            signs: { type: 'array', items: { type: 'string' } },
+          },
+        },
+      },
     },
   },
   {
@@ -357,7 +433,8 @@ const TOOL_CONFIG: Tool[] = [
 ];
 
 function modelId(): string | undefined {
-  if (!process.env.GUARDRAIL_ID) return undefined;
+  // No guardrails, no model: the run takes the rule-based backup path.
+  if (!process.env.GUARDRAIL_ID || !process.env.AGENT_GUARDRAIL_ID) return undefined;
   return process.env.AWS_BRANCH === 'demo' ? process.env.MODEL_ID_STRONG ?? process.env.MODEL_ID_FAST : process.env.MODEL_ID_FAST;
 }
 
@@ -369,48 +446,116 @@ async function hasDailyCapacity(client: DataClient, referral: ReferralRun, nowMs
   return result.data.filter((entry) => entry.startedAtMs >= startOfDay.getTime()).length <= MAX_DAILY_RUNS;
 }
 
+/**
+ * Checks text with the Medora guardrail. The agent applies it to everything that enters or leaves
+ * the model loop and reaches people: the case description (input: prompt attacks) and every update
+ * and reason that is saved or shown (output: no diagnosis or treatment advice). It is not attached
+ * to the Converse calls themselves, because Nova's private <thinking> names conditions while it
+ * picks a pathway, and the "no diagnosis" rule would stop every run before its first tool call;
+ * that reasoning is never stored or shown. Returns false when the guardrail intervenes.
+ */
+async function passesGuardrail(
+  bedrock: BedrockRuntimeClient,
+  text: string,
+  source: 'INPUT' | 'OUTPUT',
+  guardrailId: string | undefined = process.env.GUARDRAIL_ID,
+): Promise<boolean> {
+  if (!text.trim()) return true;
+  const response = await bedrock.send(
+    new ApplyGuardrailCommand({
+      guardrailIdentifier: guardrailId,
+      guardrailVersion: process.env.GUARDRAIL_VERSION ?? 'DRAFT',
+      source,
+      content: [{ text: { text } }],
+    }),
+  );
+  return response.action !== 'GUARDRAIL_INTERVENED';
+}
+
+const REASON_TOOLS = new Set(['recommend', 'report_no_placement']);
+const REPLY_TOOLS = new Set(['ask_hospitals', 'check_replies']);
+
+/**
+ * Staff notes are untrusted text that reaches the model through tool results. Each one is screened
+ * with the agent guardrail (prompt attacks) first; a blocked note is withheld, never passed on.
+ */
+async function screenStaffNotes(bedrock: BedrockRuntimeClient, result: Record<string, unknown>): Promise<Record<string, unknown>> {
+  if (!Array.isArray(result.replies)) return result;
+  const replies = await Promise.all(
+    result.replies.map(async (reply: unknown) => {
+      const row = reply as Record<string, unknown>;
+      if (typeof row.staff_note !== 'string') return row;
+      const ok = await passesGuardrail(bedrock, row.staff_note, 'INPUT', process.env.AGENT_GUARDRAIL_ID);
+      return ok ? row : { ...row, staff_note: '[note withheld]' };
+    }),
+  );
+  return { ...result, replies };
+}
+
 async function runModel(tools: ReferralTools, referral: ReferralRun): Promise<boolean> {
   const selectedModel = modelId();
   if (!selectedModel) return false;
   const bedrock = new BedrockRuntimeClient({});
-  const messages: Message[] = [{ role: 'user', content: [{ text: caseMessage(referral.text, referral.onsetMin) }] }];
+  const caseText = caseMessage(referral.text, referral.onsetMin);
+  if (!(await passesGuardrail(bedrock, caseText, 'INPUT'))) {
+    console.warn('agent-runner: guardrail stopped the case input');
+    return false;
+  }
+  // The case is marked as guard content: on every call the agent guardrail screens this untrusted
+  // text, rather than our own prompt and tool results (which its prompt-attack filter misreads).
+  const messages: Message[] = [{ role: 'user', content: [{ guardContent: { text: { text: caseText } } }] }];
   const started = Date.now();
-  let recommendationMade = false;
+  let finished = false;
 
-  for (let turn = 0; turn < MAX_MODEL_TURNS && Date.now() - started < MAX_RUN_MS; turn += 1) {
+  for (let turn = 0; turn < MAX_MODEL_TURNS && Date.now() - started < MAX_RUN_MS && !finished; turn += 1) {
     const response = await bedrock.send(
       new ConverseCommand({
         modelId: selectedModel,
         system: [{ text: AGENT_SYSTEM_PROMPT }],
         messages,
-        inferenceConfig: { maxTokens: 1_200, temperature: 0.2 },
+        // Greedy decoding on tool-calling turns (AGENTS.md 4a.5): Nova picks tools more reliably.
+        inferenceConfig: { maxTokens: 1_200, temperature: 0 },
+        additionalModelRequestFields: { inferenceConfig: { topK: 1 } },
         toolConfig: { tools: TOOL_CONFIG },
-        guardrailConfig: process.env.GUARDRAIL_ID
-          ? { guardrailIdentifier: process.env.GUARDRAIL_ID, guardrailVersion: process.env.GUARDRAIL_VERSION ?? 'DRAFT', trace: 'disabled' }
-          : undefined,
+        // A guardrail on every model call (AGENTS.md 4b.7): prompt attacks in the case, tool results or notes.
+        guardrailConfig: { guardrailIdentifier: process.env.AGENT_GUARDRAIL_ID, guardrailVersion: 'DRAFT', trace: 'disabled' },
       }),
     );
+    if (response.stopReason === 'guardrail_intervened') {
+      console.warn('agent-runner: agent guardrail intervened');
+      break;
+    }
     const message = response.output?.message;
     if (!message) break;
     messages.push(message);
 
     const results = [] as NonNullable<Message['content']>;
     for (const block of message.content ?? []) {
-      if ('text' in block && typeof block.text === 'string' && block.text.trim()) {
-        // Keep only a terse operational update; do not retain raw model reasoning.
-        await tools.progress(block.text);
+      if ('text' in block && typeof block.text === 'string') {
+        // Only the short operational update is kept, and only if the guardrail lets it through.
+        const update = operationalText(block.text);
+        if (update && (await passesGuardrail(bedrock, update, 'OUTPUT'))) await tools.progress(update);
       }
       if (!('toolUse' in block) || !block.toolUse) continue;
       const { toolUseId, name, input } = block.toolUse;
       if (!toolUseId || !name) continue;
-      const result = await tools.execute(name, input);
-      if (name === 'recommend' && result.ok === true) recommendationMade = true;
+      let result: Record<string, unknown>;
+      const reasons = REASON_TOOLS.has(name) && input && typeof input === 'object' ? (input as Record<string, unknown>) : null;
+      const reasonText = reasons ? [reasons.reason_en, reasons.reason_th].filter((r) => typeof r === 'string').join('\n') : '';
+      if (reasons && !(await passesGuardrail(bedrock, reasonText, 'OUTPUT'))) {
+        // A correctable error: the model rewrites its reason without diagnosis or treatment advice.
+        result = { ok: false, error: 'Reasons may describe only hospitals, replies, drive times and timing. Do not name conditions or give medical advice.' };
+      } else {
+        result = await tools.execute(name, input);
+        if (REPLY_TOOLS.has(name)) result = await screenStaffNotes(bedrock, result);
+      }
+      if (REASON_TOOLS.has(name) && result.ok === true) finished = true;
       results.push({ toolResult: { toolUseId, content: [{ json: result as never }], status: result.ok ? 'success' : 'error' } });
     }
     if (results.length === 0) break;
     messages.push({ role: 'user', content: results });
   }
-  return recommendationMade;
+  return finished;
 }
 
 async function markBackup(tools: ReferralTools): Promise<void> {
@@ -449,14 +594,16 @@ export const handler = async (event: StartReferralEvent): Promise<void> => {
       await tools.execute('assess_case', { pathway: classifyReferralPathway(referral.text) });
       await tools.ruleBasedBackup();
     }
-  } catch {
+  } catch (error) {
+    console.error(`agent-runner: model path failed (${errorSummary(error)})`);
     // Fail closed into deterministic rules. If data itself is unavailable this write can also fail,
     // but the referral remains running rather than inventing an outcome.
     try {
       await store.trace('backup', { en: 'Rule-based backup', th: 'สำรองด้วยกฎ' }, { en: 'The model path failed; fixed rules are completing the referral.', th: 'เส้นทางโมเดลล้มเหลว กฎคงที่กำลังดำเนินการส่งต่อ' });
       await tools.execute('assess_case', { pathway: classifyReferralPathway(referral.text) });
       await tools.ruleBasedBackup();
-    } catch {
+    } catch (error) {
+      console.error(`agent-runner: rule-based backup failed (${errorSummary(error)})`);
       await markBackup(tools).catch(() => undefined);
     }
   }
