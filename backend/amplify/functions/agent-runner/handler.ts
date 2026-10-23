@@ -2,6 +2,8 @@ import { getAmplifyDataClientConfig } from '@aws-amplify/backend/function/runtim
 import { BedrockAgentRuntimeClient, RetrieveCommand } from '@aws-sdk/client-bedrock-agent-runtime';
 import { ApplyGuardrailCommand, BedrockRuntimeClient, ConverseCommand, type Message, type Tool } from '@aws-sdk/client-bedrock-runtime';
 import { CalculateRouteMatrixCommand, LocationClient } from '@aws-sdk/client-location';
+import { createHash } from 'node:crypto';
+import { DEMO_HOSPITALS } from '@medora/shared/logic/demoHospitals';
 import { classifyReferralPathway } from '@medora/shared/logic/referral';
 import type { Bi, CareRequest, HospitalStatus } from '@medora/shared/logic/types';
 import { Amplify } from 'aws-amplify';
@@ -183,6 +185,9 @@ function referralRun(record: ReferralRecord): ReferralRun {
   };
 }
 
+/** Demo hospital ids (as `scripts/seed.ts` makes them) to their keys, for demo replies only. */
+const DEMO_KEYS = new Map(DEMO_HOSPITALS.map((hospital) => [`H-${createHash('sha256').update(`medora-demo:${hospital.key}`).digest('hex').slice(0, 16)}`, hospital.key]));
+
 class AmplifyReferralStore implements ReferralStore {
   private traceNumber = 0;
   private hospitalsCache: AgentHospital[] | null = null;
@@ -193,6 +198,10 @@ class AmplifyReferralStore implements ReferralStore {
     private readonly client: DataClient,
     private readonly referral: ReferralRun,
   ) {}
+
+  demoHospitalKey(hospitalId: string): string | null {
+    return process.env.DEMO_REPLIES === 'true' ? (DEMO_KEYS.get(hospitalId) ?? null) : null;
+  }
 
   now(): number {
     return Date.now();

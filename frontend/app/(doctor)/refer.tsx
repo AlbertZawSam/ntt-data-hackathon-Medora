@@ -304,7 +304,7 @@ function DecisionLine({ row }: { row: DecisionRow }): React.JSX.Element {
       {row.canHelp ? (
         <Text style={[styles.muted, { color: replyTone }]}>{t(`doctor.refer.reply.${row.reply}` as StringKey)}</Text>
       ) : (
-        <Text style={[styles.muted, { color: theme.textMuted }]}>{row.whyNot.map((kind) => t(`doctor.refer.whyNot.${kind}` as StringKey)).join(' · ')}</Text>
+        <Text style={[styles.muted, { color: theme.textMuted }]}>{row.whyNot.slice(0, 2).map((kind) => t(`doctor.refer.whyNot.${kind}` as StringKey)).join(' · ')}</Text>
       )}
       {row.delayMin !== undefined ? <Text style={[styles.muted, { color: theme.warning }]}>{t('doctor.refer.delay', { min: row.delayMin })}</Text> : null}
       {row.stale ? <Text style={[styles.muted, { color: theme.warning }]}>{t('doctor.refer.stale')}</Text> : null}

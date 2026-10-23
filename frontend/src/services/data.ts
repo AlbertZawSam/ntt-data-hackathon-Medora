@@ -156,7 +156,8 @@ class LiveDataStore {
 
     this.observe('careRequests', client.models.CareRequest, ownOrHospital);
     this.observe('messages', client.models.Message, session.hospitalId ? { or: [ownerFilter, hospitalFilter] } : ownerFilter);
-    this.observe('referrals', client.models.Referral, ownOrHospital);
+    // Referral has no hospitalId field; a filter on one makes AppSync reject the whole subscription.
+    this.observe('referrals', client.models.Referral, session.hospitalId ? { or: [ownerFilter, { fromHospitalId: { eq: session.hospitalId } }] } : ownerFilter);
     this.observe('transfers', client.models.Transfer, ownerFilter);
     this.observe('activities', client.models.Activity, session.hospitalId ? { or: [ownerFilter, hospitalFilter] } : ownerFilter);
     this.observe('devices', client.models.Device, { userId: { eq: session.userId } });
