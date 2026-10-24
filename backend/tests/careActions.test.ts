@@ -159,3 +159,39 @@ describe('quick replies', () => {
     await expect(call(staffEvent('sendMessage', { requestId: 'v1', key: 'sendEcg' }, er))).rejects.toThrow('bad-message');
   });
 });
+
+describe('department requests', () => {
+  const withCardio = () =>
+    JSON.stringify({ beds: 5, nicu: 1, depts: { ed: 'open', cardio: 'open', ortho: 'diverting' }, equip: {}, oncall: {}, rules: { minBeds: 1 }, conflict: false, updatedAt: new Date().toISOString() });
+  const staffOf = (unit: string) => ({ groups: ['hospital_staff'], hospitalId: 'H1', unit });
+  beforeEach(() => {
+    fake.tables('HospitalStatus')[0].status = withCardio();
+  });
+
+  it('stores the department, and only that department can answer it', async () => {
+    const id = await call(patientEvent('submitRequest', { ...req, department: 'cardiology' }));
+    expect(fake.tables('CareRequest').find((r) => r.id === id)).toMatchObject({ department: 'cardiology', status: 'waiting' });
+    await expect(call(staffEvent('answerRequest', { requestId: id, action: 'accept' }, staffOf('er')))).rejects.toThrow('not-staff');
+    await expect(call(staffEvent('answerRequest', { requestId: id, action: 'accept' }, staffOf('surgery')))).rejects.toThrow('not-staff');
+    await call(staffEvent('answerRequest', { requestId: id, action: 'accept' }, staffOf('cardiology')));
+    expect(fake.tables('CareRequest').find((r) => r.id === id)?.status).toBe('accepted');
+  });
+
+  it("refuses messages on a department's request from other units", async () => {
+    const id = await call(patientEvent('submitRequest', { ...req, department: 'cardiology' }));
+    await expect(call(staffEvent('sendMessage', { requestId: id, key: 'goToEmergency' }, staffOf('er')))).rejects.toThrow('not-staff');
+    await call(staffEvent('sendMessage', { requestId: id, key: 'goToEmergency' }, staffOf('cardiology')));
+  });
+
+  it('refuses a department the hospital has closed or does not have', async () => {
+    await expect(call(patientEvent('submitRequest', { ...req, department: 'surgery' }))).rejects.toThrow('bad-department');
+    await expect(call(patientEvent('submitRequest', { ...req, department: 'obstetrics' }))).rejects.toThrow('bad-department');
+    await expect(call(patientEvent('submitRequest', { ...req, department: 'ward' }))).rejects.toThrow('bad-department');
+  });
+
+  it('keeps a request without a department with the other units, not the departments', async () => {
+    const id = await call(patientEvent('submitRequest', req));
+    await expect(call(staffEvent('answerRequest', { requestId: id, action: 'accept' }, staffOf('cardiology')))).rejects.toThrow('not-staff');
+    await call(staffEvent('answerRequest', { requestId: id, action: 'accept' }, staffOf('er')));
+  });
+});

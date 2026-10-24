@@ -102,6 +102,8 @@ const schema = a.schema({
       patient: a.json().required(),
       fromHospitalId: a.string(),
       referralId: a.string(),
+      /** Cardiology, surgery or obstetrics: only that department's staff may answer it (care-actions); hospital staff can still read it. */
+      department: a.string(),
       slot: a.json(),
       doctorName: a.string(),
       /** Bilingual hospital name copied at request time, so patients never read hospital profiles. */
@@ -319,6 +321,7 @@ const schema = a.schema({
       name: a.string(),
       phone: a.string(),
       description: a.string().required(),
+      department: a.string(),
     })
     .returns(a.string())
     .authorization((allow) => [allow.group('patients')])

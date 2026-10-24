@@ -5,6 +5,7 @@
 import React from 'react';
 import { StyleSheet, Switch, Text, View } from 'react-native';
 import { dataAgeMin, isStale } from '@medora/shared/logic/ranking';
+import { isDepartment } from '@medora/shared/logic/departments';
 import { MAX_NOTE, changeFor, controlsForUnit, type UnitControl } from '@medora/shared/logic/statusUpdate';
 import { activeHolds, contradictsHolds, withHolds } from '@medora/shared/logic/reservations';
 import type { HospitalStatus } from '@medora/shared/logic/types';
@@ -100,7 +101,12 @@ export default function StaffStatusScreen(): React.JSX.Element {
         </Card>
       ) : controls.length === 0 ? (
         <Card padding="lg">
-          <EmptyState icon="lock-closed-outline" title={t('staff.status.noUnit')} />
+          {/* Department staff own no status items: they answer patient requests in the Inbox. */}
+          {isDepartment(unit) ? (
+            <EmptyState icon="file-tray-full-outline" title={t('staff.status.departmentUnit')} />
+          ) : (
+            <EmptyState icon="lock-closed-outline" title={t('staff.status.noUnit')} />
+          )}
         </Card>
       ) : (
         <>

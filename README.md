@@ -98,6 +98,8 @@ npm run web
 
 `test-logins` opens a local page with every account: copy buttons for the email and password, and a live 6-digit code for the authenticator step, so no phone is needed. In the app, click **"Hospital staff? Sign in here"**. Use another hospital id from `npm run seed` for a second hospital. The page and its data stay in `scripts/.local/` (ignored by Git): never commit or share them. After `npm run sandbox:delete`, run it again to make new accounts.
 
+**Department staff only:** `npm run department-logins` creates exactly six accounts, one per department at the two demo hospitals (`cardiology.rama9@medora.demo`, `surgery.chaophraya@medora.demo` and so on), on a page grouped by hospital. A patient request sent to a department reaches only that account.
+
 Doctors who sign up in the patient app wait for an admin's approval, which no screen offers yet; use the invited doctor account from `test-logins` instead.
 
 ### The real map (web) and privacy

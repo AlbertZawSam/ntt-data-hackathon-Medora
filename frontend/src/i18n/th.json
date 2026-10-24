@@ -526,5 +526,19 @@
   "details.yourNeed": "ตรงกับที่คุณต้องการ",
   "details.onDutyTitle": "แพทย์อยู่เวรตอนนี้",
   "details.clinicTitle": "จองนัดแพทย์เฉพาะทาง",
-  "details.waitShort": "รอประมาณ {{min}} นาที"
+  "details.waitShort": "รอประมาณ {{min}} นาที",
+  "patient.care.departmentLabel": "แผนกไหน",
+  "department.cardiology": "หัวใจ",
+  "department.surgery": "ศัลยกรรม (บาดเจ็บ กระดูก)",
+  "department.obstetrics": "สูติกรรม (ตั้งครรภ์ คลอด)",
+  "department.general": "ทั่วไป / ฉุกเฉิน",
+  "unit.name.cardiology": "แผนกหัวใจ",
+  "unit.name.surgery": "แผนกศัลยกรรม",
+  "unit.name.obstetrics": "แผนกสูติกรรม",
+  "staff.inbox.department": "ถึง{{department}}",
+  "staff.status.departmentUnit": "แผนกของคุณตอบคำขอของผู้ป่วยในกล่องข้อความ",
+  "department.short.cardiology": "หัวใจ",
+  "department.short.surgery": "ศัลยกรรม",
+  "department.short.obstetrics": "สูติกรรม",
+  "department.short.general": "ทั่วไป"
 }

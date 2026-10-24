@@ -9,6 +9,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { ARRIVAL_MODES, type ArrivalMode, type PublicHospital } from '@medora/shared/logic/care';
 import type { Bi, NeedKey } from '@medora/shared/logic/types';
 import { pick, type StringKey } from '../../src/i18n/t';
+import { suggestedDepartment, type Department } from '@medora/shared/logic/departments';
 import { HospitalDetailsView } from '../../src/components/HospitalDetailsView';
 import { LocationChip } from '../../src/components/LocationChip';
 import { MapView, type MapMarker } from '../../src/components/MapView';
@@ -48,6 +49,7 @@ const LABEL_LOOK: Record<PublicHospital['label'], { tone: Tone; icon: IconName }
 };
 
 const MODE_ICON: Record<ArrivalMode, IconName> = { car: 'car', taxi: 'car-sport', ambulance: 'medkit', walking: 'walk' };
+const DEPARTMENT_ICON: Record<Department, IconName> = { cardiology: 'heart', surgery: 'bandage', obstetrics: 'woman' };
 const EXAMPLES = ['patient.care.example1', 'patient.care.example2', 'patient.care.example3'] as const;
 
 export default function PatientCareScreen(): React.JSX.Element {
@@ -66,6 +68,7 @@ export default function PatientCareScreen(): React.JSX.Element {
   const [hospitals, setHospitals] = React.useState<PublicHospital[]>([]);
   const [selected, setSelected] = React.useState<PublicHospital | null>(null);
   const [detailsFor, setDetailsFor] = React.useState<string | null>(null);
+  const [department, setDepartment] = React.useState<Department | undefined>(undefined);
   const [mode, setMode] = React.useState<ArrivalMode>('car');
   const [name, setName] = React.useState('');
   const [phone, setPhone] = React.useState('');
@@ -109,6 +112,7 @@ export default function PatientCareScreen(): React.JSX.Element {
         description: text.trim(),
         ...(name.trim() ? { name: name.trim() } : {}),
         ...(phone.trim() ? { phone: phone.trim() } : {}),
+        ...(department ? { department } : {}),
       });
       setSent(true);
       setSelected(null);
@@ -213,6 +217,9 @@ export default function PatientCareScreen(): React.JSX.Element {
                   onPress={() => {
                     setSelected(h);
                     setSent(false);
+                    // Pre-select the department that fits the need when this hospital has it open.
+                    const suggested = suggestedDepartment(need);
+                    setDepartment(suggested && h.details?.departments.includes(suggested) ? suggested : undefined);
                   }}
                 />
               )}
@@ -222,6 +229,27 @@ export default function PatientCareScreen(): React.JSX.Element {
                     <Text accessibilityRole="header" style={[styles.formTitle, { color: theme.text }]}>
                       {t('patient.care.requestTitle', { hospital: pick(h.name, lang) })}
                     </Text>
+                    {h.details && h.details.departments.length > 0 ? (
+                      <>
+                        <Text style={[styles.meta, { color: theme.textMuted }]}>{t('patient.care.departmentLabel')}</Text>
+                        {/* Two per row so the full department names fit on a phone. */}
+                        <View accessibilityRole="radiogroup" accessibilityLabel={t('patient.care.departmentLabel')} style={styles.deptGrid}>
+                          {[
+                            ...h.details.departments.map((d) => ({ value: d as Department | 'general', label: t(`department.short.${d}` as StringKey), icon: DEPARTMENT_ICON[d] })),
+                            { value: 'general' as const, label: t('department.short.general'), icon: 'medkit' as IconName },
+                          ].map((option) => (
+                            <View key={option.value} style={styles.deptCell}>
+                              <Button
+                                variant={(department ?? 'general') === option.value ? 'primary' : 'secondary'}
+                                icon={option.icon}
+                                label={option.label}
+                                onPress={() => setDepartment(option.value === 'general' ? undefined : option.value)}
+                              />
+                            </View>
+                          ))}
+                        </View>
+                      </>
+                    ) : null}
                     <Text style={[styles.meta, { color: theme.textMuted }]}>{t('patient.care.arrivalMode')}</Text>
                     <Segmented<ArrivalMode>
                       accessibilityLabel={t('patient.care.arrivalMode')}
@@ -280,6 +308,8 @@ export default function PatientCareScreen(): React.JSX.Element {
 }
 
 const styles = StyleSheet.create({
+  deptGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  deptCell: { flexBasis: '47%', flexGrow: 1 },
   flex: { flex: 1 },
   stack: { gap: spacing.md },
   row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm },

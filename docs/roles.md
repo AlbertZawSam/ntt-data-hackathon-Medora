@@ -24,6 +24,11 @@ Every hospital account has `custom:hospitalId` (for example `H02`). A person can
 | `er` | Emergency department open or diverting |
 | `radiology` | CT, MRI (working or down) |
 | `cathlab` | Cath lab (ready, busy with "free in about X minutes", or down) |
+| `cardiology` | Department staff: patient requests sent to Cardiology (no status items) |
+| `surgery` | Department staff: patient requests sent to Surgery, orthopedics and injuries (no status items) |
+| `obstetrics` | Department staff: patient requests sent to Obstetrics, pregnancy and birth (no status items) |
+
+**Department routing:** a patient may send a request to one of the hospital's open departments (`shared/logic/departments.ts`). That request is **answerable only by that department's staff** (and the `all` fallback), and only they see it in the Inbox; the server checks answers and messages in `canAnswerRequest`. Like every request, it stays **readable by all staff accounts of the hospital** through the API (the `hospitalId` read rule); restricting reads to the department is a follow-up. Requests without a department and doctor referrals go to the other units (emergency, ward and so on), as before. Demo: Rama Nine and Chao Phraya have Cardiology, Surgery and Obstetrics, each with a staff account from `npm run test-logins`.
 
 Specialist on-duty switches belong to the unit the admin assigns them to (usually `er` or the specialist's department, set in settings). Each `StatusItem` has an `ownerUnit`; only unit staff whose `custom:unit` matches can change it.
 
