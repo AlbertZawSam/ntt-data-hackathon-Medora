@@ -444,5 +444,8 @@
   "doctor.transfers.markArrived": "Mark arrived",
   "doctor.transfers.simulated": "Ambulance progress is simulated for the demo.",
   "doctor.transfers.back": "Back to referral",
-  "doctor.transfers.error": "Could not update the transfer. Please retry."
+  "doctor.transfers.error": "Could not update the transfer. Please retry.",
+  "doctor.refer.mapYou": "Your hospital",
+  "doctor.refer.mapLegend": "Teal: recommended. Green accepted, amber waiting, red cross declined, grey cross can't help, small grey withdrawn.",
+  "doctor.transfers.ambulance": "Ambulance"
 }

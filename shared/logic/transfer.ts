@@ -25,3 +25,9 @@ export function transferProgress(transfer: TransferTiming, nowMs: number): Trans
   const minutesLeft = Math.max(0, Math.ceil((totalMs - elapsed) / 60_000));
   return { fraction, minutesLeft, due: fraction >= 1 };
 }
+
+/** The simulated ambulance position: a straight line from the sending to the receiving hospital. */
+export function positionAlong(from: { lat: number; lng: number }, to: { lat: number; lng: number }, fraction: number): { lat: number; lng: number } {
+  const f = Math.min(1, Math.max(0, fraction));
+  return { lat: from.lat + (to.lat - from.lat) * f, lng: from.lng + (to.lng - from.lng) * f };
+}

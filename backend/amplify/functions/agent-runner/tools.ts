@@ -233,17 +233,6 @@ export class ReferralTools {
     return { ok: true, replies: await this.replies() };
   }
 
-  /** What the doctor sees for each hospital asked: place, drive and answer. Never counts or equipment faults. */
-  private async decisionRows(): Promise<Array<Record<string, unknown>>> {
-    const requests = await this.store.requests(this.referral.id);
-    return requests.flatMap((request) => {
-      const row = this.state?.assessment.ranked.find((candidate) => candidate.hospital.id === request.hospitalId);
-      return row
-        ? [{ hospitalId: request.hospitalId, name: row.hospital.name, lat: row.hospital.lat, lng: row.hospital.lng, driveMin: Math.round(row.driveMin), status: request.status, auto: request.auto }]
-        : [];
-    });
-  }
-
   async checkReplies(input: Record<string, unknown>): Promise<Record<string, unknown>> {
     const waitSeconds = asWait(input.wait_seconds);
     if (waitSeconds === null) return toolError('wait_seconds must be an integer from 5 to 60.');
@@ -280,7 +269,6 @@ export class ReferralTools {
       etaMin: Math.round(row?.driveMin ?? accepted.etaMin),
       why: { en: reasonEn, th: reasonTh },
       requestIds: requests.map((request) => request.id),
-      rows: await this.decisionRows(),
       recommendedAtMs: this.store.now(),
       elapsedSec: Math.max(0, Math.round((this.store.now() - this.referral.startedAtMs) / 1_000)),
     });

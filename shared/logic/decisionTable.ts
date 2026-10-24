@@ -15,6 +15,9 @@ export type WhyNot = Failure['kind'];
 export interface DecisionRow {
   hospitalId: string;
   name: Bi;
+  /** Where the hospital is, for the doctor's map (public information). */
+  lat?: number;
+  lng?: number;
   driveMin: number;
   canHelp: boolean;
   /** Reason codes only (department closed, equipment down, no specialist, no bed, too far). */
@@ -64,6 +67,8 @@ export function decisionRows(ranked: readonly RankedHospital[], requests: readon
     return {
       hospitalId: row.hospital.id,
       name: row.hospital.name,
+      lat: row.hospital.lat,
+      lng: row.hospital.lng,
       driveMin: Math.round(row.driveMin),
       canHelp: row.eligible,
       whyNot: [...new Set(row.failures.map((failure) => failure.kind))],
@@ -115,6 +120,7 @@ export function parseDecisionRows(raw: unknown): DecisionRow[] {
       {
         hospitalId,
         name: { en: row.name.en, th: row.name.th },
+        ...(typeof row.lat === 'number' && typeof row.lng === 'number' ? { lat: row.lat, lng: row.lng } : {}),
         driveMin,
         canHelp,
         whyNot: whyNot.filter((kind): kind is WhyNot => WHY_NOT.includes(kind as WhyNot)),
