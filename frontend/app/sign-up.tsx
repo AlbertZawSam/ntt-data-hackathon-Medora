@@ -1,4 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { staffPoolConfigured } from '../src/services/amplify';
+import { policy } from '../src/services/variant';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { StringKey } from '../src/i18n/t';
@@ -122,8 +124,11 @@ export default function SignUpScreen(): React.JSX.Element {
       />
       <Button label={t('signUp.submit')} busy={busy} onPress={createAccount} />
       <Button variant="link" label={t('signUp.haveAccount')} onPress={() => router.replace('/sign-in')} />
-      {/* Doctors and hospital staff don't sign up: their hospital gives them an account with an authenticator code. */}
-      <Button variant="link" label={t('signIn.staffLink')} onPress={() => router.replace({ pathname: '/sign-in', params: { staff: '1' } })} />
+      {/* Doctors and hospital staff don't sign up: their hospital gives them an account with an authenticator code.
+          Only where the sign-in can switch to the staff pool (the patient-only app has no hospital entry points). */}
+      {staffPoolConfigured && policy.showPoolSwitch ? (
+        <Button variant="link" label={t('signIn.staffLink')} onPress={() => router.replace({ pathname: '/sign-in', params: { staff: '1' } })} />
+      ) : null}
     </FormScreen>
   );
 }

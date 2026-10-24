@@ -195,3 +195,19 @@ describe('department requests', () => {
     await call(staffEvent('answerRequest', { requestId: id, action: 'accept' }, staffOf('er')));
   });
 });
+
+describe('a doctor referral sent to Cardiology', () => {
+  const staffOf = (unit: string) => ({ groups: ['hospital_staff'], hospitalId: 'H1', unit });
+  beforeEach(() => {
+    fake.tables('CareRequest').push({ id: 'ref-q', type: 'referral', hospitalId: 'H1', ownerId: 'd1', needKey: 'stemi', status: 'waiting', auto: false, referralId: 'f9', department: 'cardiology', createdAtMs: Date.now() } as never);
+  });
+  it('is answered by Cardiology or the emergency unit, never another department', async () => {
+    await expect(call(staffEvent('answerRequest', { requestId: 'ref-q', action: 'accept' }, staffOf('surgery')))).rejects.toThrow('not-staff');
+    await call(staffEvent('answerRequest', { requestId: 'ref-q', action: 'accept' }, staffOf('cardiology')));
+    expect(fake.tables('CareRequest').find((r) => r.id === 'ref-q')?.status).toBe('accepted');
+  });
+  it('can be taken by the emergency unit when no cardiology account answers', async () => {
+    await call(staffEvent('answerRequest', { requestId: 'ref-q', action: 'accept' }, staffOf('er')));
+    expect(fake.tables('CareRequest').find((r) => r.id === 'ref-q')?.status).toBe('accepted');
+  });
+});

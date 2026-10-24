@@ -245,6 +245,7 @@ export class ReferralTools {
     for (const row of rows) {
       this.asked.add(row.hospital.id);
       const auto = ruleAccepts(row.hospital.status, PATHWAYS[this.state.assessment.pathway]);
+      const department = referralDepartment(this.state.assessment.pathway, row.hospital.status);
       const request = await this.store.createRequest({
         type: 'referral',
         hospitalId: row.hospital.id,
@@ -261,7 +262,7 @@ export class ReferralTools {
         fromHospitalId: this.referral.fromHospitalId,
         referralId: this.referral.id,
         // A heart attack goes to the receiving hospital's Cardiology staff when it has that department open.
-        ...(referralDepartment(this.state.assessment.pathway, row.hospital.status) ? { department: referralDepartment(this.state.assessment.pathway, row.hospital.status) } : {}),
+        ...(department ? { department } : {}),
         createdAtMs: this.store.now(),
       });
       created.push(request);

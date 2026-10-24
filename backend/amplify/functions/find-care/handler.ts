@@ -74,7 +74,7 @@ async function understand(description: string): Promise<{ need: NeedKey; summary
 
 /**
  * Patients only. The red-flag rules run first, so an emergency never waits for a model. Hospitals
- * come back as simple labels, with the reason closer hospitals were skipped; never counts or faults.
+ * come back as simple labels and free-bed ranges, with the reason closer hospitals were skipped; never exact counts or faults.
  */
 export const handler = async (event: AppSyncResolverEvent<Args>): Promise<string> => {
   const identity = event.identity as AppSyncIdentityCognito | null | undefined;

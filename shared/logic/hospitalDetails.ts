@@ -1,8 +1,8 @@
 /**
- * Hospital details a person seeking care can open before choosing where to go: beds as a label,
- * whether the emergency department is open, which kinds of care it can take now, which specialties
- * have a doctor on duty, and the clinic specialists they can book. Simple labels only, never bed
- * counts, equipment faults or staff names on duty (AGENTS.md rule 6). Pure TypeScript.
+ * Hospital details a person seeking care can open before choosing where to go: free beds as a label and a
+ * broad range, whether the emergency department is open, which kinds of care it can take now, which
+ * specialties have a doctor on duty, and the clinic specialists they can book. Labels and broad ranges
+ * only, never exact bed counts, equipment faults or staff names on duty (AGENTS.md rule 6). Pure TypeScript.
  * Requirements: 5.2, 5.3, 8.1
  */
 import { openDepartments, type Department } from './departments';
