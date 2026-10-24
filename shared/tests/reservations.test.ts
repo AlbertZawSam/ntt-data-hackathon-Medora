@@ -1,4 +1,4 @@
-import { RESERVATION_MS, activeHolds, contradictsHolds, kindForNeed, newReservation, reservationKind, withHolds, type Reservation } from '../logic/reservations';
+import { RESERVATION_MS, activeHolds, contradictsHolds, kindForNeed, newReservation, occupyOne, reservationKind, withHolds, type Reservation } from '../logic/reservations';
 import { failsFor, freeBeds } from '../logic/ranking';
 import { PATHWAYS } from '../logic/pathways';
 import { NOW_MS, openStatus } from './generators';
@@ -51,5 +51,14 @@ describe('contradictsHolds', () => {
 describe('newReservation', () => {
   it('expires in two hours', () => {
     expect(newReservation('q', 'H1', 'bed', NOW_MS)).toMatchObject({ state: 'held', expiresAtMs: NOW_MS + RESERVATION_MS });
+  });
+});
+
+describe('occupyOne', () => {
+  it('takes one bed or one NICU cot, never below zero', () => {
+    const status = openStatus({ beds: 3, nicu: 1 });
+    expect(occupyOne(status, 'bed')).toMatchObject({ beds: 2, nicu: 1 });
+    expect(occupyOne(status, 'nicu')).toMatchObject({ beds: 3, nicu: 0 });
+    expect(occupyOne(openStatus({ beds: 0 }), 'bed').beds).toBe(0);
   });
 });

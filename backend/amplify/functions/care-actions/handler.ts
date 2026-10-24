@@ -5,14 +5,14 @@ import { generateClient } from 'aws-amplify/data';
 import { callerFromClaims, canAnswerRequest } from '@medora/shared/logic/access';
 import {
   MAX_MESSAGE,
-  QUICK_REPLY_KEYS,
+  quickRepliesFor,
   couldTreat,
   decideNewRequest,
   transition,
   validateRequestInput,
   type RequestAction,
 } from '@medora/shared/logic/care';
-import { activeHolds, kindForNeed, newReservation, withHolds, type Reservation } from '@medora/shared/logic/reservations';
+import { activeHolds, kindForNeed, newReservation, occupyOne, withHolds, type Reservation } from '@medora/shared/logic/reservations';
 import { GROUPS } from '@medora/shared/logic/session';
 import type { CareRequest, HospitalStatus, NeedKey } from '@medora/shared/logic/types';
 
@@ -35,6 +35,9 @@ interface Client {
     Message: Model<{ id: string }>;
     Reservation: Model<Reservation> & { list(input: Record_): Promise<{ data: Reservation[]; errors?: unknown[] }> };
     Activity: Model<{ id: string }>;
+    Transfer: Model<{ id: string; status: string }> & {
+      list(input: Record_): Promise<{ data: Array<{ id: string; status: string; toHospitalId: string }>; errors?: unknown[] }>;
+    };
   };
 }
 
@@ -200,8 +203,11 @@ async function answerRequest(client: Client, event: AppSyncResolverEvent<Record_
   if (action === 'decline' || action === 'undo') await settle(client, request.id, 'released');
   if (action === 'arrived') {
     // The patient now occupies the bed: the hold becomes a used bed, so the count goes down by one.
+    // A doctor's referral accepted by a hospital rule or a demo reply holds no bed, but still takes one (13.4).
     const held = await settle(client, request.id, 'converted');
-    if (held) await occupy(client, request.hospitalId, held.kind);
+    const kind = held?.kind ?? (request.referralId ? kindForNeed(request.needKey) : null);
+    if (kind) await occupy(client, request.hospitalId, kind);
+    if (request.referralId) await arriveTransfer(client, request.referralId, request.hospitalId);
   }
   await log(client, request.hospitalId, sub, `Unit: ${caller.unit ?? '-'}`, `หน่วย: ${caller.unit ?? '-'}`, `Request ${request.id}: ${action}`, `คำขอ ${request.id}: ${action}`);
   console.info(`care-actions answer ok: action=${action}`);
@@ -218,9 +224,14 @@ async function couldTreatNow(client: Client, request: RequestRecord): Promise<bo
 async function occupy(client: Client, hospitalId: string, kind: 'bed' | 'nicu'): Promise<void> {
   const row = await client.models.HospitalStatus.get({ id: hospitalId });
   if (!row.data) return;
-  const status = parse<HospitalStatus>(row.data.status);
-  const next = kind === 'nicu' ? { ...status, nicu: Math.max(0, status.nicu - 1) } : { ...status, beds: Math.max(0, status.beds - 1) };
-  await client.models.HospitalStatus.update({ id: hospitalId, status: JSON.stringify(next) });
+  await client.models.HospitalStatus.update({ id: hospitalId, status: JSON.stringify(occupyOne(parse<HospitalStatus>(row.data.status), kind)) });
+}
+
+/** Staff marked a referred patient arrived: the doctor's transfer to this hospital is arrived too. */
+async function arriveTransfer(client: Client, referralId: string, hospitalId: string): Promise<void> {
+  const transfers = await client.models.Transfer.list({ filter: { referralId: { eq: referralId } }, limit: 10 });
+  const open = transfers.data.find((t) => t.toHospitalId === hospitalId && t.status === 'in_progress');
+  if (open) await client.models.Transfer.update({ id: open.id, status: 'arrived' });
 }
 
 async function sendMessage(client: Client, event: AppSyncResolverEvent<Record_>): Promise<string> {
@@ -229,10 +240,11 @@ async function sendMessage(client: Client, event: AppSyncResolverEvent<Record_>)
   const text = typeof a.text === 'string' ? a.text.trim() : undefined;
   // Exactly one of a quick-reply key or free text.
   if ((key !== undefined) === Boolean(text)) throw new Error('bad-message');
-  if (key !== undefined && !(QUICK_REPLY_KEYS as readonly string[]).includes(key)) throw new Error('bad-message');
   if (text && text.length > MAX_MESSAGE) throw new Error('bad-message');
 
   const request = must(await client.models.CareRequest.get({ id: String(a.requestId) }), 'no-request');
+  // Only the quick replies that fit this request: referral replies on doctor referrals, patient replies otherwise.
+  if (key !== undefined && !(quickRepliesFor(request) as readonly string[]).includes(key)) throw new Error('bad-message');
   if (request.status !== 'accepted' && request.status !== 'waiting') throw new Error('bad-state');
 
   // Decide which side is speaking from the token, never from an argument.

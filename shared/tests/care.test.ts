@@ -117,3 +117,13 @@ describe('couldTreat', () => {
     expect(couldTreat(diverting, 'general')).toBe(false);
   });
 });
+
+import { QUICK_REPLY_KEYS, REFERRAL_REPLY_KEYS, quickRepliesFor } from '../logic/care';
+
+describe('quickRepliesFor', () => {
+  it('gives doctor referrals the referral set and patient requests the patient set', () => {
+    expect(quickRepliesFor({ referralId: 'f1' })).toBe(REFERRAL_REPLY_KEYS);
+    expect(quickRepliesFor({})).toBe(QUICK_REPLY_KEYS);
+    expect(quickRepliesFor({ referralId: null })).toBe(QUICK_REPLY_KEYS);
+  });
+});

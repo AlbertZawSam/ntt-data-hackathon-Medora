@@ -451,5 +451,11 @@
   "doctor.transfers.ambulance": "Orange dot: the ambulance on its way.",
   "staff.inbox.referral": "Doctor referral (AI agent)",
   "emergency.nearestEd": "Nearest open emergency department: {{name}} (about {{min}} min by car)",
-  "patient.care.understood": "We understood (AI summary, not medical advice): {{summary}}"
+  "patient.care.understood": "We understood (AI summary, not medical advice): {{summary}}",
+  "message.quickReply.bedReady": "Bed is ready for your patient",
+  "message.quickReply.teamWaiting": "Our team is waiting at the emergency bay",
+  "message.quickReply.sendEcg": "Please send the latest ECG and vital signs",
+  "message.quickReply.sendImaging": "Please send imaging results if available",
+  "message.quickReply.callBeforeArrival": "Please call our emergency desk 10 minutes before arrival",
+  "doctor.refer.messagesTitle": "Messages from the receiving hospital"
 }
