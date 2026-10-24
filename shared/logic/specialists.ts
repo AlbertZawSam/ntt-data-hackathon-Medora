@@ -8,7 +8,7 @@ import type { Bi } from './types';
 
 export const SPECIALTIES = ['cardiology', 'neurology', 'obstetrics', 'pediatrics', 'orthopedics', 'general'] as const;
 export type Specialty = (typeof SPECIALTIES)[number];
-export const LANGUAGES = ['th', 'en', 'zh', 'ja', 'ar'] as const;
+export const LANGUAGES = ['th', 'en'] as const;
 
 export interface Slot {
   id: string;
@@ -38,7 +38,7 @@ export function validateSpecialistInput(raw: Partial<Record<keyof SpecialistInpu
   if (!name || name.length > 120) return { ok: false, issue: 'name' };
   if (!(SPECIALTIES as readonly string[]).includes(raw.specialty as string)) return { ok: false, issue: 'specialty' };
   const languages = Array.isArray(raw.languages) ? [...new Set(raw.languages)] : [];
-  if (languages.length === 0 || languages.length > 5 || languages.some((l) => !(LANGUAGES as readonly string[]).includes(l as string))) {
+  if (languages.length === 0 || languages.length > LANGUAGES.length || languages.some((l) => !(LANGUAGES as readonly string[]).includes(l as string))) {
     return { ok: false, issue: 'languages' };
   }
   const slots = Array.isArray(raw.slots) ? raw.slots : [];

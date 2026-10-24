@@ -1,4 +1,4 @@
-import { bookSlot, listSpecialists, openSlots, specialtyForNeed, validateSpecialistInput, type SpecialistRecord } from '../logic/specialists';
+import { LANGUAGES, bookSlot, listSpecialists, openSlots, specialtyForNeed, validateSpecialistInput, type SpecialistRecord } from '../logic/specialists';
 
 const NOW = Date.parse('2026-10-13T04:00:00Z');
 const slot = (id: string, day: string, time: string, booked = false) => ({ id, day, time, booked });
@@ -40,8 +40,12 @@ describe('listSpecialists', () => {
     expect(list[0].name).toBeNull();
   });
   it('filters by specialty and language and drops specialists with no open slot', () => {
-    const records = [rec({ id: 'a' }), rec({ id: 'b', specialty: 'neurology' }), rec({ id: 'c', languages: ['zh'] }), rec({ id: 'd', slots: [slot('z', '2026-10-20', '09:00', true)] })];
+    const records = [rec({ id: 'a' }), rec({ id: 'b', specialty: 'neurology' }), rec({ id: 'c', languages: ['th'] }), rec({ id: 'd', slots: [slot('z', '2026-10-20', '09:00', true)] })];
     expect(listSpecialists(records, hospitals, origin, { specialty: 'cardiology', language: 'en' }, NOW).map((s) => s.id)).toEqual(['a']);
+  });
+  it('knows only Thai and English, and refuses any other language', () => {
+    expect([...LANGUAGES]).toEqual(['th', 'en']);
+    expect(validateSpecialistInput({ name: 'Dr A', specialty: 'cardiology', languages: ['th', 'zh'], namePublic: true, slots: [slot('x', '2026-10-20', '09:00')] })).toEqual({ ok: false, issue: 'languages' });
   });
   it('never offers past or booked slots', () => {
     expect(openSlots([slot('p', '2026-10-01', '09:00'), slot('b', '2026-10-20', '09:00', true), slot('ok', '2026-10-20', '10:00')], NOW).map((s) => s.id)).toEqual(['ok']);
