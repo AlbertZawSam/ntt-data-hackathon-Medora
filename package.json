@@ -19,10 +19,10 @@
     "start:patient": "npm run start:patient -w @medora/frontend --",
     "start:hospital": "npm run start:hospital -w @medora/frontend --",
     "login": "aws sso login --profile medora",
-    "seed": "tsx scripts/seed.ts",
+    "seed": "bash scripts/with-aws.sh tsx scripts/seed.ts",
     "kb": "tsx scripts/build-kb.ts",
-    "upload-kb": "tsx scripts/upload-kb.ts",
-    "evals": "tsx scripts/run-evals.ts",
-    "test-logins": "node scripts/test-logins.mjs"
+    "upload-kb": "bash scripts/with-aws.sh tsx scripts/upload-kb.ts",
+    "evals": "bash scripts/with-aws.sh tsx scripts/run-evals.ts",
+    "test-logins": "bash scripts/with-aws.sh node scripts/test-logins.mjs"
   }
 }

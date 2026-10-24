@@ -24,9 +24,10 @@ import { findCare } from './functions/find-care/resource';
 import { inviteStaff } from './functions/invite-staff/resource';
 import { patientUnderstand } from './functions/patient-understand/resource';
 import { registerHospital } from './functions/register-hospital/resource';
+import { searchPlaces } from './functions/search-places/resource';
 import { updateStatus } from './functions/update-status/resource';
 
-const backend = defineBackend({ auth, postConfirmation, data, agentRunner, adminSettings, careActions, referralActions, specialistActions, findCare, inviteStaff, patientUnderstand, registerHospital, updateStatus });
+const backend = defineBackend({ auth, postConfirmation, data, agentRunner, adminSettings, careActions, referralActions, specialistActions, findCare, inviteStaff, patientUnderstand, registerHospital, searchPlaces, updateStatus });
 
 // Tag every resource so Cost Explorer shows spend per stage (AGENTS.md section 5).
 const app = backend.stack.node.root;
@@ -123,7 +124,15 @@ backend.agentRunner.resources.lambda.addToRolePolicy(
 backend.agentRunner.resources.lambda.addToRolePolicy(
   new PolicyStatement({ actions: ['bedrock:ApplyGuardrail'], resources: [guardrail.attrGuardrailArn, agentGuardrail.attrGuardrailArn] }),
 );
-// Amazon Location route matrix is not set up yet; the agent uses the on-device drive-time estimate.
+// Real drive times (Amazon Location Routes v2): one action, on the one default data provider, never `*`. Nothing
+// is billed while idle; each referral or patient search asks for a handful of origin-destination pairs. If it fails, the agent
+// uses the offline drive-time estimate.
+// find-care gets the same single permission, for a patient's search (only a rounded position is sent).
+for (const fn of [backend.agentRunner, backend.findCare]) {
+  fn.resources.lambda.addToRolePolicy(
+    new PolicyStatement({ actions: ['geo-routes:CalculateRouteMatrix'], resources: [`arn:aws:geo-routes:${aiStack.region}::provider/default`] }),
+  );
+}
 // find-care's Bedrock permissions are opt-in: AGENTS.md says coding agents don't change IAM on their own,
 // so the team lead turns this on for the sandbox by setting MEDORA_ATTACH_BEDROCK_IAM=true. The statement
 // names the Nova Lite ARN and this stack's guardrail, never `*`. Until then find-care uses its keyword
@@ -226,6 +235,15 @@ if (process.env.MEDORA_ENABLE_KB !== 'false') {
     region: kbStack.region,
   };
 }
+
+// search-places may only run Amazon Location text search, on the one default data provider (AGENTS.md 4b.3).
+// Cost: nothing while idle; billed per search request.
+backend.searchPlaces.resources.lambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ['geo-places:SearchText'],
+    resources: [`arn:aws:geo-places:${Stack.of(backend.searchPlaces.resources.lambda).region}::provider/default`],
+  }),
+);
 
 // Staff pool (docs/roles.md, AGENTS.md section 4b): hospital accounts only, by invitation, with
 // authenticator-app (TOTP) MFA required and no SMS. The default Amplify pool above stays the

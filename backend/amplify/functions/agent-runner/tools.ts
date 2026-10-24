@@ -293,12 +293,20 @@ export class ReferralTools {
     return { ok: true, hospital_id: hospitalId };
   }
 
-  async reportNoPlacement(input: Record<string, unknown>): Promise<Record<string, unknown>> {
+  /**
+   * Closes the referral as "no placement" from our own failure paths. Unlike the model's `report_no_placement`,
+   * it is never refused: when the coordinator itself fails, the referral must not be left running.
+   */
+  async failClosed(reasonEn: string, reasonTh: string): Promise<void> {
+    await this.reportNoPlacement({ reason_en: reasonEn, reason_th: reasonTh }, { force: true });
+  }
+
+  async reportNoPlacement(input: Record<string, unknown>, options: { force?: boolean } = {}): Promise<Record<string, unknown>> {
     const reasonEn = this.withNames(typeof input.reason_en === 'string' ? input.reason_en.trim().slice(0, 500) : '', 'en');
     const reasonTh = this.withNames(typeof input.reason_th === 'string' ? input.reason_th.trim().slice(0, 500) : '', 'th');
     if (!reasonEn || !reasonTh) return toolError('reason_en and reason_th are required.');
     // Hospitals that can help must be asked before giving up: the model can't skip the asking step.
-    if (this.state && this.asked.size === 0 && this.state.assessment.ranked.some((row) => row.eligible)) {
+    if (!options.force && this.state && this.asked.size === 0 && this.state.assessment.ranked.some((row) => row.eligible)) {
       return toolError('Hospitals can help with this case. Call ask_hospitals for them before reporting no placement.');
     }
     await this.store.updateReferral(this.referral.id, {
@@ -340,10 +348,10 @@ export class ReferralTools {
     // No acceptance, or one the rules refuse (for example a stated delay that breaks the window): close the
     // referral honestly rather than leave it running.
     if (recommended?.ok !== true) {
-      await this.execute('report_no_placement', {
-        reason_en: accepted ? 'The accepted hospital cannot take the patient inside the treatment window.' : 'No hospital accepted the referral in the available time.',
-        reason_th: accepted ? 'โรงพยาบาลที่ตอบรับไม่สามารถรับผู้ป่วยได้ภายในช่วงเวลาการรักษา' : 'ไม่มีโรงพยาบาลตอบรับคำขอส่งต่อภายในเวลาที่กำหนด',
-      });
+      await this.failClosed(
+        accepted ? 'The accepted hospital cannot take the patient inside the treatment window.' : 'No hospital accepted the referral in the available time.',
+        accepted ? 'โรงพยาบาลที่ตอบรับไม่สามารถรับผู้ป่วยได้ภายในช่วงเวลาการรักษา' : 'ไม่มีโรงพยาบาลตอบรับคำขอส่งต่อภายในเวลาที่กำหนด',
+      );
     }
   }
 

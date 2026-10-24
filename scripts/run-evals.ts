@@ -28,7 +28,7 @@ import { AppSyncClient, paginateListGraphqlApis } from '@aws-sdk/client-appsync'
 import { DescribeTableCommand, DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { GetFunctionConfigurationCommand, InvokeCommand, LambdaClient, ListFunctionsCommand } from '@aws-sdk/client-lambda';
 import { BedrockAgentRuntimeClient, RetrieveCommand } from '@aws-sdk/client-bedrock-agent-runtime';
-import { DeleteCommand, DynamoDBDocumentClient, PutCommand, QueryCommand, ScanCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { DeleteCommand, DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, ScanCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { EVAL_CASES, scoreRun, summarise, type EvalCase, type EvalCheck, type EvalRun } from '@medora/shared/logic/evals';
 import { assessReferral, delayExceedsWindow, statedDelayMin } from '@medora/shared/logic/referral';
 import type { DecisionRow, HospitalStatus, RankableHospital } from '@medora/shared/logic/types';
@@ -58,6 +58,10 @@ const json = (value: unknown): unknown => {
 };
 
 async function main(): Promise<void> {
+  // A bare `--cleanup` must never fall through to a normal (model-calling) run, so check before any AWS call.
+  if (has('cleanup') && (!flag('cleanup') || (flag('cleanup') as string).startsWith('--'))) {
+    throw new Error('--cleanup needs `all` or the path of a results file in scripts/.local/.');
+  }
   const outputs = JSON.parse(readFileSync(resolve('frontend/amplify_outputs.json'), 'utf8')) as { data?: { url?: string; aws_region?: string } };
   if (!outputs.data?.url) throw new Error('No API in frontend/amplify_outputs.json. Run `npm run sandbox` first.');
   if (outputs.data.aws_region !== REGION) throw new Error(`Refusing to use ${outputs.data.aws_region}: this project uses ${REGION} only.`);
@@ -105,7 +109,7 @@ async function main(): Promise<void> {
     return items;
   }
 
-  if (flag('cleanup')) return cleanup(flag('cleanup') as string, table, db, listBy, scanAll);
+  if (has('cleanup')) return cleanup(flag('cleanup') as string, table, db, listBy, scanAll);
 
   // The sandbox's own hospital rows are the ground truth for who could treat each case.
   const profiles = await scanAll('HospitalProfile');
@@ -332,7 +336,17 @@ async function cleanup(
   const saved = all ? null : (JSON.parse(readFileSync(resolve(target), 'utf8')) as { runId?: string; created?: Record<string, string[]> });
   const prefix = all || !saved?.runId ? 'eval-' : `eval-${saved.runId}-`;
   const ownerFilter = { expression: 'begins_with(#o, :p)', names: { '#o': 'ownerId' }, values: { ':p': prefix } };
-  const referrals = all || !saved?.created?.Referral ? (await scanAll('Referral', ownerFilter)).map((r) => String(r.id)) : saved.created.Referral;
+  let referrals = all || !saved?.created?.Referral ? (await scanAll('Referral', ownerFilter)).map((r) => String(r.id)) : saved.created.Referral;
+  if (!all) {
+    // A results file could be wrong or edited: only referrals owned by an `eval-` user are ever deleted.
+    const owned: string[] = [];
+    for (const id of referrals) {
+      const row = (await db.send(new GetCommand({ TableName: table('Referral'), Key: { id } }))).Item;
+      if (row && String(row.ownerId ?? '').startsWith('eval-')) owned.push(id);
+    }
+    if (owned.length !== referrals.length) console.log(`Skipping ${referrals.length - owned.length} referral(s) in the file that are missing or not owned by an eval- user.`);
+    referrals = owned;
+  }
   const found: Record<string, string[]> = { Referral: referrals, CareRequest: [], TraceStep: [], Transfer: [], Activity: (await scanAll('Activity', ownerFilter)).map((a) => String(a.id)) };
   for (const id of referrals) {
     for (const [model, ids] of [['CareRequest', found.CareRequest], ['TraceStep', found.TraceStep], ['Transfer', found.Transfer]] as const) {

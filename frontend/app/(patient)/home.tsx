@@ -5,11 +5,13 @@
 import { useRouter, type Href } from 'expo-router';
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { PLACES, searchPlaces } from '@medora/shared/logic/places';
+import { PLACES, distanceKm, searchPlaces } from '@medora/shared/logic/places';
+import { PLACE_QUERY_MIN, type FoundPlace } from '@medora/shared/logic/placeSearch';
 import { LanguageToggle } from '../../src/components/LanguageToggle';
 import { MapView } from '../../src/components/MapView';
 import { call1669 } from '../../src/services/emergency';
-import { choosePlace, choosePoint, locateMe, useChosenLocation, type GpsOutcome } from '../../src/services/location';
+import { searchPlacesRemote } from '../../src/services/data';
+import { chooseFoundPlace, choosePlace, choosePoint, locateMe, useChosenLocation, type GpsOutcome } from '../../src/services/location';
 import { pick } from '../../src/i18n/t';
 import { useApp, useT } from '../../src/state/AppProvider';
 import { Button } from '../../src/ui/Button';
@@ -27,6 +29,28 @@ export default function PatientHomeScreen(): React.JSX.Element {
   const [notice, setNotice] = React.useState<GpsOutcome | 'outsidePick' | null>(null);
   const [picking, setPicking] = React.useState(false);
   const matches = React.useMemo(() => searchPlaces(query), [query]);
+  const [found, setFound] = React.useState<FoundPlace[]>([]);
+
+  // More places from Amazon Location after a short pause in typing. Only the typed text is sent (requirement 3.6).
+  React.useEffect(() => {
+    const text = query.trim();
+    if (text.length < PLACE_QUERY_MIN) {
+      setFound([]);
+      return undefined;
+    }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      void searchPlacesRemote(text, lang).then((places) => {
+        if (!cancelled) setFound(places);
+      });
+    }, 500);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query, lang]);
+  // A found place right beside a built-in suggestion is the same place; show it once.
+  const extra = found.filter((place) => !matches.some((known) => distanceKm(known, place) < 0.3));
 
   const onUseMyLocation = async (): Promise<void> => {
     setLocating(true);
@@ -113,7 +137,26 @@ export default function PatientHomeScreen(): React.JSX.Element {
               <Text style={[styles.resultText, { color: theme.text }]}>{pick(place.name, lang)}</Text>
             </Pressable>
           ))}
-          {query.trim() && matches.length === 0 ? (
+          {extra.length > 0 ? <Text style={[styles.notice, { color: theme.textMuted }]}>{t('patient.home.morePlaces')}</Text> : null}
+          {extra.map((place) => (
+            <Pressable
+              key={place.id}
+              accessibilityRole="button"
+              onPress={() => {
+                if (chooseFoundPlace(place)) {
+                  setNotice(null);
+                  setQuery('');
+                } else {
+                  setNotice('outsidePick');
+                }
+              }}
+              style={[styles.result, { borderColor: theme.border }]}
+            >
+              <Text style={[styles.resultText, { color: theme.text }]}>{place.name}</Text>
+              {place.detail ? <Text style={[styles.notice, { color: theme.textMuted }]}>{place.detail}</Text> : null}
+            </Pressable>
+          ))}
+          {query.trim() && matches.length === 0 && extra.length === 0 ? (
             <Text style={[styles.notice, { color: theme.textMuted }]}>{t('patient.home.noPlaces')}</Text>
           ) : null}
         </View>

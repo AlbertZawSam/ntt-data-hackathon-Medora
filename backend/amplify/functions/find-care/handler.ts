@@ -1,8 +1,10 @@
 import { getAmplifyDataClientConfig } from '@aws-amplify/backend/function/runtime';
 import { BedrockRuntimeClient, ConverseCommand } from '@aws-sdk/client-bedrock-runtime';
+import { GeoRoutesClient } from '@aws-sdk/client-geo-routes';
 import type { AppSyncIdentityCognito, AppSyncResolverEvent } from 'aws-lambda';
 import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
+import { coarsePoint, routeMinutes } from '../../lib/routes';
 import { NEED_KEYS, MAX_DESCRIPTION, toPublicHospital, targetForNeed } from '@medora/shared/logic/care';
 import { isInBangkok } from '@medora/shared/logic/places';
 import { classifyNeed, evaluate } from '@medora/shared/logic/ranking';
@@ -32,6 +34,8 @@ async function dataClient(): Promise<Client> {
   Amplify.configure(resourceConfig, libraryOptions);
   return generateClient() as unknown as Client;
 }
+
+const routes = new GeoRoutesClient({ maxAttempts: 2 });
 
 const parse = <T>(v: unknown): T => (typeof v === 'string' ? (JSON.parse(v) as T) : (v as T));
 
@@ -104,7 +108,10 @@ export const handler = async (event: AppSyncResolverEvent<Args>): Promise<string
   const target = targetForNeed(need);
   const pathway = target === 'visit' ? PATHWAYS.general : target;
   const nowMs = Date.now();
-  const ranked = evaluate(hospitals, pathway, { lat, lng }, { nowMs });
+  // Real drive times from Amazon Location. The patient's position is rounded to about 100 m and goes nowhere else;
+  // if the call fails there are no times, and ranking uses its offline estimate.
+  const driveMinById = await routeMinutes((command, options) => routes.send(command, options), coarsePoint({ lat, lng }), hospitals);
+  const ranked = evaluate(hospitals, pathway, { lat, lng }, { nowMs, driveMinById });
   console.info(`find-care ok: need=${need} ai=${ai ? 1 : 0} hospitals=${ranked.length}`);
   return JSON.stringify({
     need,

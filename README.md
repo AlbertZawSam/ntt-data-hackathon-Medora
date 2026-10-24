@@ -57,7 +57,7 @@ The specs in `docs/specs/` describe the target. The code today is an earlier dra
 
 - One app with role-based screens and one Cognito pool (target: two app variants, a public pool and an invite-only staff pool with TOTP MFA; tasks 1, 4).
 - Hospitals register themselves in the app (target: 10 synthetic hospitals seeded from `shared/data/hospitals.json`, test users by script; tasks 3.1, 5.3).
-- `agent-runner` runs the referral in one Lambda with the model ID from `MODEL_ID_FAST` / `MODEL_ID_STRONG` (target: Nova models, Step Functions Standard; tasks 18, 19, 22). Bedrock IAM permissions are not attached yet, so it takes the rule-based backup path.
+- `agent-runner` runs the referral in one Lambda with the model ID from `MODEL_ID_FAST` / `MODEL_ID_STRONG` (Amazon Nova; Step Functions Standard is task 22). Its Bedrock permissions name the two Nova models and its guardrails; if the model path fails, fixed rules finish the referral.
 
 ## Getting started
 
@@ -65,6 +65,7 @@ The specs in `docs/specs/` describe the target. The code today is an earlier dra
 git clone https://github.com/AlbertZawSam/ntt-data-hackathon-Medora.git
 cd ntt-data-hackathon-Medora
 npm install          # installs all three packages
+npm run login        # AWS SSO sign-in (approve in the browser); repeat when the session expires
 npm run sandbox      # deploy a personal backend in us-east-1; writes frontend/amplify_outputs.json
 npm start            # run the app (press w for web, a for Android, i for iOS)
 ```
@@ -77,7 +78,10 @@ Without AWS access, `npm start` still works: the app opens and says it isn't con
 | Unit tests, all packages | `npm test` (one package: `npm test -w @medora/shared`) |
 | Add a dependency | `npm install <pkg> -w @medora/frontend` (Expo native modules: `cd frontend && npx expo install <pkg>`) |
 | Cost, safety and security checks | `bash scripts/guard.sh` |
+| AWS sign-in | `npm run login` (SSO profile `medora`) |
 | End of every day | `bash scripts/cost-check.sh && npm run sandbox:delete` |
+
+`sandbox`, `sandbox:delete`, `seed`, `upload-kb`, `evals` and `test-logins` run through `scripts/with-aws.sh`: it pins the region to `us-east-1` and uses the `medora` profile when you have not set `AWS_PROFILE` or access keys yourself, so no `export` is needed in each terminal. Run every command from the repository root, in a terminal of its own where the command keeps running (`npm run sandbox`).
 
 Never commit `amplify_outputs.json`, `.env`, `google-services.json` or AWS keys.
 
@@ -95,6 +99,24 @@ npm run web
 `test-logins` opens a local page with every account: copy buttons for the email and password, and a live 6-digit code for the authenticator step, so no phone is needed. In the app, click **"Hospital staff? Sign in here"**. Use another hospital id from `npm run seed` for a second hospital. The page and its data stay in `scripts/.local/` (ignored by Git): never commit or share them. After `npm run sandbox:delete`, run it again to make new accounts.
 
 Doctors who sign up in the patient app wait for an admin's approval, which no screen offers yet; use the invited doctor account from `test-logins` instead.
+
+### Knowledge base and agent evaluations
+
+The knowledge base (25 bilingual documents, one per hospital department) deploys with the sandbox; turn it off only with `MEDORA_ENABLE_KB=false`, because deploying without it deletes it. A new deploy starts empty:
+
+```bash
+npm run kb           # regenerate shared/data/kb/ from the synthetic hospital data (offline)
+npm run upload-kb    # upload the documents and run ingestion (cents)
+```
+
+To measure the referral agent (task 25, results in `docs/evals.md`), deploy with `DEMO_REPLIES=true npm run sandbox`, run `npm run seed` and `npm run upload-kb`, then:
+
+```bash
+npm run evals                    # dry run: checks the sandbox, prints the plan and a cost estimate, calls no model
+npm run evals -- --yes           # 10 runs of every case on Nova Lite (about $0.22)
+npm run evals -- --yes --model both    # add Nova Pro for the final evaluation (about $2.50 in all)
+npm run evals -- --cleanup all --yes   # remove the test records the runs created
+```
 
 ## How to build
 

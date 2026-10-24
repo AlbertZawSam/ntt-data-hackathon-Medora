@@ -7,6 +7,7 @@ import { generateClient } from 'aws-amplify/data';
 import type { Reservation } from '@medora/shared/logic/reservations';
 import type { PublicSpecialist, Slot } from '@medora/shared/logic/specialists';
 import type { ArrivalMode, PublicHospital, QuickReplyKey } from '@medora/shared/logic/care';
+import { parseFoundPlaces, type FoundPlace } from '@medora/shared/logic/placeSearch';
 import { SET_ASIDE_REASONS, type SetAsideReason } from '@medora/shared/logic/referral';
 import type {
   AutoAcceptRules,
@@ -87,6 +88,7 @@ interface Client {
     understandNeed: (input: { text: string; lang?: string }) => Promise<{ data?: unknown; errors?: unknown[] }>;
     findSpecialists: (input: { lat: number; lng: number; specialty?: string; language?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     findCare: (input: { description: string; lat: number; lng: number }) => Promise<{ data?: string | null; errors?: unknown[] }>;
+    searchPlaces: (input: { query: string; lang?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
   };
 }
 
@@ -371,6 +373,20 @@ export async function findCare(input: { description: string; lat: number; lng: n
   ensureData(result, 'Find care');
   if (!result.data) throw new DataServiceError('Find care failed.');
   return JSON.parse(result.data) as FindCareResult;
+}
+
+/**
+ * More places than the built-in list, from Amazon Location (requirement 3.2). Only the typed text is sent. The
+ * built-in list works without this, so any failure simply gives no extra places.
+ */
+export async function searchPlacesRemote(query: string, lang: 'en' | 'th'): Promise<FoundPlace[]> {
+  try {
+    const result = await client.queries.searchPlaces({ query, lang });
+    if (result.errors?.length || !result.data) return [];
+    return parseFoundPlaces(JSON.parse(result.data) as unknown);
+  } catch {
+    return [];
+  }
 }
 
 export interface NewRequest {

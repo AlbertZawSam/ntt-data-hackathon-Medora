@@ -173,6 +173,7 @@
   "patient.home.emergencyHint": "Free emergency line, 24 hours",
   "patient.home.searchLabel": "Search a place in Bangkok",
   "patient.home.noPlaces": "No matching place. Try a district name.",
+  "patient.home.morePlaces": "More places",
   "patient.home.findCare": "Find care now",
   "patient.home.findSpecialist": "Find a specialist",
   "patient.home.myRequests": "My requests",

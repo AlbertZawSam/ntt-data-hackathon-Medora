@@ -173,6 +173,7 @@
   "patient.home.emergencyHint": "สายด่วนฉุกเฉิน โทรฟรี 24 ชั่วโมง",
   "patient.home.searchLabel": "ค้นหาสถานที่ในกรุงเทพฯ",
   "patient.home.noPlaces": "ไม่พบสถานที่ ลองพิมพ์ชื่อย่านหรือเขต",
+  "patient.home.morePlaces": "สถานที่อื่น ๆ",
   "patient.home.findCare": "ค้นหาการรักษาตอนนี้",
   "patient.home.findSpecialist": "ค้นหาแพทย์เฉพาะทาง",
   "patient.home.myRequests": "คำขอของฉัน",

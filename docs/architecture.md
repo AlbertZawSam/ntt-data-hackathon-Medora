@@ -14,7 +14,7 @@ The architecture for the hackathon build, in **us-east-1** (organizer sandbox), 
 | AI | Amazon Bedrock: Amazon Nova Pro and Nova Lite, Converse API with tool use | Nova Lite: patient understanding; Nova Pro: referral coordinator agent |
 | AI safety | Amazon Bedrock Guardrails | Blocks diagnosis and treatment advice; masks personal data |
 | Retrieval (RAG) | Bedrock Knowledge Bases + Amazon Titan Text Embeddings V2 + Amazon S3 + Amazon S3 Vectors | One document per hospital department; no chunking |
-| Maps and routing | Amazon Location Service | Place search; route matrix for drive times |
+| Maps and routing | Amazon Location Service (Places and Routes v2, no resources of their own) | Place search for the location picker (`search-places` Lambda); route matrix drive times for the referral agent, with the offline estimate as the fallback |
 | Notifications | Amazon SNS | Push to phones (FCM, APNs); SMS link to the ambulance crew |
 | Schedules | Amazon EventBridge Scheduler | 30-minute status check-in reminders |
 | Security | AWS KMS, IAM, AWS CloudTrail, CloudWatch Logs data protection | Encryption at rest, least privilege, audit, log redaction |

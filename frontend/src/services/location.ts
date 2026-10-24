@@ -6,6 +6,7 @@
 import * as ExpoLocation from 'expo-location';
 import React from 'react';
 import { DEFAULT_PLACE, isInBangkok, type LatLng, type Place } from '@medora/shared/logic/places';
+import type { FoundPlace } from '@medora/shared/logic/placeSearch';
 
 export type LocationSource = 'gps' | 'place' | 'map' | 'default';
 
@@ -42,6 +43,13 @@ export function useChosenLocation(): ChosenLocation {
 
 export function choosePlace(place: Place): void {
   set({ lat: place.lat, lng: place.lng, source: 'place', place });
+}
+
+/** Uses a place found by Amazon Location search. It stays on the device; the name is shown in both languages as found. */
+export function chooseFoundPlace(found: FoundPlace): boolean {
+  if (!isInBangkok(found)) return false;
+  choosePlace({ key: `found:${found.id}`, name: { en: found.name, th: found.name }, lat: found.lat, lng: found.lng });
+  return true;
 }
 
 /** Asks for permission and reads one position. The coordinates are never logged or stored. */

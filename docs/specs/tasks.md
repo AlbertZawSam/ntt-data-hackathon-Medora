@@ -33,16 +33,18 @@ Paths follow the npm workspaces layout in `AGENTS.md` section 6: `frontend/`, `b
 
 ## Milestone 2: AWS backend and security baseline
 
-- [ ] 4. Amplify Gen 2 with two user pools **P0**
-  - [ ] 4.1 Amplify Gen 2 in `backend/amplify/` (already scaffolded); deploy only to us-east-1 (`npm run sandbox` sets `AWS_REGION=us-east-1`); tags `project=medora`, `stage`. If CDK bootstrapping is blocked by the account's permissions, ask the organizers to bootstrap us-east-1, or deploy the same resources with AWS SAM (roles named `medora-*`).
-  - [ ] 4.2 Public pool (self sign-up, email) via `defineAuth`.
-  - [ ] 4.3 Staff pool (invite only, TOTP MFA required, groups `hospital_staff`, `doctors`, `admins`, `custom:hospitalId`) added in `backend/amplify/backend.ts`; register both pools as AppSync sign-in providers. Fallback if it blocks progress: one pool with groups and MFA enforced in the hospital app's sign-in flow; split pools later.
-  - [ ] 4.4 Sign-in screens for each app; route hospital users by group.
+- [x] 4. Amplify Gen 2 with two user pools **P0**
+  - _Done: deployed to us-east-1 from `npm run sandbox` (CloudFormation `CREATE_COMPLETE` for auth, staff-auth and data); public pool, invite-only staff pool with TOTP MFA required and the `admins`, `hospital_staff` and `doctors` groups, both registered as AppSync sign-in providers; sign-in and sign-up screens with routing by group; tags `project=medora`, `stage`. Staff sign-in is exercised by `npm run test-logins`._
+  - [x] 4.1 Amplify Gen 2 in `backend/amplify/` (already scaffolded); deploy only to us-east-1 (`npm run sandbox` sets `AWS_REGION=us-east-1`); tags `project=medora`, `stage`. If CDK bootstrapping is blocked by the account's permissions, ask the organizers to bootstrap us-east-1, or deploy the same resources with AWS SAM (roles named `medora-*`).
+  - [x] 4.2 Public pool (self sign-up, email) via `defineAuth`.
+  - [x] 4.3 Staff pool (invite only, TOTP MFA required, groups `hospital_staff`, `doctors`, `admins`, `custom:hospitalId`) added in `backend/amplify/backend.ts`; register both pools as AppSync sign-in providers. Fallback if it blocks progress: one pool with groups and MFA enforced in the hospital app's sign-in flow; split pools later.
+  - [x] 4.4 Sign-in screens for each app; route hospital users by group.
   - _Requirements: 1.2, 1.3, 1.4, 1.5, 1.7, 22.3_
 
-- [ ] 5. Data models and seed **P0**
-  - [ ] 5.1 Models from `design.md` in `backend/amplify/data/resource.ts`: `Hospital`, `StatusItem`, `PublicDirectory`, `Specialist`, `ClinicSlot`, `CareRequest`, `Reservation`, `Message`, `Referral`, `AgentState`, `TraceStep`, `Transfer`, `Activity`, `Device`, `Metric`.
-  - [ ] 5.2 Authorization rules: public data and own records for patients; own hospital for staff; settings for admins only.
+- [x] 5. Data models and seed **P0**
+  - _Done: the models live in `backend/amplify/data/resource.ts` (`HospitalProfile`, `HospitalStatus`, `PublicDirectory`, `Specialist`, `CareRequest`, `Reservation`, `Message`, `Referral`, `TraceStep`, `Transfer`, `Activity`, `Device`); authorization is covered by `backend/tests/schemaSecurity.test.ts` and the handler tests; seed is `npm run seed`._
+  - [x] 5.1 Models from `design.md` in `backend/amplify/data/resource.ts`: `Hospital`, `StatusItem`, `PublicDirectory`, `Specialist`, `ClinicSlot`, `CareRequest`, `Reservation`, `Message`, `Referral`, `AgentState`, `TraceStep`, `Transfer`, `Activity`, `Device`, `Metric`.
+  - [x] 5.2 Authorization rules: public data and own records for patients; own hospital for staff; settings for admins only.
   - [x] 5.3 `scripts/seed.mjs` from `shared/data/hospitals.json` (with item owner units); `scripts/reset-demo.mjs`; `scripts/create-test-users.mjs` for both pools, including unit accounts: Rama Nine ward nurse (`ward`) and radiology technologist (`radiology`); Chao Phraya NICU nurse (`nicu`) and emergency charge nurse (`er`).
     _Done as `scripts/seed.ts` (`npm run seed`): 8 synthetic hospitals from `shared/data/hospitals.json` into your own sandbox; running it again resets them (so no separate reset script). Staff accounts: `scripts/create-test-users.mjs <hospital id>`._
   - _Requirements: 18.3, 15.1, 17.1_
@@ -54,11 +56,12 @@ Paths follow the npm workspaces layout in `AGENTS.md` section 6: `frontend/`, `b
 
 ## Milestone 3: Live hospital readiness (RC1)
 
-- [ ] 7. "My unit" screen for nurses and technologists **P0**
-  - [ ] 7.1 Add `custom:unit` to the staff pool; seed each hospital's status items with an owner unit.
-  - [ ] 7.2 `my-unit` screen: only items for the signed-in user's unit (ward ready beds; ICU or NICU cots; emergency open or diverting; CT and MRI; cath lab ready, busy with "free in about X minutes", or down; specialists on duty). Plus and minus buttons, switches, optional note; reserved beds shown separately.
-  - [ ] 7.3 Each update stores value, owner, source and time; freshness labels everywhere; "Still correct?" button.
-  - [ ] 7.4 Fallback: a general staff account per hospital can update every item.
+- [x] 7. "My unit" screen for nurses and technologists **P0**
+  - _Done in code and tests (`shared/tests/statusUpdate.test.ts`, `backend/amplify/functions/update-status`): `custom:unit` on the staff pool; `frontend/app/(staff)/status.tsx` shows only the signed-in unit's controls, plus and minus, switches, a note, held beds shown separately, freshness and "Yes, all correct"; the server checks hospital and unit on every change; `all` is the fallback account. Not yet driven by hand in a deployed sandbox._
+  - [x] 7.1 Add `custom:unit` to the staff pool; seed each hospital's status items with an owner unit.
+  - [x] 7.2 `my-unit` screen: only items for the signed-in user's unit (ward ready beds; ICU or NICU cots; emergency open or diverting; CT and MRI; cath lab ready, busy with "free in about X minutes", or down; specialists on duty). Plus and minus buttons, switches, optional note; reserved beds shown separately.
+  - [x] 7.3 Each update stores value, owner, source and time; freshness labels everywhere; "Still correct?" button.
+  - [x] 7.4 Fallback: a general staff account per hospital can update every item.
   - _Requirements: 9.1, 9.2, 9.3, 9.4, 19.1, 19.2, 19.8, 19.10_
 
 - [x] 8. Reservations **P1**
@@ -75,7 +78,8 @@ Paths follow the npm workspaces layout in `AGENTS.md` section 6: `frontend/`, `b
 
 ## Milestone 4: People seeking care (RC2, RC3, RC4)
 
-- [ ] 11. Home and location **P0** (RC2)
+- [x] 11. Home and location **P0** (RC2)
+  - _Done in code: GPS with permission handling and the out-of-Bangkok fallback, the built-in Bangkok place list, tap-the-map picking, Call 1669, and (new) Amazon Location place search through a `search-places` Lambda (patients only; `geo-places:SearchText` on the default provider; a fixed Bangkok rectangle, so only the typed text is sent and the patient's position stays on the phone; 3 characters minimum and a 500 ms pause in the app; failures fall back to the built-in list). Cost: nothing while idle, billed per search. Not yet run against a deployed sandbox: check that typing a place not in the built-in list (for example "CentralWorld") shows extra suggestions after the next deploy._
   - GPS with permission handling, place search (built-in Bangkok places plus Amazon Location), pick on map, Call 1669.
   - _Requirements: 3.1 to 3.6_
 
@@ -84,6 +88,7 @@ Paths follow the npm workspaces layout in `AGENTS.md` section 6: `frontend/`, `b
   - _Requirements: 4.1 to 4.5_
 
 - [x] 13. Find care **P0** (RC2)
+  - _Drive times in a patient's search now come from Amazon Location Routes v2 (the same single permission as the referral agent, in `find-care`); only the patient's position rounded to about 100 m is sent, nothing they wrote; if the call fails ranking uses the offline estimate (`backend/tests/adminAndFindCare.test.ts`; not yet run against AWS)._
   - `patient-understand` Lambda (Nova Lite, JSON output, keyword fallback); hospitals that can help now with simple labels; map; "skipped because" for closer hospitals; disclaimer.
   - _Requirements: 5.1 to 5.7_
 
@@ -113,7 +118,7 @@ Paths follow the npm workspaces layout in `AGENTS.md` section 6: `frontend/`, `b
   - _Requirements: 12.8, 18.6, 22.1, 22.2_
 
 - [x] 19. Agent and tools, first version **P0**
-  - _Done: `agent-runner` on Nova (greedy decoding, pathway enum), guardrail on the case input and on every update and reason it stores, `<thinking>` never stored; verified with a heart-attack referral (stemi, 2 hospitals asked in parallel, accepted by rule, recommended in 58 s). `ask_hospitals` returns as soon as every request has replied; Thai referral run verified (preterm, recommended in 18 s)._
+  - _Done: `agent-runner` on Nova (greedy decoding, pathway enum), guardrail on the case input and on every update and reason it stores, `<thinking>` never stored; verified with a heart-attack referral (stemi, 2 hospitals asked in parallel, accepted by rule, recommended in 58 s). `ask_hospitals` returns as soon as every request has replied; Thai referral run verified (preterm, recommended in 18 s). Drive times now come from Amazon Location Routes v2 (`geo-routes:CalculateRouteMatrix`, no resource of its own, falls back to the offline estimate; tested in `backend/tests/routes.test.ts`, not yet run against AWS)._
   - `agent-step` Lambda in `backend/amplify/functions/` (Nova Pro; Nova Lite while developing; the existing `agent-runner` is the starting point) with the Converse tool-use loop, greedy decoding on tool-calling turns, input validation that returns correctable errors, and tools `assess_case`, `rank_hospitals`, `ask_hospitals`, `recommend`, `report_no_placement`; in this first version the Lambda creates requests and waits for replies itself. Trace steps, timing, rule-based backup.
   - Replies in the doctor's language; at most 8 turns, a token cap per call and a daily run limit per user.
   - _Requirements: 12.1 to 12.7, 12.9, 12.10, 2.3, 16.2, 22.4_

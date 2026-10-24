@@ -5,6 +5,7 @@ import { careActions } from '../functions/care-actions/resource';
 import { referralActions } from '../functions/referral-actions/resource';
 import { specialistActions } from '../functions/specialist-actions/resource';
 import { findCare } from '../functions/find-care/resource';
+import { searchPlaces } from '../functions/search-places/resource';
 import { inviteStaff } from '../functions/invite-staff/resource';
 import { patientUnderstand } from '../functions/patient-understand/resource';
 import { registerHospital } from '../functions/register-hospital/resource';
@@ -414,6 +415,17 @@ const schema = a.schema({
     .returns(a.string())
     .authorization((allow) => [allow.group('admins')])
     .handler(a.handler.function(adminSettings)),
+
+  /**
+   * Place suggestions for the location picker (requirement 3.2): Amazon Location text search inside Bangkok.
+   * Patients only; only the typed text is sent, never their position (requirement 3.6).
+   */
+  searchPlaces: a
+    .query()
+    .arguments({ query: a.string().required(), lang: a.string() })
+    .returns(a.string())
+    .authorization((allow) => [allow.group('patients')])
+    .handler(a.handler.function(searchPlaces)),
 
   /** Emergency check (layer 2), intake agent and ranking: hospitals as simple labels only. */
   findCare: a

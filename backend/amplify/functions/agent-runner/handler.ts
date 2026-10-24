@@ -1,9 +1,10 @@
 import { getAmplifyDataClientConfig } from '@aws-amplify/backend/function/runtime';
 import { BedrockAgentRuntimeClient, RetrieveCommand } from '@aws-sdk/client-bedrock-agent-runtime';
 import { ApplyGuardrailCommand, BedrockRuntimeClient, ConverseCommand, type Message, type Tool } from '@aws-sdk/client-bedrock-runtime';
-import { CalculateRouteMatrixCommand, LocationClient } from '@aws-sdk/client-location';
+import { GeoRoutesClient } from '@aws-sdk/client-geo-routes';
 import { activeHolds, withHolds, type Reservation } from '@medora/shared/logic/reservations';
 import { pickModel } from './model';
+import { routeMinutes } from '../../lib/routes';
 import { createHash } from 'node:crypto';
 import { DEMO_HOSPITALS } from '@medora/shared/logic/demoHospitals';
 import { classifyReferralPathway } from '@medora/shared/logic/referral';
@@ -201,7 +202,7 @@ const DEMO_KEYS = new Map(DEMO_HOSPITALS.map((hospital) => [`H-${createHash('sha
 class AmplifyReferralStore implements ReferralStore {
   private traceNumber = 0;
   private hospitalsCache: AgentHospital[] | null = null;
-  private readonly location = new LocationClient({});
+  private readonly routes = new GeoRoutesClient({ maxAttempts: 2 });
   private readonly kb = new BedrockAgentRuntimeClient({});
 
   constructor(
@@ -243,29 +244,8 @@ class AmplifyReferralStore implements ReferralStore {
   }
 
   async routeMinutes(origin: { lat: number; lng: number }, destinations: AgentHospital[]): Promise<Record<string, number>> {
-    const calculator = process.env.ROUTE_CALCULATOR_NAME;
-    if (!calculator || destinations.length === 0) return {};
-    try {
-      const response = await this.location.send(
-        new CalculateRouteMatrixCommand({
-          CalculatorName: calculator,
-          DeparturePositions: [[origin.lng, origin.lat]],
-          DestinationPositions: destinations.map((hospital) => [hospital.lng, hospital.lat]),
-          TravelMode: 'Car',
-          DepartNow: true,
-        }),
-      );
-      const row = response.RouteMatrix?.[0] ?? [];
-      return Object.fromEntries(
-        destinations.flatMap((hospital, index) => {
-          const seconds = row[index]?.DurationSeconds;
-          return typeof seconds === 'number' && seconds >= 0 ? [[hospital.id, seconds / 60] as const] : [];
-        }),
-      );
-    } catch {
-      // Ranking falls back to its documented offline traffic estimate when Location is unavailable.
-      return {};
-    }
+    // Falls back to the offline estimate (an empty result) when Amazon Location is unavailable.
+    return routeMinutes((command, options) => this.routes.send(command, options), origin, destinations);
   }
 
   async requests(referralId: string): Promise<CareRequest[]> {
@@ -518,10 +498,10 @@ async function runModel(tools: ReferralTools, referral: ReferralRun, override?: 
 }
 
 async function markBackup(tools: ReferralTools): Promise<void> {
-  await tools.execute('report_no_placement', {
-    reason_en: 'The referral coordinator is temporarily unavailable. Please use the emergency process.',
-    reason_th: 'ระบบประสานงานการส่งต่อไม่พร้อมใช้งานชั่วคราว โปรดใช้กระบวนการฉุกเฉิน',
-  });
+  await tools.failClosed(
+    'The referral coordinator is temporarily unavailable. Please use the emergency process.',
+    'ระบบประสานงานการส่งต่อไม่พร้อมใช้งานชั่วคราว โปรดใช้กระบวนการฉุกเฉิน',
+  );
 }
 
 /** Async custom-mutation handler for `startReferral`. */
@@ -541,10 +521,10 @@ export const handler = async (event: StartReferralEvent): Promise<void> => {
   try {
     await store.activity({ en: 'Referral agent started', th: 'เริ่มเอเจนต์ส่งต่อแล้ว' });
     if (!(await hasDailyCapacity(client, referral, store.now()))) {
-      await tools.execute('report_no_placement', {
-        reason_en: 'Daily referral-run limit reached. Please use the hospital emergency process.',
-        reason_th: 'ถึงขีดจำกัดการส่งต่อรายวันแล้ว โปรดใช้กระบวนการฉุกเฉินของโรงพยาบาล',
-      });
+      await tools.failClosed(
+        'Daily referral-run limit reached. Please use the hospital emergency process.',
+        'ถึงขีดจำกัดการส่งต่อรายวันแล้ว โปรดใช้กระบวนการฉุกเฉินของโรงพยาบาล',
+      );
       return;
     }
     const modelCompleted = await runModel(tools, referral, event.evalModel);

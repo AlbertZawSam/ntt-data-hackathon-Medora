@@ -100,6 +100,13 @@ describe('report_no_placement', () => {
     expect(updates.some((u) => u.status === 'failed')).toBe(false);
   });
 
+  it('lets our own failure paths close the referral even before anyone was asked, which the model cannot do', async () => {
+    const { tools, updates, ids } = await start();
+    expect(ids.length).toBeGreaterThan(0);
+    await tools.failClosed('The coordinator is unavailable.', 'ระบบไม่พร้อมใช้งาน');
+    expect(updates.some((u) => u.status === 'failed')).toBe(true);
+  });
+
   it('accepts a no-placement report once the hospitals have been asked', async () => {
     jest.useFakeTimers();
     jest.setSystemTime(NOW);

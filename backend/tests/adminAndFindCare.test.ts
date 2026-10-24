@@ -5,12 +5,19 @@ jest.mock('@aws-amplify/backend/function/runtime', () => ({ getAmplifyDataClient
 jest.mock('aws-amplify', () => ({ Amplify: { configure: () => undefined } }));
 jest.mock('aws-amplify/data', () => ({ generateClient: () => fake.client }));
 
+const mockRoutesSend = jest.fn();
+jest.mock('@aws-sdk/client-geo-routes', () => ({
+  GeoRoutesClient: jest.fn(() => ({ send: (...args: unknown[]) => mockRoutesSend(...args) })),
+  CalculateRouteMatrixCommand: jest.fn((input: unknown) => ({ input })),
+}));
+
 import { handler as adminSettings } from '../amplify/functions/admin-settings/handler';
 import { handler as findCare } from '../amplify/functions/find-care/handler';
 
 const run = (h: unknown, event: unknown) => (h as (e: never, c: never, cb: never) => Promise<string>)(event as never, {} as never, (() => undefined) as never);
 
 beforeEach(() => {
+  mockRoutesSend.mockReset().mockRejectedValue(new Error('offline')); // default: no Amazon Location, so the estimate is used
   process.env.STAFF_USER_POOL_ID = POOLS.STAFF;
   delete process.env.MODEL_ID_FAST;
   delete process.env.GUARDRAIL_ID;
@@ -48,6 +55,20 @@ describe('findCare', () => {
     expect(out).toMatchObject({ need: 'child', aiUsed: false });
     const allowed = ['distanceKm', 'driveMin', 'id', 'label', 'lat', 'lng', 'name', 'skipped', 'skippedItem'];
     for (const h of out.hospitals) expect(Object.keys(h).every((k) => allowed.includes(k))).toBe(true); // no counts, faults or rosters
+  });
+  it('ranks with real Amazon Location drive times when they are available, and sends only a rounded position', async () => {
+    mockRoutesSend.mockResolvedValue({ RouteMatrix: [[{ Duration: 1_380 }]] });
+    const out = JSON.parse(await run(findCare, patientEvent('findCare', { ...args, lat: 13.756789, lng: 100.531234 })));
+    expect(out.hospitals[0].driveMin).toBe(23);
+    const sent = (mockRoutesSend.mock.calls[0][0] as { input: { Origins: Array<{ Position: number[] }> } }).input;
+    expect(sent.Origins).toEqual([{ Position: [100.531, 13.757] }]); // about 100 m, never the exact point
+    expect(JSON.stringify(sent)).not.toContain('fever'); // nothing the patient wrote is sent
+  });
+  it('falls back to the offline estimate when Amazon Location fails', async () => {
+    const out = JSON.parse(await run(findCare, patientEvent('findCare', { ...args, lat: 13.8, lng: 100.6 }))); // a few km from the hospital
+    expect(out.hospitals).toHaveLength(1);
+    expect(out.hospitals[0].driveMin).toBeGreaterThan(0);
+    expect(mockRoutesSend).toHaveBeenCalledTimes(1);
   });
   it('refuses non-patients and locations outside Bangkok', async () => {
     await expect(run(findCare, staffEvent('findCare', args, { groups: ['doctors'], hospitalId: 'H1' }))).rejects.toThrow('not-patient');
