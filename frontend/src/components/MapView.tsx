@@ -31,6 +31,11 @@ interface Props {
   accessibilityLabel: string;
 }
 
+/** Labels sit beside the marker, so long hospital names are cut to fit the map. */
+export function shortLabel(name: string, max = 16): string {
+  return name.length > max ? `${name.slice(0, max - 1).trimEnd()}…` : name;
+}
+
 export function MapView({ markers, route, onPick, height = 240, accessibilityLabel }: Props): React.JSX.Element {
   const theme = useTheme();
   const [width, setWidth] = React.useState(320);
@@ -85,7 +90,15 @@ export function MapView({ markers, route, onPick, height = 240, accessibilityLab
                 </>
               ) : null}
               {m.label ? (
-                <SvgText x={x + r + 3} y={y + 4} fontSize={11} fontFamily={fonts.medium} fill={theme.text}>
+                // Put the label on the left when it wouldn't fit to the right of the marker (about 6 px per character).
+                <SvgText
+                  x={x + r + 3 + m.label.length * 6 > width ? x - r - 3 : x + r + 3}
+                  textAnchor={x + r + 3 + m.label.length * 6 > width ? 'end' : 'start'}
+                  y={y + 4}
+                  fontSize={11}
+                  fontFamily={fonts.medium}
+                  fill={theme.text}
+                >
                   {m.label}
                 </SvgText>
               ) : null}

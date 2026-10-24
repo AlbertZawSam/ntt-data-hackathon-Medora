@@ -8,7 +8,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { parseDecisionRows, type DecisionRow } from '@medora/shared/logic/decisionTable';
 import type { Referral } from '@medora/shared/logic/types';
-import { MapView, type MapMarker, type MarkerKind } from '../../src/components/MapView';
+import { MapView, shortLabel, type MapMarker, type MarkerKind } from '../../src/components/MapView';
 import { pick, type StringKey } from '../../src/i18n/t';
 import {
   confirmReferral,
@@ -294,7 +294,7 @@ function referralMarkers(rows: DecisionRow[], origin: { lat: number; lng: number
   for (const row of rows) {
     if (row.lat === undefined || row.lng === undefined) continue;
     const kind: MarkerKind = row.chosen ? 'chosen' : !row.canHelp && row.reply === 'notAsked' ? 'no' : ROW_KIND[row.reply];
-    markers.push({ id: row.hospitalId, point: { lat: row.lat, lng: row.lng }, kind, label: row.chosen ? pick(row.name, lang) : undefined });
+    markers.push({ id: row.hospitalId, point: { lat: row.lat, lng: row.lng }, kind, label: row.chosen ? shortLabel(pick(row.name, lang)) : undefined });
   }
   return markers;
 }

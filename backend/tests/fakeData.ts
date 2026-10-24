@@ -35,7 +35,9 @@ const PUBLIC = 'us-east-1_PUBLIC';
 export const POOLS = { STAFF, PUBLIC };
 
 export const patientEvent = (fieldName: string, args: Record<string, unknown>, sub = 'p1') => ({
-  info: { fieldName },
+  // The shape Amplify Gen 2 function resolvers send: the field at the top level, no `info`.
+  typeName: 'Mutation',
+  fieldName,
   arguments: args,
   identity: { sub, claims: { iss: `https://cognito-idp.us-east-1.amazonaws.com/${PUBLIC}`, 'cognito:groups': ['patients'] } },
 });
@@ -45,7 +47,9 @@ export const staffEvent = (
   args: Record<string, unknown>,
   claims: { groups: string[]; hospitalId?: string; unit?: string; sub?: string },
 ) => ({
-  info: { fieldName },
+  // The shape Amplify Gen 2 function resolvers send: the field at the top level, no `info`.
+  typeName: 'Mutation',
+  fieldName,
   arguments: args,
   identity: {
     sub: claims.sub ?? 's1',

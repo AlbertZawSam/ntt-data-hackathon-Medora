@@ -446,6 +446,6 @@
   "doctor.transfers.back": "Back to referral",
   "doctor.transfers.error": "Could not update the transfer. Please retry.",
   "doctor.refer.mapYou": "Your hospital",
-  "doctor.refer.mapLegend": "Teal: recommended. Green accepted, amber waiting, red cross declined, grey cross can't help, small grey withdrawn.",
-  "doctor.transfers.ambulance": "Ambulance"
+  "doctor.refer.mapLegend": "Dashed line: route to the recommended hospital. Green accepted, amber waiting, crossed out declined or can't help, small grey withdrawn.",
+  "doctor.transfers.ambulance": "Orange dot: the ambulance on its way."
 }
