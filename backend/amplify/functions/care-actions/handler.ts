@@ -36,6 +36,7 @@ interface Client {
     Message: Model<{ id: string }>;
     Reservation: Model<Reservation> & { list(input: Record_): Promise<{ data: Reservation[]; errors?: unknown[] }> };
     Activity: Model<{ id: string }>;
+    Referral: Model<{ id: string; status: string; mode: string }>;
     Transfer: Model<{ id: string; status: string }> & {
       list(input: Record_): Promise<{ data: Array<{ id: string; status: string; toHospitalId: string }>; errors?: unknown[] }>;
     };
@@ -205,6 +206,7 @@ async function answerRequest(client: Client, event: AppSyncResolverEvent<Record_
     'save-failed',
   );
   if (action === 'accept') await hold(client, request);
+  if ((action === 'accept' || action === 'decline') && request.referralId) await answerDirectReferral(client, request.referralId, action);
   if (action === 'decline' || action === 'undo') await settle(client, request.id, 'released');
   if (action === 'arrived') {
     // The patient now occupies the bed: the hold becomes a used bed, so the count goes down by one.
@@ -217,6 +219,28 @@ async function answerRequest(client: Client, event: AppSyncResolverEvent<Record_
   await log(client, request.hospitalId, sub, `Unit: ${caller.unit ?? '-'}`, `หน่วย: ${caller.unit ?? '-'}`, `Request ${request.id}: ${action}`, `คำขอ ${request.id}: ${action}`);
   console.info(`care-actions answer ok: action=${action}`);
   return 'ok';
+}
+
+/**
+ * A doctor's direct referral waits for the receiving department: accepting makes it ready for the doctor
+ * to confirm the transfer; declining closes it so the doctor can choose another hospital. AI referrals are
+ * driven by the agent and left alone.
+ */
+async function answerDirectReferral(client: Client, referralId: string, action: 'accept' | 'decline'): Promise<void> {
+  const referral = await client.models.Referral.get({ id: referralId });
+  if (!referral.data || referral.data.mode !== 'direct' || referral.data.status !== 'running') return;
+  const accepted = action === 'accept';
+  const r = await client.models.Referral.update({
+    id: referralId,
+    status: accepted ? 'awaiting' : 'failed',
+    recommendedAtMs: Date.now(),
+    why: JSON.stringify(
+      accepted
+        ? { en: 'The receiving department accepted the patient. Confirm to start the transfer.', th: 'แผนกปลายทางตอบรับผู้ป่วยแล้ว ยืนยันเพื่อเริ่มการส่งต่อ' }
+        : { en: 'The receiving hospital declined. Choose another hospital.', th: 'โรงพยาบาลปลายทางปฏิเสธ โปรดเลือกโรงพยาบาลอื่น' },
+    ),
+  });
+  if (r.errors?.length) console.error('care-actions: referral update failed');
 }
 
 /** Whether the hospital could treat this request's need at the moment staff accept it (success metric). */

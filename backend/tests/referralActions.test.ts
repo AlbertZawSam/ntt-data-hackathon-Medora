@@ -121,3 +121,38 @@ describe('arriveTransfer', () => {
     expect(JSON.parse(String(fake.tables('HospitalStatus')[0].status)).beds).toBe(3);
   });
 });
+
+describe('referPatient (direct referral)', () => {
+  const open = (extra: Record<string, unknown> = {}) =>
+    JSON.stringify({ beds: 6, nicu: 0, depts: { ed: 'open', cardio: 'open' }, equip: {}, oncall: {}, rules: {}, conflict: false, updatedAt: new Date().toISOString(), ...extra });
+  beforeEach(() => {
+    fake.tables('HospitalProfile').push(
+      { id: 'H1', hospitalId: 'H1', name: '{"en":"Chao Phraya","th":"เจ้าพระยา"}', lat: 13.72, lng: 100.51, typicalWaitMin: 30 } as never,
+      { id: 'H2', hospitalId: 'H2', name: '{"en":"Rama Nine","th":"พระรามเก้า"}', lat: 13.75, lng: 100.56, typicalWaitMin: 25 } as never,
+    );
+    fake.tables('HospitalStatus').push({ id: 'H1', hospitalId: 'H1', status: open() } as never, { id: 'H2', hospitalId: 'H2', status: open() } as never);
+    fake.tables('CareRequest').push({ id: 'p1', type: 'visit', hospitalId: 'H1', ownerId: 'pt1', needKey: 'general', status: 'accepted', patient: '{"name":"Somchai","mode":"car","description":"chest pain"}' } as never);
+  });
+
+  it("sends my hospital's patient to Rama Nine Cardiology and waits for that department", async () => {
+    const id = await call(staffEvent('referPatient', { requestId: 'p1', toHospitalId: 'H2', department: 'cardiology' }, doctor));
+    expect(fake.tables('Referral').find((r) => r.id === id)).toMatchObject({ mode: 'direct', status: 'running', chosenId: 'H2', ownerId: 'd1', fromHospitalId: 'H1' });
+    const sent = fake.tables('CareRequest').find((r) => r.referralId === id)!;
+    expect(sent).toMatchObject({ hospitalId: 'H2', department: 'cardiology', status: 'waiting', type: 'referral' });
+    expect(JSON.parse(String(sent.patient))).toMatchObject({ name: 'Somchai', referredFrom: { en: 'Chao Phraya' } });
+  });
+
+  it("refuses another hospital's patient, my own hospital and a closed department", async () => {
+    fake.tables('CareRequest').push({ id: 'p9', type: 'visit', hospitalId: 'H2', ownerId: 'pt9', needKey: 'general', status: 'accepted', patient: '{}' } as never);
+    await expect(call(staffEvent('referPatient', { requestId: 'p9', toHospitalId: 'H2' }, doctor))).rejects.toThrow('not-your-patient');
+    await expect(call(staffEvent('referPatient', { requestId: 'p1', toHospitalId: 'H1' }, doctor))).rejects.toThrow('same-hospital');
+    await expect(call(staffEvent('referPatient', { requestId: 'p1', toHospitalId: 'H2', department: 'surgery' }, doctor))).rejects.toThrow('bad-department');
+    await expect(call(staffEvent('referPatient', { requestId: 'p1', toHospitalId: 'H2' }, { groups: ['hospital_staff'], hospitalId: 'H1', unit: 'er' }))).rejects.toThrow('not-doctor');
+  });
+
+  it('lists the other hospitals with public details only', async () => {
+    const list = JSON.parse(await call(staffEvent('referralTargets', {}, doctor)));
+    expect(list.map((t: { hospitalId: string }) => t.hospitalId)).toEqual(['H2']);
+    expect(list[0].details.bedsFree).toBe('6-10');
+  });
+});

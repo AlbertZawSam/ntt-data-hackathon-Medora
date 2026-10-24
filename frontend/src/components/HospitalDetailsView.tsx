@@ -22,7 +22,7 @@ const SYMBOL: Record<Level, string> = { good: '✓', some: '!', none: '✕' };
 const careLevel = (label: string): Level => (label === 'available' ? 'good' : label === 'limited' ? 'some' : 'none');
 const bedLevel = (beds: HospitalDetails['beds']): Level => (beds === 'available' ? 'good' : beds === 'limited' ? 'some' : 'none');
 
-export function HospitalDetailsView({ details, nowMs, need }: { details: HospitalDetails; nowMs: number; need?: NeedKey }): React.JSX.Element {
+export function HospitalDetailsView({ details, nowMs, need, showBooking = true }: { details: HospitalDetails; nowMs: number; need?: NeedKey; showBooking?: boolean }): React.JSX.Element {
   const t = useT();
   const theme = useTheme();
   const router = useRouter();
@@ -76,7 +76,7 @@ export function HospitalDetailsView({ details, nowMs, need }: { details: Hospita
         </>
       ) : null}
 
-      {details.clinic.length > 0 ? (
+      {showBooking && details.clinic.length > 0 ? (
         <>
           <Text style={[styles.heading, { color: theme.textMuted }]}>{t('details.clinicTitle')}</Text>
           {details.clinic.map((c, i) => (

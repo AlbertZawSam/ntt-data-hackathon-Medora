@@ -211,3 +211,19 @@ describe('a doctor referral sent to Cardiology', () => {
     expect(fake.tables('CareRequest').find((r) => r.id === 'ref-q')?.status).toBe('accepted');
   });
 });
+
+describe('the receiving department answers a direct referral', () => {
+  const cardio = { groups: ['hospital_staff'], hospitalId: 'H1', unit: 'cardiology' };
+  beforeEach(() => {
+    fake.tables('Referral').push({ id: 'dr1', mode: 'direct', status: 'running' } as never);
+    fake.tables('CareRequest').push({ id: 'dq', type: 'referral', hospitalId: 'H1', ownerId: 'd1', needKey: 'general', status: 'waiting', auto: false, referralId: 'dr1', department: 'cardiology', createdAtMs: Date.now() } as never);
+  });
+  it('accepting makes the referral ready for the doctor to confirm', async () => {
+    await call(staffEvent('answerRequest', { requestId: 'dq', action: 'accept' }, cardio));
+    expect(fake.tables('Referral').find((r) => r.id === 'dr1')?.status).toBe('awaiting');
+  });
+  it('declining closes it so the doctor can choose another hospital', async () => {
+    await call(staffEvent('answerRequest', { requestId: 'dq', action: 'decline', reason: 'busy' }, cardio));
+    expect(fake.tables('Referral').find((r) => r.id === 'dr1')?.status).toBe('failed');
+  });
+});

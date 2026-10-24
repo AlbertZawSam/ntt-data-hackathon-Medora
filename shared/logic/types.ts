@@ -187,7 +187,8 @@ export interface Referral {
   lang: 'en' | 'th';
   pathway?: string;
   status: ReferralStatus;
-  mode: 'ai' | 'rules';
+  /** `direct`: the doctor chose the hospital; `ai`: the agent found it; `rules`: the rule-based backup. */
+  mode: 'ai' | 'rules' | 'direct';
   chosenId?: string;
   chosenName?: Bi;
   etaMin?: number;

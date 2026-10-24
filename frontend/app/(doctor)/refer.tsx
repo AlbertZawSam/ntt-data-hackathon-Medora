@@ -7,12 +7,14 @@ import { useRouter, type Href } from 'expo-router';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { parseDecisionRows, type DecisionRow } from '@medora/shared/logic/decisionTable';
-import type { Referral } from '@medora/shared/logic/types';
+import type { CareRequest, Referral } from '@medora/shared/logic/types';
 import { MapView, shortLabel, type MapMarker, type MarkerKind } from '../../src/components/MapView';
 import { MessageThread } from '../../src/components/MessageThread';
+import { ReferPanel } from '../../src/components/ReferPanel';
 import { pick, type StringKey } from '../../src/i18n/t';
 import {
   confirmReferral,
+  referPatient,
   SET_ASIDE_REASONS,
   setAsideReferral,
   startReferral,
@@ -72,12 +74,39 @@ export default function DoctorReferScreen(): React.JSX.Element {
   const [deciding, setDeciding] = React.useState(false);
   const [askReason, setAskReason] = React.useState(false);
   const [now, setNow] = React.useState(Date.now());
+  const [referringId, setReferringId] = React.useState<string | null>(null);
+  const [showAi, setShowAi] = React.useState(false);
+  const [showOther, setShowOther] = React.useState(false);
+
+  // Patients whose requests reached this hospital: the doctor refers one of them to another hospital.
+  const patients = React.useMemo(
+    () =>
+      data.careRequests
+        .filter((r) => r.hospitalId === session?.hospitalId && r.type !== 'booking' && ['waiting', 'accepted', 'completed'].includes(r.status))
+        .sort((a, b) => b.createdAtMs - a.createdAtMs),
+    [data.careRequests, session?.hospitalId],
+  );
+  const patientName = (r: CareRequest): string => r.patient.name || t('doctor.patients.unnamed');
+
+  const sendDirect = async (r: CareRequest, toHospitalId: string, department: string | undefined): Promise<void> => {
+    const id = await referPatient({ requestId: r.id, toHospitalId, department });
+    setActiveId(id);
+    setReferringId(null);
+  };
+  const askAi = async (r: CareRequest): Promise<void> => {
+    if (!session) return;
+    const id = await startReferral(session, { text: r.patient.description, lang });
+    setActiveId(id);
+    setReferringId(null);
+    setNow(Date.now());
+  };
 
   const owned = React.useMemo(
     () => data.referrals.filter((item) => item.ownerId === session?.userId).sort((left, right) => right.startedAtMs - left.startedAtMs),
     [data.referrals, session?.userId],
   );
-  const referral = activeId ? (owned.find((item) => item.id === activeId) ?? null) : (owned[0] ?? null);
+  // Only a referral still in progress shows at the top, unless the doctor opens a past one from the list.
+  const referral = activeId ? (owned.find((item) => item.id === activeId) ?? null) : (owned.find((item) => item.status === 'running' || item.status === 'awaiting') ?? null);
   const trace = React.useMemo(
     () => (referral ? data.traceSteps.filter((step) => step.referralId === referral.id).sort((left, right) => left.n - right.n) : []),
     [data.traceSteps, referral],
@@ -89,6 +118,7 @@ export default function DoctorReferScreen(): React.JSX.Element {
   // The chosen hospital's request carries its staff's messages to the doctor (read-only here).
   const chosenRequest = data.careRequests.find((r) => r.referralId === referral?.id && r.hospitalId === referral?.chosenId);
   const byRules = trace.some((step) => step.kind === 'backup');
+  const direct = referral?.mode === 'direct';
   const running = referral?.status === 'running';
 
   // The elapsed counter ticks while the agent works.
@@ -127,6 +157,7 @@ export default function DoctorReferScreen(): React.JSX.Element {
     if (!session) return;
     setDeciding(true);
     setError(null);
+    setActiveId(target.id); // keep showing it after it's confirmed, with the link to transfer tracking
     void confirmReferral(session, target)
       .catch(() => setError(t('doctor.refer.transferError')))
       .finally(() => setDeciding(false));
@@ -157,6 +188,7 @@ export default function DoctorReferScreen(): React.JSX.Element {
 
   const form = (
     <Card padding="lg">
+      <Text style={[styles.label, { color: theme.text }]}>{t('doctor.refer.otherPatientHint')}</Text>
       <View style={styles.row}>
         <Badge tone="info" icon="sparkles" label={t('doctor.refer.agentBadge')} />
       </View>
@@ -208,7 +240,7 @@ export default function DoctorReferScreen(): React.JSX.Element {
           <View style={styles.between}>
             <View style={styles.row}>
               {STATUS_LOOK[referral.status] ? <Badge tone={STATUS_LOOK[referral.status].tone} icon={STATUS_LOOK[referral.status].icon} label={t(STATUS_LOOK[referral.status].key)} /> : null}
-              <Badge tone="neutral" icon={byRules ? 'git-branch' : 'sparkles'} label={t(byRules ? 'doctor.refer.byRules' : 'doctor.refer.byAgent')} />
+              <Badge tone="neutral" icon={direct ? 'person' : byRules ? 'git-branch' : 'sparkles'} label={t(direct ? 'doctor.refer.byYou' : byRules ? 'doctor.refer.byRules' : 'doctor.refer.byAgent')} />
             </View>
             <View style={styles.row}>
               <Icon name="stopwatch-outline" size={18} color={theme.textMuted} />
@@ -216,6 +248,12 @@ export default function DoctorReferScreen(): React.JSX.Element {
             </View>
           </View>
           {referral.text ? <Text numberOfLines={2} style={[styles.muted, { color: theme.textMuted }]}>{referral.text}</Text> : null}
+          {direct && referral.status === 'running' ? (
+            <Notice tone="info" title={t('doctor.refer.waitingFor', {
+              hospital: referral.chosenName ? pick(referral.chosenName, lang) : '',
+              department: chosenRequest?.department ? t(`department.short.${chosenRequest.department}` as StringKey) : t('department.short.general'),
+            })} />
+          ) : null}
         </Card>
       </Reveal>
 
@@ -223,19 +261,19 @@ export default function DoctorReferScreen(): React.JSX.Element {
         <Reveal index={1}>
           <Card padding="lg" selected tone="primary">
             <View style={styles.row}>
-              <Badge tone="primary" icon="star" label={t('doctor.refer.recommendationTitle')} />
+              <Badge tone="primary" icon={direct ? 'checkmark-circle' : 'star'} label={t(direct ? 'doctor.refer.acceptedReady' : 'doctor.refer.recommendationTitle')} />
             </View>
             <Text accessibilityRole="header" style={[styles.chosenName, { color: theme.text }]}>
               {referral.chosenName ? pick(referral.chosenName, lang) : t('doctor.refer.noHospital')}
             </Text>
             <View style={styles.row}>
               {referral.etaMin !== undefined && referral.etaMin !== null ? <Badge tone="info" icon="car" label={t('doctor.refer.eta', { min: referral.etaMin })} /> : null}
-              {referral.recommendedAtMs !== undefined && referral.recommendedAtMs !== null ? (
+              {!direct && referral.recommendedAtMs !== undefined && referral.recommendedAtMs !== null ? (
                 <Badge tone="neutral" icon="flash" label={t('doctor.refer.timeToRecommendation', { seconds: elapsedSeconds })} />
               ) : null}
             </View>
             {referral.why ? <Text style={[styles.body, { color: theme.text }]}>{pick(referral.why, lang)}</Text> : null}
-            <Notice tone="info" title={t('doctor.refer.decisionNote')} />
+            <Notice tone="info" title={t(direct ? 'doctor.refer.decisionNoteDirect' : 'doctor.refer.decisionNote')} />
             <Button size="lg" icon="checkmark-done" label={t('doctor.refer.confirmTransfer')} busy={deciding} onPress={() => confirm(referral)} />
             {askReason ? (
               <View style={styles.stack}>
@@ -270,6 +308,11 @@ export default function DoctorReferScreen(): React.JSX.Element {
       {referral.status === 'set_aside' ? <Notice tone="neutral">{t('doctor.refer.setAsideDone')}</Notice> : null}
       {referral.status === 'failed' && referral.why ? <Notice tone="danger">{pick(referral.why, lang)}</Notice> : null}
 
+      {!direct ? (
+        <Button variant="ghost" icon={showAi ? 'chevron-up' : 'sparkles-outline'} label={t(showAi ? 'doctor.refer.hideAi' : 'doctor.refer.showAi')} onPress={() => setShowAi(!showAi)} />
+      ) : null}
+      {!direct && showAi ? (
+      <>
       <Card padding="lg">
         <SectionHeader title={t('doctor.refer.traceTitle')} />
         {steps.length === 0 ? <Text style={[styles.muted, { color: theme.textMuted }]}>{t('doctor.refer.noTrace')}</Text> : <Timeline steps={steps} />}
@@ -295,8 +338,50 @@ export default function DoctorReferScreen(): React.JSX.Element {
           <DecisionLine key={row.hospitalId} row={row} />
         ))}
       </Card>
+      </>
+      ) : null}
     </View>
   ) : null;
+
+  const patientsSection = (
+    <Card padding="lg">
+      <SectionHeader title={t('doctor.patients.title')} />
+      {patients.length === 0 ? <Text style={[styles.muted, { color: theme.textMuted }]}>{t('doctor.patients.empty')}</Text> : null}
+      {patients.map((r) =>
+        referringId === r.id ? (
+          <ReferPanel
+            key={r.id}
+            patientName={patientName(r)}
+            onSend={(target, department) => sendDirect(r, target.hospitalId, department)}
+            onUseAi={() => askAi(r)}
+            onClose={() => setReferringId(null)}
+          />
+        ) : (
+          <View key={r.id} style={[styles.patient, { borderColor: theme.border }]}>
+            <View style={styles.between}>
+              <Text style={[styles.patientName, { color: theme.text }]}>{patientName(r)}</Text>
+              <Badge tone={r.status === 'waiting' ? 'warning' : 'success'} label={t(`request.status.${r.status}` as StringKey)} />
+            </View>
+            <View style={styles.row}>
+              {r.patient.phone ? <Badge tone="neutral" icon="call" label={r.patient.phone} /> : null}
+              {r.department ? <Badge tone="primary" icon="medkit" label={t(`department.short.${r.department}` as StringKey)} /> : null}
+              {r.patient.referredFrom ? <Badge tone="info" icon="git-network" label={t('staff.inbox.referralFrom', { hospital: pick(r.patient.referredFrom, lang) })} /> : null}
+            </View>
+            {/* Patient text is data, shown as plain text and never interpreted. */}
+            <Text style={[styles.body, { color: theme.text }]}>{r.patient.description}</Text>
+            <Button icon="git-network" label={t('doctor.patients.refer')} onPress={() => setReferringId(r.id)} />
+          </View>
+        ),
+      )}
+    </Card>
+  );
+
+  const other = (
+    <View style={styles.stack}>
+      <Button variant="ghost" icon={showOther ? 'chevron-up' : 'add-circle-outline'} label={t('doctor.refer.otherPatient')} onPress={() => setShowOther(!showOther)} />
+      {showOther ? form : null}
+    </View>
+  );
 
   const recent =
     owned.length > 1 ? (
@@ -332,7 +417,8 @@ export default function DoctorReferScreen(): React.JSX.Element {
       {wide ? (
         <View style={styles.columns}>
           <View style={styles.sideColumn}>
-            {form}
+            {patientsSection}
+            {other}
             {recent}
           </View>
           <View style={styles.mainColumn}>
@@ -345,8 +431,9 @@ export default function DoctorReferScreen(): React.JSX.Element {
         </View>
       ) : (
         <View style={styles.stack}>
-          {form}
           {live}
+          {patientsSection}
+          {other}
           {recent}
         </View>
       )}
@@ -403,6 +490,8 @@ function DecisionLine({ row }: { row: DecisionRow }): React.JSX.Element {
 }
 
 const styles = StyleSheet.create({
+  patient: { borderWidth: 1, borderRadius: radii.md, padding: spacing.md, gap: spacing.sm },
+  patientName: { flex: 1, fontSize: fontSizes.md, fontFamily: fonts.semibold },
   flex: { flex: 1 },
   stack: { gap: spacing.md },
   row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm },

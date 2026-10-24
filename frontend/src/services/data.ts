@@ -24,6 +24,7 @@ import type {
   TraceStep,
   Transfer,
 } from '@medora/shared/logic/types';
+import type { ReferralTarget } from '@medora/shared/logic/directReferral';
 import type { HospitalInput } from '@medora/shared/logic/hospital';
 import { parsePublicEntry, type PublicEntry } from '@medora/shared/logic/publicDirectory';
 import type { UnderstandResult } from '@medora/shared/logic/understand';
@@ -76,6 +77,7 @@ interface Client {
     answerRequest: (input: { requestId: string; action: string; reason?: string; note?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     sendMessage: (input: { requestId: string; key?: string; text?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     openReferral: (input: { text: string; onsetMin?: number; lang: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
+    referPatient: (input: { requestId: string; toHospitalId: string; department?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     decideReferral: (input: { referralId: string; decision: string; reason?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     arriveTransfer: (input: { transferId: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     saveSpecialist: (input: { id?: string; name: string; specialty: string; languages: string[]; namePublic: boolean; slots: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
@@ -85,6 +87,7 @@ interface Client {
     inviteStaff: (input: { email: string; group: string; unit?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
   };
   queries: {
+    referralTargets: () => Promise<{ data?: string | null; errors?: unknown[] }>;
     understandNeed: (input: { text: string; lang?: string }) => Promise<{ data?: unknown; errors?: unknown[] }>;
     findSpecialists: (input: { lat: number; lng: number; specialty?: string; language?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     findCare: (input: { description: string; lat: number; lng: number }) => Promise<{ data?: string | null; errors?: unknown[] }>;
@@ -258,6 +261,21 @@ export class DataServiceError extends Error {
 
 function ensureData(result: { errors?: unknown[] }, action: string): void {
   if (result.errors?.length) throw new DataServiceError(`${action} failed.`);
+}
+
+/** Doctors: the other hospitals they can refer to, nearest first, with the public details only. */
+export async function referralTargets(): Promise<ReferralTarget[]> {
+  const result = await client.queries.referralTargets();
+  ensureData(result, 'Referral targets');
+  return result.data ? (JSON.parse(result.data) as ReferralTarget[]) : [];
+}
+
+/** Doctors: refer a patient of their hospital to a hospital and department they chose; returns the referral id. */
+export async function referPatient(input: { requestId: string; toHospitalId: string; department?: string }): Promise<string> {
+  const result = await client.mutations.referPatient({ requestId: input.requestId, toHospitalId: input.toHospitalId, ...(input.department ? { department: input.department } : {}) });
+  ensureData(result, 'Refer patient');
+  if (!result.data) throw new DataServiceError('Refer patient failed.');
+  return result.data;
 }
 
 /** Creates the referral on the server (which checks the doctor), then invokes the bounded, asynchronous coordinator. */

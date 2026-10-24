@@ -11,6 +11,8 @@ export default function StaffLayout(): React.JSX.Element {
       <Tabs.Screen name="status" options={{ title: t('staff.status.myUnit'), tabBarIcon: tabIcon('bed-outline', 'bed') }} />
       <Tabs.Screen name="inbox" options={{ title: t('staff.inbox.title'), tabBarIcon: tabIcon('mail-outline', 'mail') }} />
       <Tabs.Screen name="activity" options={{ title: t('doctor.tab.activity'), tabBarIcon: tabIcon('list-outline', 'list') }} />
+      {/* Opened from an Inbox card; not a tab (ShellTabBar needs both settings to hide it). */}
+      <Tabs.Screen name="referral" options={{ href: null, tabBarStyle: { display: 'none' } }} />
     </RoleTabs>
   );
 }
