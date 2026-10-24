@@ -53,8 +53,14 @@ describe('findCare', () => {
   it('returns hospitals as simple labels only, with the keyword fallback when no guardrail is set', async () => {
     const out = JSON.parse(await run(findCare, patientEvent('findCare', args)));
     expect(out).toMatchObject({ need: 'child', aiUsed: false });
-    const allowed = ['distanceKm', 'driveMin', 'id', 'label', 'lat', 'lng', 'name', 'skipped', 'skippedItem'];
+    const allowed = ['details', 'distanceKm', 'driveMin', 'id', 'label', 'lat', 'lng', 'name', 'skipped', 'skippedItem'];
     for (const h of out.hospitals) expect(Object.keys(h).every((k) => allowed.includes(k))).toBe(true); // no counts, faults or rosters
+    // Hospital details are labels too: beds as a word, specialties on duty (never names), bookable clinic specialists.
+    for (const h of out.hospitals) {
+      expect(Object.keys(h.details).sort()).toEqual(['beds', 'care', 'clinic', 'edOpen', 'onDuty', 'typicalWaitMin', 'updatedAt']);
+      expect(['available', 'limited', 'full']).toContain(h.details.beds);
+      expect(JSON.stringify(h.details)).not.toMatch(/"(nicu|equip|oncall|notes|meta|rules|icu)"/);
+    }
   });
   it('ranks with real Amazon Location drive times when they are available, and sends only a rounded position', async () => {
     mockRoutesSend.mockResolvedValue({ RouteMatrix: [[{ Duration: 1_380 }]] });

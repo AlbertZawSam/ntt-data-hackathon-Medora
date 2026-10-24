@@ -10,6 +10,7 @@ import { ARRIVAL_MODES, type ArrivalMode, type PublicHospital } from '@medora/sh
 import type { NeedKey } from '@medora/shared/logic/types';
 import type { Bi } from '@medora/shared/logic/types';
 import { pick, type StringKey } from '../../src/i18n/t';
+import { HospitalDetailsView } from '../../src/components/HospitalDetailsView';
 import { MapView, type MapMarker } from '../../src/components/MapView';
 import { findCare, submitRequest } from '../../src/services/data';
 import { setLastResults } from '../../src/services/lastResults';
@@ -45,6 +46,7 @@ export default function PatientCareScreen(): React.JSX.Element {
   const [summary, setSummary] = React.useState<Bi | undefined>(undefined);
   const [hospitals, setHospitals] = React.useState<PublicHospital[]>([]);
   const [selected, setSelected] = React.useState<PublicHospital | null>(null);
+  const [detailsFor, setDetailsFor] = React.useState<string | null>(null);
   const [mode, setMode] = React.useState<ArrivalMode>('car');
   const [name, setName] = React.useState('');
   const [phone, setPhone] = React.useState('');
@@ -143,6 +145,14 @@ export default function PatientCareScreen(): React.JSX.Element {
               <Text style={[styles.label, { color: h.label === 'available' ? theme.success : h.label === 'notAvailable' ? theme.emergency : theme.warning }]}>
                 {t(LABEL_KEY[h.label])}
               </Text>
+              {h.details ? (
+                <Button
+                  variant="link"
+                  label={t(detailsFor === h.id ? 'details.hide' : 'details.button')}
+                  onPress={() => setDetailsFor(detailsFor === h.id ? null : h.id)}
+                />
+              ) : null}
+              {h.details && detailsFor === h.id ? <HospitalDetailsView details={h.details} nowMs={Date.now()} need={need} /> : null}
               {h.label === 'notAvailable' ? (
                 <Text style={[styles.note, { color: theme.textMuted }]}>{t('patient.care.skippedBecause', { reason: t('failure.simple') })}</Text>
               ) : (

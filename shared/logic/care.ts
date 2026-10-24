@@ -8,6 +8,7 @@ import { pathwayForNeed } from './pathways';
 import { dataAgeMin, failsFor, freeBeds, freeNicu } from './ranking';
 import { ruleAccepts } from './rules';
 import type { CareRequest, CareRequestStatus, HospitalStatus, NeedKey, Pathway, RankedHospital } from './types';
+import type { HospitalDetails } from './hospitalDetails';
 
 /** Staff can undo an automatic acceptance for this long (AGENTS.md section 4, rule 3). */
 export const UNDO_WINDOW_MS = 60_000;
@@ -168,6 +169,8 @@ export interface PublicHospital {
   skipped?: Array<'dept' | 'equip' | 'onDuty' | 'beds' | 'nicu' | 'tooFar'>;
   /** Failure item for the first skipped reason, e.g. a department key, so the text can name it. */
   skippedItem?: string;
+  /** What the patient sees under "Hospital details": labels only (see hospitalDetails.ts). */
+  details?: HospitalDetails;
 }
 
 export function toPublicHospital(row: RankedHospital, pathway: Pathway): PublicHospital {
