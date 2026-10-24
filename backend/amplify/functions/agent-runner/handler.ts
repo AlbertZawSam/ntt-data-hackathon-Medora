@@ -3,7 +3,7 @@ import { BedrockAgentRuntimeClient, RetrieveCommand } from '@aws-sdk/client-bedr
 import { ApplyGuardrailCommand, BedrockRuntimeClient, ConverseCommand, type Message, type Tool } from '@aws-sdk/client-bedrock-runtime';
 import { GeoRoutesClient } from '@aws-sdk/client-geo-routes';
 import { activeHolds, withHolds, type Reservation } from '@medora/shared/logic/reservations';
-import { pickModel } from './model';
+import { NUDGE_TEXT, afterTurn, pickModel } from './model';
 import { routeMinutes } from '../../lib/routes';
 import { createHash } from 'node:crypto';
 import { DEMO_HOSPITALS } from '@medora/shared/logic/demoHospitals';
@@ -445,6 +445,7 @@ async function runModel(tools: ReferralTools, referral: ReferralRun, override?: 
   const messages: Message[] = [{ role: 'user', content: [{ guardContent: { text: { text: caseText } } }] }];
   const started = Date.now();
   let finished = false;
+  let nudges = 0;
 
   for (let turn = 0; turn < MAX_MODEL_TURNS && Date.now() - started < MAX_RUN_MS && !finished; turn += 1) {
     const response = await bedrock.send(
@@ -491,7 +492,17 @@ async function runModel(tools: ReferralTools, referral: ReferralRun, override?: 
       if (REASON_TOOLS.has(name) && result.ok === true) finished = true;
       results.push({ toolResult: { toolUseId, content: [{ json: result as never }], status: result.ok ? 'success' : 'error' } });
     }
-    if (results.length === 0) break;
+    // One line per turn for tuning: the stop reason and the names of our own tools, never any text.
+    const used = (message.content ?? []).flatMap((block) => ('toolUse' in block && block.toolUse?.name ? [block.toolUse.name] : []));
+    console.info(`agent-runner: turn=${turn + 1} stop=${response.stopReason ?? 'none'} tools=${used.join(',') || 'none'} nudges=${nudges}`);
+    const next = afterTurn({ toolResults: results.length, nudges });
+    if (next === 'stop') break;
+    if (next === 'nudge') {
+      // A turn with words only is not the end: remind the model of the next tool (a fixed text), then carry on.
+      nudges += 1;
+      messages.push({ role: 'user', content: [{ text: NUDGE_TEXT }] });
+      continue;
+    }
     messages.push({ role: 'user', content: results });
   }
   return finished;

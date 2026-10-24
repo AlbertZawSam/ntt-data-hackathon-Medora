@@ -146,8 +146,20 @@ async function main(): Promise<void> {
       names.push(...(page.Functions ?? []).flatMap((f) => (f.FunctionName && /amplify-medorabackend.*agentrunner/i.test(f.FunctionName) ? [f.FunctionName] : [])));
       marker = page.NextMarker;
     } while (marker);
-    if (names.length !== 1) throw new Error(`Found ${names.length} agent-runner functions (${names.join(', ') || 'none'}). Pass --function <name>.`);
-    functionName = names[0];
+    // Several people can have a sandbox in the same account. Each sandbox has its own knowledge base, whose id is in
+    // frontend/amplify_outputs.json and on its agent, so that picks yours and never invokes someone else's agent.
+    let candidates = names;
+    const ownKb = (JSON.parse(readFileSync(resolve('frontend/amplify_outputs.json'), 'utf8')) as { custom?: { knowledgeBase?: { knowledgeBaseId?: string } } }).custom?.knowledgeBase?.knowledgeBaseId;
+    if (candidates.length > 1 && ownKb) {
+      const matching: string[] = [];
+      for (const name of candidates) {
+        const found = await lambda.send(new GetFunctionConfigurationCommand({ FunctionName: name }));
+        if (found.Environment?.Variables?.KB_ID === ownKb) matching.push(name);
+      }
+      candidates = matching;
+    }
+    if (candidates.length !== 1) throw new Error(`Found ${names.length} agent-runner functions (${names.join(', ') || 'none'}) and ${candidates.length} match your sandbox. Pass --function <name>.`);
+    functionName = candidates[0];
   }
   const config = await lambda.send(new GetFunctionConfigurationCommand({ FunctionName: functionName }));
   const env = config.Environment?.Variables ?? {};
