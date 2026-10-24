@@ -8,6 +8,7 @@ import type { Reservation } from '@medora/shared/logic/reservations';
 import type { PublicSpecialist, Slot } from '@medora/shared/logic/specialists';
 import type { ArrivalMode, PublicHospital, QuickReplyKey } from '@medora/shared/logic/care';
 import { parseFoundPlaces, type FoundPlace } from '@medora/shared/logic/placeSearch';
+import { parseRoutePath } from '@medora/shared/logic/routePath';
 import { SET_ASIDE_REASONS, type SetAsideReason } from '@medora/shared/logic/referral';
 import type {
   AutoAcceptRules,
@@ -92,6 +93,7 @@ interface Client {
     findSpecialists: (input: { lat: number; lng: number; specialty?: string; language?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     findCare: (input: { description: string; lat: number; lng: number }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     searchPlaces: (input: { query: string; lang?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
+    routePath: (input: { fromLat: number; fromLng: number; toLat: number; toLng: number }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     mapConfig: () => Promise<{ data?: string | null; errors?: unknown[] }>;
   };
 }
@@ -403,6 +405,20 @@ export async function searchPlacesRemote(query: string, lang: 'en' | 'th'): Prom
     const result = await client.queries.searchPlaces({ query, lang });
     if (result.errors?.length || !result.data) return [];
     return parseFoundPlaces(JSON.parse(result.data) as unknown);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * The road route between two points for the map line, as points; empty when it isn't available, in which case the
+ * map draws a straight line. Only the two positions are sent.
+ */
+export async function fetchRoutePath(from: { lat: number; lng: number }, to: { lat: number; lng: number }): Promise<{ lat: number; lng: number }[]> {
+  try {
+    const result = await client.queries.routePath({ fromLat: from.lat, fromLng: from.lng, toLat: to.lat, toLng: to.lng });
+    if (result.errors?.length || !result.data) return [];
+    return parseRoutePath(JSON.parse(result.data) as unknown);
   } catch {
     return [];
   }

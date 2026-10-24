@@ -6,7 +6,7 @@
 import { useRouter, type Href } from 'expo-router';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { LANGUAGES, SPECIALTIES, specialtyForNeed, type PublicSpecialist } from '@medora/shared/logic/specialists';
+import { LANGUAGES, SPECIALTIES, matchesSpecialistQuery, specialtyForNeed, type PublicSpecialist } from '@medora/shared/logic/specialists';
 import { pick, type StringKey } from '../../src/i18n/t';
 import { LocationChip } from '../../src/components/LocationChip';
 import { MapView } from '../../src/components/MapView';
@@ -18,6 +18,7 @@ import { Badge, Chip } from '../../src/ui/Badge';
 import { Button } from '../../src/ui/Button';
 import { Card } from '../../src/ui/Card';
 import { EmptyState } from '../../src/ui/EmptyState';
+import { Field } from '../../src/ui/Field';
 import { Icon, type IconName } from '../../src/ui/Icon';
 import { Notice } from '../../src/ui/Notice';
 import { Page } from '../../src/ui/Page';
@@ -42,7 +43,9 @@ export default function PatientSpecialistsScreen(): React.JSX.Element {
   const wide = useBreakpoint() === 'expanded';
   const { lang } = useApp();
   const location = useChosenLocation();
-  const [specialty, setSpecialty] = React.useState<string>(specialtyForNeed(getLastNeed()));
+  // A chosen specialty chip, or none: typing a search or tapping "All" looks across every specialty.
+  const [specialty, setSpecialty] = React.useState<string | undefined>(specialtyForNeed(getLastNeed()));
+  const [typed, setTyped] = React.useState('');
   const [language, setLanguage] = React.useState<string | undefined>(lang);
   const [list, setList] = React.useState<PublicSpecialist[] | null>(null);
   const [busy, setBusy] = React.useState(false);
@@ -53,13 +56,16 @@ export default function PatientSpecialistsScreen(): React.JSX.Element {
     setBusy(true);
     setError(null);
     try {
-      setList(await findSpecialists({ lat: location.lat, lng: location.lng, specialty, ...(language ? { language } : {}) }));
+      const found = await findSpecialists({ lat: location.lat, lng: location.lng, ...(specialty ? { specialty } : {}), ...(language ? { language } : {}) });
+      // The typed words are matched here against specialty (and its everyday words, in English and Thai), the doctor's
+      // name when shown, the hospital and the language.
+      setList(found.filter((item) => matchesSpecialistQuery(item, typed, [t(`specialty.${item.specialty}` as StringKey)])));
     } catch {
       setError('patient.specialists.searchError');
     } finally {
       setBusy(false);
     }
-  }, [location.lat, location.lng, specialty, language]);
+  }, [location.lat, location.lng, specialty, language, typed, t]);
 
   const book = async (s: PublicSpecialist, slotId: string): Promise<void> => {
     setError(null);
@@ -141,7 +147,21 @@ export default function PatientSpecialistsScreen(): React.JSX.Element {
       <Card padding="lg">
         <LocationChip />
         <Text accessibilityRole="header" style={[styles.label, { color: theme.text }]}>{t('patient.specialists.specialtyLabel')}</Text>
+        <Field
+          label={t('patient.specialists.queryLabel')}
+          hint={t('patient.specialists.queryHint')}
+          icon="search"
+          value={typed}
+          onChangeText={(text) => {
+            setTyped(text);
+            if (text.trim()) setSpecialty(undefined);
+          }}
+          autoCorrect={false}
+          returnKeyType="search"
+          onSubmitEditing={() => void search()}
+        />
         <View style={styles.row}>
+          <Chip label={t('patient.specialists.anySpecialty')} icon="apps-outline" selected={specialty === undefined} onPress={() => setSpecialty(undefined)} />
           {SPECIALTIES.map((s) => (
             <Chip key={s} label={t(`specialty.${s}` as StringKey)} icon={SPECIALTY_ICON[s] ?? 'medkit'} selected={specialty === s} onPress={() => setSpecialty(s)} />
           ))}
