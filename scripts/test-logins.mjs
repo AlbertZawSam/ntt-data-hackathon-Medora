@@ -218,7 +218,7 @@ ol{padding-left:20px;margin:6px 0}h2{font-size:19px;margin:28px 0 4px}
 <li>Open the app (run <b>npm run web</b> first), then click <b>"Hospital staff? Sign in here"</b>.</li>
 <li>Copy the email and password of the account below, click <b>Sign In</b>.</li>
 <li>Copy its 6-digit code (it changes every 30 seconds) and click <b>Verify code</b>.</li>
-<li>To switch account: <b>Sign out</b> in the app, then repeat with another card.</li></ol>
+<li>To switch account: open the <b>account menu</b> (profile icon, top right) → <b>Sign out</b>, then repeat with another card.</li></ol>
 <a class="btn big" href="http://localhost:8081" target="_blank">Open Medora →</a>
 <div id="bar"><div id="fill"></div></div></div>
 ${rows.join('\n')}

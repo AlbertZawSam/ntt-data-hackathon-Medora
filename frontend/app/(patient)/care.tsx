@@ -232,15 +232,22 @@ export default function PatientCareScreen(): React.JSX.Element {
                     {h.details && h.details.departments.length > 0 ? (
                       <>
                         <Text style={[styles.meta, { color: theme.textMuted }]}>{t('patient.care.departmentLabel')}</Text>
-                        <Segmented<Department | 'general'>
-                          accessibilityLabel={t('patient.care.departmentLabel')}
-                          value={department ?? 'general'}
-                          onChange={(value) => setDepartment(value === 'general' ? undefined : value)}
-                          options={[
-                            ...h.details.departments.map((d) => ({ value: d, label: t(`department.short.${d}` as StringKey), icon: DEPARTMENT_ICON[d] })),
-                            { value: 'general' as const, label: t('department.short.general'), icon: 'medkit' as const },
-                          ]}
-                        />
+                        {/* Two per row so the full department names fit on a phone. */}
+                        <View accessibilityRole="radiogroup" accessibilityLabel={t('patient.care.departmentLabel')} style={styles.deptGrid}>
+                          {[
+                            ...h.details.departments.map((d) => ({ value: d as Department | 'general', label: t(`department.short.${d}` as StringKey), icon: DEPARTMENT_ICON[d] })),
+                            { value: 'general' as const, label: t('department.short.general'), icon: 'medkit' as IconName },
+                          ].map((option) => (
+                            <View key={option.value} style={styles.deptCell}>
+                              <Button
+                                variant={(department ?? 'general') === option.value ? 'primary' : 'secondary'}
+                                icon={option.icon}
+                                label={option.label}
+                                onPress={() => setDepartment(option.value === 'general' ? undefined : option.value)}
+                              />
+                            </View>
+                          ))}
+                        </View>
                       </>
                     ) : null}
                     <Text style={[styles.meta, { color: theme.textMuted }]}>{t('patient.care.arrivalMode')}</Text>
@@ -301,6 +308,8 @@ export default function PatientCareScreen(): React.JSX.Element {
 }
 
 const styles = StyleSheet.create({
+  deptGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  deptCell: { flexBasis: '47%', flexGrow: 1 },
   flex: { flex: 1 },
   stack: { gap: spacing.md },
   row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm },
