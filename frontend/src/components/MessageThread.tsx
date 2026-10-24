@@ -5,7 +5,7 @@
  */
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { MAX_MESSAGE, QUICK_REPLY_KEYS } from '@medora/shared/logic/care';
+import { MAX_MESSAGE, QUICK_REPLY_KEYS, type QuickReplyKey } from '@medora/shared/logic/care';
 import type { Message } from '@medora/shared/logic/types';
 import type { StringKey } from '../i18n/t';
 import { sendMessage } from '../services/data';
@@ -22,11 +22,17 @@ interface Props {
   /** Which side this reader is, to label and align messages. */
   me: 'patient' | 'hospital';
   disabled?: boolean;
+  /** Quick replies offered to the hospital side; doctor referrals use their own set. */
+  quickKeys?: readonly QuickReplyKey[];
 }
 
+<<<<<<< HEAD
 const clock = (ms: number): string => new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
 export function MessageThread({ requestId, messages, me, disabled }: Props): React.JSX.Element {
+=======
+export function MessageThread({ requestId, messages, me, disabled, quickKeys = QUICK_REPLY_KEYS }: Props): React.JSX.Element {
+>>>>>>> 59db478012eb14bc9d137be476feffc3edcca1de
   const t = useT();
   const theme = useTheme();
   const [text, setText] = React.useState('');
@@ -37,7 +43,7 @@ export function MessageThread({ requestId, messages, me, disabled }: Props): Rea
     [messages, requestId],
   );
 
-  const send = async (message: { key: (typeof QUICK_REPLY_KEYS)[number] } | { text: string }): Promise<void> => {
+  const send = async (message: { key: QuickReplyKey } | { text: string }): Promise<void> => {
     setBusy(true);
     setFailed(false);
     try {
@@ -73,8 +79,13 @@ export function MessageThread({ requestId, messages, me, disabled }: Props): Rea
         <>
           {me === 'hospital' ? (
             <View style={styles.quick}>
+<<<<<<< HEAD
               {QUICK_REPLY_KEYS.map((key) => (
                 <Chip key={key} label={t(`message.quickReply.${key}` as StringKey)} icon="flash-outline" selected={false} onPress={() => { if (!busy) void send({ key }); }} />
+=======
+              {quickKeys.map((key) => (
+                <Button key={key} variant="secondary" label={t(`message.quickReply.${key}` as StringKey)} disabled={busy} onPress={() => void send({ key })} />
+>>>>>>> 59db478012eb14bc9d137be476feffc3edcca1de
               ))}
             </View>
           ) : null}

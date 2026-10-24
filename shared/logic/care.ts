@@ -8,6 +8,7 @@ import { pathwayForNeed } from './pathways';
 import { dataAgeMin, failsFor, freeBeds, freeNicu } from './ranking';
 import { ruleAccepts } from './rules';
 import type { CareRequest, CareRequestStatus, HospitalStatus, NeedKey, Pathway, RankedHospital } from './types';
+import type { HospitalDetails } from './hospitalDetails';
 
 /** Staff can undo an automatic acceptance for this long (AGENTS.md section 4, rule 3). */
 export const UNDO_WINDOW_MS = 60_000;
@@ -24,7 +25,14 @@ export const MAX_MESSAGE = 500;
 
 /** Quick replies are stored as keys (so they show in either language); keys match `message.quickReply.*`. */
 export const QUICK_REPLY_KEYS = ['onMyWay', 'enterMainEntrance', 'goToEmergency', 'waitingForYou', 'bringDocuments'] as const;
-export type QuickReplyKey = (typeof QUICK_REPLY_KEYS)[number];
+/** Quick replies staff send to a referring doctor: logistics only, never clinical advice. */
+export const REFERRAL_REPLY_KEYS = ['bedReady', 'teamWaiting', 'sendEcg', 'sendImaging', 'callBeforeArrival'] as const;
+export type QuickReplyKey = (typeof QUICK_REPLY_KEYS)[number] | (typeof REFERRAL_REPLY_KEYS)[number];
+
+/** The quick replies that fit a request: doctor referrals get their own set; patient requests the patient set. */
+export function quickRepliesFor(request: { referralId?: string | null }): readonly QuickReplyKey[] {
+  return request.referralId ? REFERRAL_REPLY_KEYS : QUICK_REPLY_KEYS;
+}
 
 export interface RequestInput {
   hospitalId: string;
@@ -161,6 +169,8 @@ export interface PublicHospital {
   skipped?: Array<'dept' | 'equip' | 'onDuty' | 'beds' | 'nicu' | 'tooFar'>;
   /** Failure item for the first skipped reason, e.g. a department key, so the text can name it. */
   skippedItem?: string;
+  /** What the patient sees under "Hospital details": labels only (see hospitalDetails.ts). */
+  details?: HospitalDetails;
 }
 
 export function toPublicHospital(row: RankedHospital, pathway: Pathway): PublicHospital {

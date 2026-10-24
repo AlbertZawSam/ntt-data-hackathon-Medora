@@ -6,7 +6,7 @@
  */
 import React from 'react';
 import { Platform, StyleSheet, Text, Vibration, View } from 'react-native';
-import { undoSecondsLeft } from '@medora/shared/logic/care';
+import { quickRepliesFor, undoSecondsLeft } from '@medora/shared/logic/care';
 import type { CareRequest } from '@medora/shared/logic/types';
 import { MessageThread } from '../../src/components/MessageThread';
 import type { StringKey } from '../../src/i18n/t';
@@ -151,6 +151,7 @@ export default function StaffInboxScreen(): React.JSX.Element {
                   <View style={[styles.undoBar, { backgroundColor: theme.info, width: `${Math.max(4, Math.min(100, (undoLeft / UNDO_WINDOW_S) * 100))}%` }]} />
                   <Button variant="secondary" icon="arrow-undo" label={t('staff.inbox.undoSeconds', { s: undoLeft })} busy={busy === r.id} onPress={() => void act(r.id, 'undo')} />
                 </View>
+<<<<<<< HEAD
               ) : null}
               {r.status === 'accepted' ? <Button size="lg" icon="walk" label={t('staff.inbox.arrived')} busy={busy === r.id} onPress={() => void act(r.id, 'arrived')} /> : null}
               {r.status === 'accepted' ? (
@@ -161,6 +162,24 @@ export default function StaffInboxScreen(): React.JSX.Element {
               ) : null}
             </Card>
           </Reveal>
+=======
+              ) : (
+                <View style={styles.actions}>
+                  <Button label={t('staff.inbox.accept')} busy={busy === r.id} onPress={() => void act(r.id, 'accept')} />
+                  <Button variant="secondary" label={t('staff.inbox.decline')} onPress={() => setDeclining(r.id)} />
+                </View>
+              )
+            ) : null}
+            {undoLeft > 0 ? <Button variant="secondary" label={t('staff.inbox.undoSeconds', { s: undoLeft })} busy={busy === r.id} onPress={() => void act(r.id, 'undo')} /> : null}
+            {r.status === 'accepted' ? <Button label={t('staff.inbox.arrived')} busy={busy === r.id} onPress={() => void act(r.id, 'arrived')} /> : null}
+            {r.status === 'accepted' ? (
+              <>
+                <Text style={[styles.name, { color: theme.text }]}>{t('staff.inbox.messages')}</Text>
+                <MessageThread requestId={r.id} messages={data.messages} me="hospital" quickKeys={quickRepliesFor(r)} />
+              </>
+            ) : null}
+          </View>
+>>>>>>> 59db478012eb14bc9d137be476feffc3edcca1de
         );
       })}
     </Page>

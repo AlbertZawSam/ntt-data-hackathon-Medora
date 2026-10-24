@@ -9,7 +9,11 @@ import { StyleSheet, Text, View } from 'react-native';
 import { ARRIVAL_MODES, type ArrivalMode, type PublicHospital } from '@medora/shared/logic/care';
 import type { Bi, NeedKey } from '@medora/shared/logic/types';
 import { pick, type StringKey } from '../../src/i18n/t';
+<<<<<<< HEAD
 import { LocationChip } from '../../src/components/LocationChip';
+=======
+import { HospitalDetailsView } from '../../src/components/HospitalDetailsView';
+>>>>>>> 59db478012eb14bc9d137be476feffc3edcca1de
 import { MapView, type MapMarker } from '../../src/components/MapView';
 import { findCare, submitRequest } from '../../src/services/data';
 import { setLastResults } from '../../src/services/lastResults';
@@ -64,6 +68,7 @@ export default function PatientCareScreen(): React.JSX.Element {
   const [summary, setSummary] = React.useState<Bi | undefined>(undefined);
   const [hospitals, setHospitals] = React.useState<PublicHospital[]>([]);
   const [selected, setSelected] = React.useState<PublicHospital | null>(null);
+  const [detailsFor, setDetailsFor] = React.useState<string | null>(null);
   const [mode, setMode] = React.useState<ArrivalMode>('car');
   const [name, setName] = React.useState('');
   const [phone, setPhone] = React.useState('');
@@ -124,6 +129,7 @@ export default function PatientCareScreen(): React.JSX.Element {
     ...hospitals.map((h): MapMarker => ({ id: h.id, point: h, kind: h.label === 'available' ? 'ok' : h.label === 'notAvailable' ? 'no' : 'limited', label: pick(h.name, lang) })),
   ];
 
+<<<<<<< HEAD
   if (phase !== 'results') {
     return (
       <Page title={t('patient.care.title')} subtitle={t('patient.care.subtitle')} width="readable">
@@ -202,6 +208,58 @@ export default function PatientCareScreen(): React.JSX.Element {
                     setSent(false);
                   }}
                 />
+=======
+  return (
+    <Screen title={t('patient.care.title')}>
+      {phase !== 'results' ? (
+        <>
+          <Field
+            label={t('patient.care.descriptionLabel')}
+            value={text}
+            onChangeText={setText}
+            hint={t('patient.care.descriptionPlaceholder')}
+            multiline
+            numberOfLines={5}
+            textAlignVertical="top"
+            inputStyle={styles.multiline}
+            maxLength={1000}
+          />
+          {error ? <Text style={[styles.error, { color: theme.emergency }]}>{t(error)}</Text> : null}
+          <Button label={phase === 'searching' ? t('patient.care.finding') : t('patient.care.submitButton')} busy={phase === 'searching'} disabled={!text.trim()} onPress={() => void search()} />
+        </>
+      ) : (
+        <>
+          {!aiUsed ? <Text style={[styles.note, { color: theme.warning }]}>{t('patient.care.aiUnavailable')}</Text> : null}
+          <Text style={[styles.section, { color: theme.text }]}>{t('patient.care.lookingFor', { need: t(`need.${need}` as StringKey) })}</Text>
+          {summary ? (
+            <Text style={[styles.note, { color: theme.textMuted }]}>{t('patient.care.understood', { summary: pick(summary, lang) })}</Text>
+          ) : null}
+          {sent ? <Text accessibilityLiveRegion="polite" style={[styles.note, { color: theme.success }]}>{t('patient.care.requestSent')}</Text> : null}
+          {error ? <Text style={[styles.error, { color: theme.emergency }]}>{t(error)}</Text> : null}
+          <MapView accessibilityLabel={t('map.alt.results')} markers={markers} route={best ? [location, best] : undefined} />
+          <Text style={[styles.note, { color: theme.textMuted }]}>{t('map.legend')}</Text>
+          <Text style={[styles.section, { color: theme.text }]}>{t('patient.care.nearbyTitle')}</Text>
+          {!canHelp ? <Text style={[styles.note, { color: theme.emergency }]}>{t('patient.care.nobodyHelp')}</Text> : null}
+          {hospitals.map((h) => (
+            <View key={h.id} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <Text style={[styles.name, { color: theme.text }]}>{pick(h.name, lang)}</Text>
+              <Text style={[styles.note, { color: theme.textMuted }]}>{t('patient.care.driveMin', { min: h.driveMin })}</Text>
+              <Text style={[styles.label, { color: h.label === 'available' ? theme.success : h.label === 'notAvailable' ? theme.emergency : theme.warning }]}>
+                {t(LABEL_KEY[h.label])}
+              </Text>
+              {h.details ? (
+                <Button
+                  variant="link"
+                  label={t(detailsFor === h.id ? 'details.hide' : 'details.button')}
+                  onPress={() => setDetailsFor(detailsFor === h.id ? null : h.id)}
+                />
+              ) : null}
+              {h.details && detailsFor === h.id ? <HospitalDetailsView details={h.details} nowMs={Date.now()} need={need} /> : null}
+              {h.label === 'notAvailable' ? (
+                <Text style={[styles.note, { color: theme.textMuted }]}>{t('patient.care.skippedBecause', { reason: t('failure.simple') })}</Text>
+              ) : (
+                <Button label={t('patient.care.requestButton')} variant="secondary" onPress={() => { setSelected(h); setSent(false); }} />
+>>>>>>> 59db478012eb14bc9d137be476feffc3edcca1de
               )}
               {selected?.id === h.id ? (
                 <Reveal y={6}>

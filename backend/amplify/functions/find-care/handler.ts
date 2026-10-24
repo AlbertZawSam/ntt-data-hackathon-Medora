@@ -6,6 +6,8 @@ import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import { coarsePoint, routeMinutes } from '../../lib/routes';
 import { NEED_KEYS, MAX_DESCRIPTION, toPublicHospital, targetForNeed } from '@medora/shared/logic/care';
+import { hospitalDetails } from '@medora/shared/logic/hospitalDetails';
+import type { SpecialistRecord } from '@medora/shared/logic/specialists';
 import { isInBangkok } from '@medora/shared/logic/places';
 import { classifyNeed, evaluate } from '@medora/shared/logic/ranking';
 import { activeHolds, withHolds, type Reservation } from '@medora/shared/logic/reservations';
@@ -26,6 +28,7 @@ interface Client {
     HospitalProfile: { list(i: Rec): Promise<{ data: Array<{ hospitalId: string; name: unknown; lat: number; lng: number; typicalWaitMin: number }>; errors?: unknown[] }> };
     HospitalStatus: { list(i: Rec): Promise<{ data: Array<{ hospitalId: string; status: unknown }>; errors?: unknown[] }> };
     Reservation: { list(i: Rec): Promise<{ data: Reservation[]; errors?: unknown[] }> };
+    Specialist: { list(i: Rec): Promise<{ data: Array<Omit<SpecialistRecord, 'slots'> & { slots: unknown }>; errors?: unknown[] }> };
   };
 }
 
@@ -92,10 +95,11 @@ export const handler = async (event: AppSyncResolverEvent<Args>): Promise<string
   const need: NeedKey = ai?.need ?? classifyNeed(description);
 
   const client = await dataClient();
-  const [profiles, statuses, reservations] = await Promise.all([
+  const [profiles, statuses, reservations, specialistRows] = await Promise.all([
     client.models.HospitalProfile.list({ limit: 1000 }),
     client.models.HospitalStatus.list({ limit: 1000 }),
     client.models.Reservation.list({ limit: 1000 }),
+    client.models.Specialist.list({ limit: 1000 }),
   ]);
   if (profiles.errors?.length || statuses.errors?.length || reservations.errors?.length) throw new Error('data-unavailable');
   const statusById = new Map(statuses.data.map((s) => [s.hospitalId, parse<HospitalStatus>(s.status)]));
@@ -104,6 +108,11 @@ export const handler = async (event: AppSyncResolverEvent<Args>): Promise<string
     // Held beds count as not free, so the public never sees a hospital as open when its beds are promised.
     return status ? [{ id: p.hospitalId, name: parse<Bi>(p.name), lat: p.lat, lng: p.lng, typicalWaitMin: p.typicalWaitMin, status: withHolds(status, activeHolds(reservations.data, p.hospitalId, Date.now())) }] : [];
   });
+
+  // Specialists are optional detail: if they can't be read, the details simply list none.
+  const specialists: SpecialistRecord[] = specialistRows.errors?.length
+    ? []
+    : specialistRows.data.map((row) => ({ ...row, slots: parse<SpecialistRecord['slots']>(row.slots) ?? [] }));
 
   const target = targetForNeed(need);
   const pathway = target === 'visit' ? PATHWAYS.general : target;
@@ -118,6 +127,11 @@ export const handler = async (event: AppSyncResolverEvent<Args>): Promise<string
     need,
     aiUsed: ai !== null,
     summary: ai?.summary,
-    hospitals: ranked.map((r) => toPublicHospital(r, pathway)),
+    // Each card can open hospital details: labels, specialties on duty and bookable clinic specialists, never counts.
+    hospitals: ranked.map((r) => {
+      const h = r.hospital;
+      const profile = { hospitalId: h.id, name: h.name, lat: h.lat, lng: h.lng, typicalWaitMin: h.typicalWaitMin };
+      return { ...toPublicHospital(r, pathway), details: hospitalDetails(profile, h.status, specialists, nowMs) };
+    }),
   });
 };

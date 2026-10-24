@@ -455,6 +455,7 @@
   "staff.inbox.referral": "คำขอส่งต่อจากแพทย์ (เอเจนต์ AI)",
   "emergency.nearestEd": "ห้องฉุกเฉินที่เปิดอยู่ใกล้ที่สุด: {{name}} (ขับรถประมาณ {{min}} นาที)",
   "patient.care.understood": "สิ่งที่เราเข้าใจ (สรุปโดย AI ไม่ใช่คำแนะนำทางการแพทย์): {{summary}}",
+<<<<<<< HEAD
   "role.patients": "ผู้ป่วย",
   "role.hospital_staff": "เจ้าหน้าที่หน่วย",
   "role.doctors": "แพทย์",
@@ -500,4 +501,33 @@
   "brand.point3": "รองรับไทยและอังกฤษ พร้อมกฎความปลอดภัยตายตัวสำหรับกรณีฉุกเฉิน",
   "staff.inbox.sub": "คำขอจากผู้ป่วยและการส่งต่อจากแพทย์ของโรงพยาบาลคุณ ใหม่สุดก่อน",
   "staff.inbox.undoHint": "คุณยกเลิกการตอบรับอัตโนมัตินี้ได้ภายในเวลาสั้น ๆ"
+=======
+  "message.quickReply.bedReady": "เตียงพร้อมรับผู้ป่วยของคุณแล้ว",
+  "message.quickReply.teamWaiting": "ทีมของเรารออยู่ที่จุดรับผู้ป่วยฉุกเฉิน",
+  "message.quickReply.sendEcg": "กรุณาส่งคลื่นไฟฟ้าหัวใจและสัญญาณชีพล่าสุด",
+  "message.quickReply.sendImaging": "กรุณาส่งผลภาพถ่ายทางรังสีถ้ามี",
+  "message.quickReply.callBeforeArrival": "กรุณาโทรแจ้งห้องฉุกเฉินของเรา 10 นาทีก่อนถึง",
+  "doctor.refer.messagesTitle": "ข้อความจากโรงพยาบาลปลายทาง",
+  "details.button": "ข้อมูลโรงพยาบาล",
+  "details.hide": "ซ่อนข้อมูล",
+  "details.erDoctor": "แพทย์ฉุกเฉิน",
+  "details.namePrivate": "แสดงชื่อหลังจองนัด",
+  "details.book": "จอง",
+  "details.bedsTitle": "เตียง",
+  "details.bedsShort.available": "ว่าง",
+  "details.bedsShort.limited": "เหลือน้อย",
+  "details.bedsShort.full": "เต็ม",
+  "details.edTitle": "ห้องฉุกเฉิน",
+  "details.edOpen": "เปิดรับ",
+  "details.edClosed": "งดรับ",
+  "details.careTitle": "รับรักษาได้ตอนนี้",
+  "details.needShort.maternity": "ตั้งครรภ์",
+  "details.needShort.child": "เด็ก",
+  "details.needShort.injury": "บาดเจ็บ",
+  "details.needShort.general": "ทั่วไป",
+  "details.yourNeed": "ตรงกับที่คุณต้องการ",
+  "details.onDutyTitle": "แพทย์อยู่เวรตอนนี้",
+  "details.clinicTitle": "จองนัดแพทย์เฉพาะทาง",
+  "details.waitShort": "รอประมาณ {{min}} นาที"
+>>>>>>> 59db478012eb14bc9d137be476feffc3edcca1de
 }
