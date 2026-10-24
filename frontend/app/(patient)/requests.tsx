@@ -90,6 +90,7 @@ export default function PatientRequestsScreen(): React.JSX.Element {
               <View style={styles.head}>
                 <View style={styles.flex}>
                   <Text style={[styles.name, { color: theme.text }]}>{r.hospitalName ? pick(r.hospitalName, lang) : r.hospitalId}</Text>
+                  {r.department ? <Text style={[styles.meta, { color: theme.primary }]}>{t(`department.${r.department}` as StringKey)}</Text> : null}
                   <Text style={[styles.meta, { color: theme.textMuted }]}>{minutesAgo(r.createdAtMs)}</Text>
                 </View>
                 <View accessibilityLiveRegion="polite">

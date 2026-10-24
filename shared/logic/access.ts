@@ -4,10 +4,11 @@
  * Every right is enforced on the server with these functions; hiding screens is only a convenience.
  * Requirements: 1.3, 1.5, 9.1, 19.1, 19.8, 19.10
  */
+import { DEPARTMENTS, isDepartment } from './departments';
 import { GROUPS } from './session';
 
 /** The units a nurse or technologist can own: exactly one per account (`custom:unit`). */
-export const UNITS = ['ward', 'icu', 'nicu', 'er', 'radiology', 'cathlab'] as const;
+export const UNITS = ['ward', 'icu', 'nicu', 'er', 'radiology', 'cathlab', ...DEPARTMENTS] as const;
 export type Unit = (typeof UNITS)[number];
 
 /** Demo fallback: a general staff account that may update every item of its hospital. */
@@ -75,9 +76,15 @@ export function canUpdateStatusItem(
   );
 }
 
-/** Accept, decline and undo of patient requests: unit staff of the request's hospital. */
-export function canAnswerRequest(caller: Caller, request: { hospitalId: string }): boolean {
-  return inGroup(caller, GROUPS.staff) && hasHospital(caller) && caller.hospitalId === request.hospitalId;
+/**
+ * Accept, decline, undo and messages on requests: unit staff of the request's hospital. A request
+ * sent to a department (Cardiology, Surgery, Obstetrics) belongs to that department's staff only;
+ * a request without one (general care, doctor referrals) to the other units. `all` answers both.
+ */
+export function canAnswerRequest(caller: Caller, request: { hospitalId: string; department?: string | null }): boolean {
+  if (!inGroup(caller, GROUPS.staff) || !hasHospital(caller) || caller.hospitalId !== request.hospitalId) return false;
+  if (caller.unit === ALL_UNITS) return true;
+  return isDepartment(request.department) ? caller.unit === request.department : !isDepartment(caller.unit);
 }
 
 /** Doctors start referrals from their own hospital. */

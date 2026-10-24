@@ -437,6 +437,8 @@ export interface NewRequest {
   name?: string;
   phone?: string;
   description: string;
+  /** A department the hospital has open; only that department's staff can answer the request. */
+  department?: string;
 }
 
 /** Sends a request to one hospital; the admin's auto-accept rule may accept it at once. */

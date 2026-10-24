@@ -6,6 +6,7 @@
  */
 import React from 'react';
 import { Platform, StyleSheet, Text, Vibration, View } from 'react-native';
+import { canAnswerRequest } from '@medora/shared/logic/access';
 import { quickRepliesFor, undoSecondsLeft } from '@medora/shared/logic/care';
 import type { CareRequest } from '@medora/shared/logic/types';
 import { MessageThread } from '../../src/components/MessageThread';
@@ -51,9 +52,10 @@ export default function StaffInboxScreen(): React.JSX.Element {
   const requests = React.useMemo(
     () =>
       data.careRequests
-        .filter((r) => r.hospitalId === session?.hospitalId && !CLOSED.includes(r.status))
+        // The same rule the server applies: a department's requests reach only that department.
+        .filter((r) => session !== null && canAnswerRequest(session, r) && !CLOSED.includes(r.status))
         .sort((a, b) => b.createdAtMs - a.createdAtMs),
-    [data.careRequests, session?.hospitalId],
+    [data.careRequests, session],
   );
   const waiting = requests.filter((r) => r.status === 'waiting');
 
@@ -117,6 +119,9 @@ export default function StaffInboxScreen(): React.JSX.Element {
               </View>
               <View style={styles.row}>
                 {r.referralId ? <Badge tone="primary" icon="git-network" label={t('staff.inbox.referral')} /> : null}
+                {r.department ? (
+                  <Badge tone="primary" icon="medkit" label={t('staff.inbox.department', { department: t(`unit.name.${r.department}` as StringKey) })} />
+                ) : null}
                 <Badge tone="info" icon={MODE_ICON[r.patient.mode] ?? 'navigate'} label={t('staff.inbox.arriving', { min: r.etaMin, mode: t(`mode.${r.patient.mode}` as StringKey) })} />
               </View>
               {/* Patient text is data, shown as plain text and never interpreted. */}

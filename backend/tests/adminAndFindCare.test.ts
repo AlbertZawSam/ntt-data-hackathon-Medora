@@ -57,7 +57,7 @@ describe('findCare', () => {
     for (const h of out.hospitals) expect(Object.keys(h).every((k) => allowed.includes(k))).toBe(true); // no counts, faults or rosters
     // Hospital details are labels too: beds as a word, specialties on duty (never names), bookable clinic specialists.
     for (const h of out.hospitals) {
-      expect(Object.keys(h.details).sort()).toEqual(['beds', 'care', 'clinic', 'edOpen', 'onDuty', 'typicalWaitMin', 'updatedAt']);
+      expect(Object.keys(h.details).sort()).toEqual(['beds', 'care', 'clinic', 'departments', 'edOpen', 'onDuty', 'typicalWaitMin', 'updatedAt']);
       expect(['available', 'limited', 'full']).toContain(h.details.beds);
       expect(JSON.stringify(h.details)).not.toMatch(/"(nicu|equip|oncall|notes|meta|rules|icu)"/);
     }

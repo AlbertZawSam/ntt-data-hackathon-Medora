@@ -3,6 +3,7 @@ import type { AppSyncIdentityCognito, AppSyncResolverEvent } from 'aws-lambda';
 import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import { callerFromClaims, canAnswerRequest } from '@medora/shared/logic/access';
+import { isDepartment, openDepartments } from '@medora/shared/logic/departments';
 import {
   MAX_MESSAGE,
   quickRepliesFor,
@@ -132,6 +133,9 @@ async function submitRequest(client: Client, event: AppSyncResolverEvent<Record_
 
   const statusRow = must(await client.models.HospitalStatus.get({ id: input.hospitalId }), 'no-status');
   const status = parse<HospitalStatus>(statusRow.status);
+  // A chosen department must be one this hospital has open; it decides which staff receive the request.
+  const department = a.department === undefined || a.department === null || a.department === '' ? undefined : a.department;
+  if (department !== undefined && !(isDepartment(department) && openDepartments(status).includes(department))) throw new Error('bad-department');
   const profile = await client.models.HospitalProfile.get({ id: input.hospitalId });
   const nowMs = Date.now();
   const decision = decideNewRequest(withHolds(status, await currentHolds(client, input.hospitalId)), input.needKey, nowMs);
@@ -150,6 +154,7 @@ async function submitRequest(client: Client, event: AppSyncResolverEvent<Record_
       ...(decision.status === 'accepted' ? { acceptedAtMs: nowMs, couldTreat: couldTreat(status, input.needKey) } : {}),
       hospitalName: profile.data ? (typeof profile.data.name === 'string' ? profile.data.name : JSON.stringify(profile.data.name)) : undefined,
       patient: JSON.stringify({ name: input.name, phone: input.phone, mode: input.mode, description: input.description }),
+      ...(department ? { department } : {}),
       createdAtMs: nowMs,
     }),
     'create-failed',
