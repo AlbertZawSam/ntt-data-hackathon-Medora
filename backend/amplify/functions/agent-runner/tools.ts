@@ -1,7 +1,7 @@
 import { operationalText } from '@medora/shared/logic/agentText';
 import { decisionRows } from '@medora/shared/logic/decisionTable';
 import { DEMO_REPLY_AFTER_SEC, demoReply } from '@medora/shared/logic/demoReplies';
-import { kbTraceDetail } from '@medora/shared/logic/kb';
+import { kbQueryForPathway, kbTraceDetail } from '@medora/shared/logic/kb';
 import { PATHWAYS } from '@medora/shared/logic/pathways';
 import { DEMO_REPLY_DELAY_SEC, assessReferral, delayExceedsWindow, demoReplyFor, nextHospitals, statedDelayMin, type ReferralAssessment } from '@medora/shared/logic/referral';
 import { ruleAccepts } from '@medora/shared/logic/rules';
@@ -98,6 +98,12 @@ export class ReferralTools {
   constructor(
     private readonly referral: ReferralRun,
     private readonly store: ReferralStore,
+    /**
+     * autoFirstRound: `assess_case` itself asks the best hospitals and returns their replies. The fixed rules choose
+     * who is asked first (the project's principle: the agent coordinates, fixed rules decide); the model decides what
+     * to do with the answers. Live runs showed the model looping on `ask_hospitals` instead of recommending.
+     */
+    private readonly options: { autoFirstRound?: boolean } = {},
   ) {}
 
   async execute(name: string, rawInput: unknown): Promise<Record<string, unknown>> {
@@ -173,7 +179,7 @@ export class ReferralTools {
       { en: 'Case assessed', th: 'ประเมินเคสแล้ว' },
       { en: `Found ${assessment.ranked.filter((row) => row.eligible).length} hospitals that can help.`, th: `พบโรงพยาบาลที่ช่วยได้ ${assessment.ranked.filter((row) => row.eligible).length} แห่ง` },
     );
-    return {
+    const result: Record<string, unknown> = {
       ok: true,
       pathway,
       remaining_min: Number.isFinite(assessment.remainingMin) ? assessment.remainingMin : null,
@@ -181,6 +187,20 @@ export class ReferralTools {
       wait_seconds: assessment.waitSeconds,
       hospitals: assessment.ranked.map((row) => this.publicRow(row)),
     };
+    if (this.options.autoFirstRound) {
+      // The sources come from the rules too, so every referral cites them whatever the model chooses to do.
+      try {
+        await this.searchKnowledgeBase({ query: kbQueryForPathway(pathway) });
+      } catch {
+        // Citations are evidence, not a requirement: a failed search never stops the referral.
+      }
+      const first = nextHospitals(assessment, this.asked).map((row) => row.hospital.id);
+      if (first.length > 0) {
+        const round = await this.askHospitals({ hospital_ids: first, wait_seconds: assessment.waitSeconds });
+        result.first_round = { asked: first, ...(round.ok === true ? { replies: round.replies, next: round.next } : { error: round.error }) };
+      }
+    }
+    return result;
   }
 
   async searchKnowledgeBase(input: Record<string, unknown>): Promise<Record<string, unknown>> {

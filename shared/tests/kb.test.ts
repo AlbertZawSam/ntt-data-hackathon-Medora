@@ -1,5 +1,6 @@
 import { DEMO_HOSPITALS } from '../logic/demoHospitals';
-import { buildKbDocuments, kbTraceDetail } from '../logic/kb';
+import { buildKbDocuments, kbQueryForPathway, kbTraceDetail } from '../logic/kb';
+import { PATHWAY_KEYS } from '../logic/pathways';
 
 const docs = buildKbDocuments(DEMO_HOSPITALS, (key) => `id-${key}`);
 
@@ -64,5 +65,22 @@ describe('kbTraceDetail', () => {
     expect(detail.en).toContain('6 source document(s)');
     expect(detail.en).toContain('and more');
     expect(detail.en).not.toContain('d3.md');
+  });
+});
+
+describe('kbQueryForPathway', () => {
+  it('builds short English keywords from the pathway, for example stroke care, neurology and a CT scanner', () => {
+    const query = kbQueryForPathway('stroke');
+    expect(query).toContain('stroke');
+    expect(query).toContain('neurology');
+    expect(query).toContain('ct scanner');
+  });
+  it('gives a short, non-empty, English query for every pathway', () => {
+    for (const key of PATHWAY_KEYS) {
+      const query = kbQueryForPathway(key);
+      expect(query.length).toBeGreaterThan(3);
+      expect(query.length).toBeLessThan(120);
+      expect(query).not.toMatch(/[\u0E00-\u0E7F]/);
+    }
   });
 });

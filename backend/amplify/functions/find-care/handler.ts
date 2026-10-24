@@ -112,7 +112,8 @@ export const handler = async (event: AppSyncResolverEvent<Args>): Promise<string
   // if the call fails there are no times, and ranking uses its offline estimate.
   const driveMinById = await routeMinutes((command, options) => routes.send(command, options), coarsePoint({ lat, lng }), hospitals);
   const ranked = evaluate(hospitals, pathway, { lat, lng }, { nowMs, driveMinById });
-  console.info(`find-care ok: need=${need} ai=${ai ? 1 : 0} hospitals=${ranked.length}`);
+  // How many hospitals got a real drive time from Amazon Location (the rest used the offline estimate): a count only.
+  console.info(`find-care ok: need=${need} ai=${ai ? 1 : 0} hospitals=${ranked.length} routes=${Object.keys(driveMinById).length}`);
   return JSON.stringify({
     need,
     aiUsed: ai !== null,

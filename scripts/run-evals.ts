@@ -31,7 +31,8 @@ import { BedrockAgentRuntimeClient, RetrieveCommand } from '@aws-sdk/client-bedr
 import { DeleteCommand, DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, ScanCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { EVAL_CASES, scoreRun, summarise, type EvalCase, type EvalCheck, type EvalRun } from '@medora/shared/logic/evals';
 import { assessReferral, delayExceedsWindow, statedDelayMin } from '@medora/shared/logic/referral';
-import type { DecisionRow, HospitalStatus, RankableHospital } from '@medora/shared/logic/types';
+import { parseDecisionRows } from '@medora/shared/logic/decisionTable';
+import type { HospitalStatus, RankableHospital } from '@medora/shared/logic/types';
 import { seedHospitalId } from './seed-id';
 
 const REGION = 'us-east-1';
@@ -257,7 +258,7 @@ async function main(): Promise<void> {
     const sources = trace.filter((t) => t.kind === 'search_knowledge_base').flatMap((t) => [...String((json(t.detail) as { en?: string } | null)?.en ?? '').matchAll(/\(([^()\s]+\.md)\)/g)].map((m) => m[1]));
     const evalRun: EvalRun = {
       referral: { status: referral.status as never, chosenId: referral.chosenId as string | undefined, etaMin: referral.etaMin as number | undefined, pathway: referral.pathway as never, onsetMin: c.onsetMin, elapsedSec: referral.elapsedSec as number | undefined, mode: referral.mode as never },
-      rows: Array.isArray(rows) ? (rows as DecisionRow[]) : [],
+      rows: parseDecisionRows(rows),
       capableIds: capableFor(c),
       transferStarted: transfers.length > 0 || referral.status === 'confirmed',
       sources,

@@ -244,3 +244,115 @@ describe('next-step hints', () => {
     expect(result.next).not.toMatch(/IGNORE|secret patient text/);
   });
 });
+
+describe('automatic first asking round', () => {
+  const make = (answerAfterReads: number | null, autoFirstRound: boolean, pathway: 'general' | 'stroke' = 'general') => {
+    const { store } = makeStore(answerAfterReads);
+    const created: string[] = [];
+    const original = store.createRequest;
+    store.createRequest = async (request) => {
+      created.push(request.hospitalId);
+      return original(request);
+    };
+    const tools = new ReferralTools({ id: 'ref1', ownerId: 'd1', fromHospitalId: 'thonburi', text: 'case', lang: 'en', requestIds: [], startedAtMs: Date.now() }, store, { autoFirstRound });
+    const assess = async () => {
+      const pending = tools.execute('assess_case', { pathway });
+      await jest.advanceTimersByTimeAsync(70_000);
+      return (await pending) as { hospitals: Array<{ hospital_id: string; can_help: boolean }>; suggested_parallel_requests: number; first_round?: { asked: string[]; replies?: Array<{ status: string }>; next?: string } };
+    };
+    return { tools, created, assess };
+  };
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(NOW);
+  });
+  afterEach(() => jest.useRealTimers());
+
+  it('asks nobody on its own unless switched on', async () => {
+    const { created, assess } = make(1, false);
+    const result = await assess();
+    expect(created).toEqual([]);
+    expect(result.first_round).toBeUndefined();
+  });
+
+  it('asks the best eligible hospitals, as many as the policy says, and returns their replies with the next step', async () => {
+    const { created, assess } = make(1, true);
+    const result = await assess();
+    const eligible = result.hospitals.filter((h) => h.can_help).map((h) => h.hospital_id);
+    expect(created.length).toBe(Math.min(result.suggested_parallel_requests, eligible.length));
+    expect(created.every((id) => eligible.includes(id))).toBe(true);
+    expect(result.first_round?.asked).toEqual(created);
+    expect(result.first_round?.replies?.every((r) => r.status === 'accepted')).toBe(true);
+    expect(result.first_round?.next).toContain('recommend');
+  });
+
+  it('still allows a second round for the next hospitals when nobody accepted', async () => {
+    const { tools, assess } = make(null, true);
+    const result = await assess();
+    const eligible = result.hospitals.filter((h) => h.can_help).map((h) => h.hospital_id);
+    expect(eligible.length).toBeGreaterThan(result.first_round?.asked.length ?? 0);
+    const rest = eligible.filter((id) => !(result.first_round?.asked ?? []).includes(id)).slice(0, 1);
+    const second = tools.execute('ask_hospitals', { hospital_ids: rest, wait_seconds: 5 });
+    await jest.advanceTimersByTimeAsync(10_000);
+    expect(await second).toMatchObject({ ok: true });
+  });
+
+  it('does not ask anyone, and does not fail, when there is no hospital that can help', async () => {
+    const { store } = makeStore(null);
+    store.hospitals = async () => hospitals.filter((h) => h.id === 'thonburi'); // only the referring hospital exists
+    const created: string[] = [];
+    store.createRequest = async (request) => {
+      created.push(request.hospitalId);
+      return { ...request, id: 'r1' } as CareRequest;
+    };
+    const tools = new ReferralTools({ id: 'ref1', ownerId: 'd1', fromHospitalId: 'thonburi', text: 'case', lang: 'en', requestIds: [], startedAtMs: Date.now() }, store, { autoFirstRound: true });
+    const result = (await tools.execute('assess_case', { pathway: 'general' })) as { ok: boolean; first_round?: unknown };
+    expect(result.ok).toBe(true);
+    expect(result.first_round).toBeUndefined();
+    expect(created).toEqual([]);
+  });
+});
+
+describe('automatic knowledge base search', () => {
+  const setup = (kbFails: boolean) => {
+    const { store } = makeStore(1);
+    const steps: string[] = [];
+    const queries: string[] = [];
+    store.trace = async (kind) => {
+      steps.push(kind);
+    };
+    store.knowledgeSearch = async (query) => {
+      queries.push(query);
+      if (kbFails) throw new Error('knowledge base down');
+      return [{ hospitalId: 'rama9', text: 'Neurology and CT', source: 's3://b/rama9/neuro.md' }];
+    };
+    const tools = new ReferralTools({ id: 'ref1', ownerId: 'd1', fromHospitalId: 'thonburi', text: 'case', lang: 'en', requestIds: [], startedAtMs: Date.now() }, store, { autoFirstRound: true });
+    return { tools, steps, queries };
+  };
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(NOW);
+  });
+  afterEach(() => jest.useRealTimers());
+
+  it('searches by itself with keywords from the pathway, and cites its sources before asking anyone', async () => {
+    const { tools, steps, queries } = setup(false);
+    const pending = tools.execute('assess_case', { pathway: 'stroke' });
+    await jest.advanceTimersByTimeAsync(70_000);
+    await pending;
+    expect(queries).toHaveLength(1);
+    expect(queries[0]).toContain('stroke');
+    expect(queries[0]).toContain('neurology');
+    expect(steps.indexOf('search_knowledge_base')).toBeGreaterThan(steps.indexOf('assess_case'));
+    expect(steps.indexOf('search_knowledge_base')).toBeLessThan(steps.indexOf('ask_hospitals'));
+  });
+
+  it('never stops the referral when the knowledge base is down', async () => {
+    const { tools, steps } = setup(true);
+    const pending = tools.execute('assess_case', { pathway: 'general' });
+    await jest.advanceTimersByTimeAsync(70_000);
+    expect(await pending).toMatchObject({ ok: true });
+    expect(steps).toContain('ask_hospitals');
+    expect(steps).not.toContain('search_knowledge_base');
+  });
+});

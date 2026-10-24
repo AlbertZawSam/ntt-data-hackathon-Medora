@@ -1,7 +1,7 @@
 import { EVAL_CASES, scoreRun, summarise, type EvalCase, type EvalRun } from '../logic/evals';
-import type { DecisionRow } from '../logic/types';
+import type { DecisionRow } from '../logic/decisionTable';
 
-const row = (id: string, status: DecisionRow['status'] = 'accepted'): DecisionRow => ({ hospitalId: id, name: { en: id, th: id }, lat: 13.7, lng: 100.5, driveMin: 20, status, auto: false });
+const row = (id: string, reply: DecisionRow['reply'] = 'accepted'): DecisionRow => ({ hospitalId: id, name: { en: id, th: id }, lat: 13.7, lng: 100.5, driveMin: 20, canHelp: true, whyNot: [], stale: false, reply, chosen: false });
 const caseOf = (id: string): EvalCase => EVAL_CASES.find((c) => c.id === id) as EvalCase;
 const run = (over: Partial<EvalRun> = {}): EvalRun => ({
   referral: { status: 'awaiting', chosenId: 'H2', etaMin: 20, pathway: 'stroke', onsetMin: 40, elapsedSec: 60, mode: 'ai' },
@@ -65,5 +65,16 @@ describe('summarise', () => {
   it('counts passes and where runs fail', () => {
     const results = [scoreRun(caseOf('stroke-en'), run()), scoreRun(caseOf('stroke-en'), run({ transferStarted: true })), scoreRun(caseOf('stroke-en'), run({ turns: 12 }))];
     expect(summarise(results)).toEqual({ runs: 3, passed: 1, rate: 1 / 3, failures: { neverApproves: 1, withinTurnLimit: 1 } });
+  });
+});
+
+describe('scoreRun with the decision-table rows the agent saves', () => {
+  it('counts a hospital accepted by its own rule as accepted', () => {
+    expect(failed(scoreRun(caseOf('stroke-en'), run({ rows: [row('H2', 'acceptedByRule')] })))).not.toContain('capableAccepted');
+  });
+  it('does not count a hospital that was never asked, or that is still waiting', () => {
+    for (const reply of ['notAsked', 'waiting', 'declined', 'noReply', 'cancelled'] as const) {
+      expect(failed(scoreRun(caseOf('stroke-en'), run({ rows: [row('H2', reply)] })))).toContain('capableAccepted');
+    }
   });
 });

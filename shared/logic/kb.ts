@@ -6,7 +6,7 @@
  */
 import { PATHWAYS, PATHWAY_KEYS } from './pathways';
 import type { DemoHospital } from './demoHospitals';
-import type { Bi } from './types';
+import type { Bi, PathwayKey } from './types';
 
 const DEPARTMENTS: Record<string, Bi> = {
   ed: { en: 'Emergency department', th: 'ห้องฉุกเฉิน' },
@@ -99,4 +99,15 @@ export function kbTraceDetail(matches: readonly KbMatch[], nameOf: (hospitalId: 
     en: `${seen.size} source document(s): ${line('en')}${seen.size > shown.length ? ', and more' : ''}.`,
     th: `พบเอกสารอ้างอิง ${seen.size} ฉบับ: ${line('th')}${seen.size > shown.length ? ' และอื่น ๆ' : ''}`,
   };
+}
+
+/**
+ * The search the referral agent runs on its own after assessing a case: short English keywords from the pathway's own
+ * name, departments and equipment (English works best with the knowledge base), so every referral cites its sources
+ * without depending on the model to ask.
+ */
+export function kbQueryForPathway(key: PathwayKey): string {
+  const pathway = PATHWAYS[key];
+  const words = [pathway.name.en, ...pathway.departments.map((d) => label(DEPARTMENTS, d).en), ...pathway.equipment.map((e) => label(EQUIPMENT, e).en)];
+  return [...new Set(words.map((word) => word.toLowerCase()))].join(' ');
 }

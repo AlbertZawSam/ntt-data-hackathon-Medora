@@ -133,11 +133,11 @@ for (const fn of [backend.agentRunner, backend.findCare]) {
     new PolicyStatement({ actions: ['geo-routes:CalculateRouteMatrix'], resources: [`arn:aws:geo-routes:${aiStack.region}::provider/default`] }),
   );
 }
-// find-care's Bedrock permissions are opt-in: AGENTS.md says coding agents don't change IAM on their own,
-// so the team lead turns this on for the sandbox by setting MEDORA_ATTACH_BEDROCK_IAM=true. The statement
-// names the Nova Lite ARN and this stack's guardrail, never `*`. Until then find-care uses its keyword
-// fallback.
-if (process.env.MEDORA_ATTACH_BEDROCK_IAM === 'true') {
+// find-care's Bedrock permissions: the team lead approved attaching them by default (2026-10-24), because an
+// unflagged deploy would otherwise remove them without anyone noticing. Set MEDORA_ATTACH_BEDROCK_IAM=false to
+// leave them off. The statements name the Nova Lite ARN and this stack's guardrail, never `*`. Without them
+// find-care uses its keyword fallback. Cost: nothing while idle; Nova Lite is a fraction of a cent per search.
+if (process.env.MEDORA_ATTACH_BEDROCK_IAM !== 'false') {
   backend.findCare.resources.lambda.addToRolePolicy(new PolicyStatement({ actions: ['bedrock:InvokeModel'], resources: [modelArn(MODEL_ID_FAST)] }));
   backend.findCare.resources.lambda.addToRolePolicy(new PolicyStatement({ actions: ['bedrock:ApplyGuardrail'], resources: [guardrail.attrGuardrailArn] }));
 }

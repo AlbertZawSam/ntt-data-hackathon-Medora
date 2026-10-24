@@ -75,3 +75,15 @@ About 85 runs on Nova Lite and 8 on Nova Pro, all scored by `scoreRun`. Every ru
 What the per-turn logs show (they hold only stop reasons and tool names): runs that finish take 3 turns (`assess_case`, then `search_knowledge_base` and `ask_hospitals` together, then `recommend`). Runs that do not finish search first, then repeat `ask_hospitals` or `report_no_placement` until the 8-turn cap. Fixed reminders and a computed "next step" in every tool result did not change this, so it looks like model behaviour on this case, not a missing instruction. The "words only" turns the reminder targets were rare (one run).
 
 Open questions: whether Nova Pro behaves the same once throttling is out of the way (run with `--concurrency 1`), and whether the first asking round should be made by the fixed rules, leaving the model to recommend and explain.
+
+### Update, later the same day
+
+After the agent was changed so that `assess_case` itself asks the first hospitals and searches the knowledge base (the fixed rules do both; the model decides what to do with the answers):
+
+| What | Result |
+| --- | --- |
+| Stroke (English and Thai), stemi, preterm, Nova Lite, 4 runs each | 15 of 15 passed, all with source citations; 1 run used the rule-based backup. A network outage on the laptop cut the last runs short. |
+| Child admission, English, Nova Lite, 8 runs | The model finished 6 of 8 (2 used the backup), against about 2 to 5 of 8 before. |
+| Child admission, English, Nova Pro, 4 runs, one at a time | 4 of 4, none used the backup. |
+
+The earlier "all failed" batch was the scorer, not the agent: a teammate's change saved the decision rows in a new shape (`reply`, `chosen`) and the scorer still read the old one (`status`). The scorer now reads the current shape. The full 110-run Nova Lite evaluation and the Nova Pro comparison have still not been run.

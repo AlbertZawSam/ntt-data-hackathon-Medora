@@ -79,7 +79,7 @@ Paths follow the npm workspaces layout in `AGENTS.md` section 6: `frontend/`, `b
 ## Milestone 4: People seeking care (RC2, RC3, RC4)
 
 - [x] 11. Home and location **P0** (RC2)
-  - _Done in code: GPS with permission handling and the out-of-Bangkok fallback, the built-in Bangkok place list, tap-the-map picking, Call 1669, and (new) Amazon Location place search through a `search-places` Lambda (patients only; `geo-places:SearchText` on the default provider; a fixed Bangkok rectangle, so only the typed text is sent and the patient's position stays on the phone; 3 characters minimum and a 500 ms pause in the app; failures fall back to the built-in list). Cost: nothing while idle, billed per search. Not yet run against a deployed sandbox: check that typing a place not in the built-in list (for example "CentralWorld") shows extra suggestions after the next deploy._
+  - _Done in code: GPS with permission handling and the out-of-Bangkok fallback, the built-in Bangkok place list, tap-the-map picking, Call 1669, and (new) Amazon Location place search through a `search-places` Lambda (patients only; `geo-places:SearchText` on the default provider; a fixed Bangkok rectangle, so only the typed text is sent and the patient's position stays on the phone; 3 characters minimum and a 500 ms pause in the app; failures fall back to the built-in list). Cost: nothing while idle, billed per search. Verified on the sandbox on 2026-10-24 by invoking the Lambda: "CentralWorld" (English and Thai) and "Siam Paragon" return places inside Bangkok, "..." returns nothing without a search, and a doctor caller is refused. Not yet tried by hand in the app._
   - GPS with permission handling, place search (built-in Bangkok places plus Amazon Location), pick on map, Call 1669.
   - _Requirements: 3.1 to 3.6_
 
@@ -88,7 +88,7 @@ Paths follow the npm workspaces layout in `AGENTS.md` section 6: `frontend/`, `b
   - _Requirements: 4.1 to 4.5_
 
 - [x] 13. Find care **P0** (RC2)
-  - _Drive times in a patient's search now come from Amazon Location Routes v2 (the same single permission as the referral agent, in `find-care`); only the patient's position rounded to about 100 m is sent, nothing they wrote; if the call fails ranking uses the offline estimate (`backend/tests/adminAndFindCare.test.ts`; not yet run against AWS)._
+  - _Drive times in a patient's search now come from Amazon Location Routes v2 (the same single permission as the referral agent, in `find-care`); only the patient's position rounded to about 100 m is sent, nothing they wrote; if the call fails ranking uses the offline estimate (`backend/tests/adminAndFindCare.test.ts`). Verified live on 2026-10-24: all 8 hospitals got a real route (`routes=8` in the log), Nova Lite classified a child's fever in English and Thai (the team lead approved attaching `find-care`'s scoped Bedrock permissions by default), the chest-pain test was caught by the fixed rules before any model call, and an injection attempt was blocked by the guardrail and fell back to keywords._
   - `patient-understand` Lambda (Nova Lite, JSON output, keyword fallback); hospitals that can help now with simple labels; map; "skipped because" for closer hospitals; disclaimer.
   - _Requirements: 5.1 to 5.7_
 

@@ -325,7 +325,7 @@ const TOOL_CONFIG: Tool[] = [
     toolSpec: {
       name: 'assess_case',
       description:
-        'Call first. Picks the care pathway the referring doctor describes and checks which hospitals can provide it in time. ' +
+        'Call first. Picks the care pathway the referring doctor describes, checks which hospitals can provide it in time, and asks the best ones for you straight away: the result includes their replies in first_round. ' +
         'Pathways: stroke (stroke care: neurology, CT); stemi (heart attack care: cardiology, cath lab); preterm (preterm labour: obstetrics, NICU); ' +
         'peds (child admission); maternity (pregnancy or birth); injury (injury or trauma); general (anything else).',
       inputSchema: {
@@ -527,7 +527,7 @@ export const handler = async (event: StartReferralEvent): Promise<void> => {
   if (event.identity?.sub && event.identity.sub !== referralResult.data.ownerId) return;
   const referral = referralRun(referralResult.data);
   const store = new AmplifyReferralStore(client, referral);
-  const tools = new ReferralTools(referral, store);
+  const tools = new ReferralTools(referral, store, { autoFirstRound: true });
 
   try {
     await store.activity({ en: 'Referral agent started', th: 'เริ่มเอเจนต์ส่งต่อแล้ว' });

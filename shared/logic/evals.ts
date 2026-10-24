@@ -5,7 +5,8 @@
  * Requirements: 12.5, 12.10
  */
 import { placementInsideWindow } from './metrics';
-import type { DecisionRow, PathwayKey, Referral } from './types';
+import type { DecisionRow } from './decisionTable';
+import type { PathwayKey, Referral } from './types';
 
 export interface EvalCase {
   id: string;
@@ -83,7 +84,7 @@ export function scoreRun(c: EvalCase, run: EvalRun, options: { requireSources?: 
   const noOneCapable = run.capableIds.length === 0;
   const checks: EvalCheck[] = [
     { name: 'placed', pass: placed || (noOneCapable && run.referral.status === 'failed') },
-    { name: 'capableAccepted', pass: noOneCapable ? !placed : placed && chosen?.status === 'accepted' && run.capableIds.includes(chosen.hospitalId) },
+    { name: 'capableAccepted', pass: noOneCapable ? !placed : placed && (chosen?.reply === 'accepted' || chosen?.reply === 'acceptedByRule') && run.capableIds.includes(chosen.hospitalId) },
   ];
   // The window is judged on the recommended placement; with a stated delay, that delay counts too.
   const delay = c.expect.delayWeighed ? delayMinutes(c.statedNote) : 0;
