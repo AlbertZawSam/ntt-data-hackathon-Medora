@@ -537,5 +537,8 @@
   "department.short.cardiology": "หัวใจ",
   "department.short.surgery": "ศัลยกรรม",
   "department.short.obstetrics": "สูติกรรม",
-  "department.short.general": "ทั่วไป"
+  "department.short.general": "ทั่วไป",
+  "patient.specialists.queryLabel": "ค้นหาสาขาหรือแพทย์ใดก็ได้",
+  "patient.specialists.queryHint": "เช่น หัวใจ เด็ก กระดูก หรือชื่อแพทย์หรือโรงพยาบาล",
+  "patient.specialists.anySpecialty": "ทุกสาขา"
 }

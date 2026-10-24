@@ -537,5 +537,8 @@
   "department.short.cardiology": "Cardiology",
   "department.short.surgery": "Surgery",
   "department.short.obstetrics": "Obstetrics",
-  "department.short.general": "General"
+  "department.short.general": "General",
+  "patient.specialists.queryLabel": "Search for any specialty or doctor",
+  "patient.specialists.queryHint": "For example: heart, children, bone, or a doctor or hospital name",
+  "patient.specialists.anySpecialty": "All specialties"
 }

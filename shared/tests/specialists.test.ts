@@ -1,4 +1,4 @@
-import { LANGUAGES, bookSlot, listSpecialists, openSlots, specialtyForNeed, validateSpecialistInput, type SpecialistRecord } from '../logic/specialists';
+import { LANGUAGES, bookSlot, matchesSpecialistQuery, listSpecialists, openSlots, specialtyForNeed, validateSpecialistInput, type SpecialistRecord } from '../logic/specialists';
 
 const NOW = Date.parse('2026-10-13T04:00:00Z');
 const slot = (id: string, day: string, time: string, booked = false) => ({ id, day, time, booked });
@@ -71,5 +71,19 @@ describe('specialtyForNeed', () => {
     expect(specialtyForNeed('child')).toBe('pediatrics');
     expect(specialtyForNeed('injury')).toBe('orthopedics');
     expect(specialtyForNeed('general')).toBe('general');
+  });
+});
+
+describe('matchesSpecialistQuery', () => {
+  const s = { specialty: 'cardiology', name: 'Dr. Kittisak Prasert', hospitalName: { en: 'Ladprao General Hospital', th: 'โรงพยาบาลลาดพร้าว' }, languages: ['th'] };
+  it('finds by specialty word, synonym, Thai word, doctor name, hospital or language', () => {
+    for (const q of ['cardiology', 'heart', 'หัวใจ', 'kittisak', 'ladprao', 'ลาดพร้าว', 'heart th']) expect(matchesSpecialistQuery(s, q)).toBe(true);
+  });
+  it('needs every typed word to match, and treats empty text as everything', () => {
+    expect(matchesSpecialistQuery(s, 'heart neurology')).toBe(false);
+    expect(matchesSpecialistQuery(s, '   ')).toBe(true);
+  });
+  it('never matches a hidden doctor name', () => {
+    expect(matchesSpecialistQuery({ ...s, name: null }, 'kittisak')).toBe(false);
   });
 });

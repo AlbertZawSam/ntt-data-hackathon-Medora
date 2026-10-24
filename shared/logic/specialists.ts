@@ -153,3 +153,27 @@ export function specialtyForNeed(need: string): Specialty {
       return 'general';
   }
 }
+
+/** Words people use for each specialty, in English and Thai, so a typed search finds it without the exact name. */
+export const SPECIALTY_KEYWORDS: Record<(typeof SPECIALTIES)[number], readonly string[]> = {
+  cardiology: ['cardiology', 'cardiologist', 'heart', 'cardiac', 'chest', 'หัวใจ', 'อายุรกรรมหัวใจ'],
+  neurology: ['neurology', 'neurologist', 'brain', 'stroke', 'nerve', 'headache', 'สมอง', 'ระบบประสาท', 'อัมพาต'],
+  obstetrics: ['obstetrics', 'obstetrician', 'gynecology', 'pregnancy', 'pregnant', 'maternity', 'ob-gyn', 'สูติ', 'ตั้งครรภ์', 'สตรี'],
+  pediatrics: ['pediatrics', 'paediatrics', 'pediatrician', 'child', 'children', 'baby', 'kids', 'กุมาร', 'เด็ก', 'ทารก'],
+  orthopedics: ['orthopedics', 'orthopaedics', 'bone', 'fracture', 'joint', 'spine', 'กระดูก', 'ข้อ', 'เส้นเอ็น'],
+  general: ['general', 'family', 'doctor', 'physician', 'internal', 'ทั่วไป', 'อายุรกรรม', 'หมอ', 'แพทย์'],
+};
+
+const norm = (text: string): string => text.toLowerCase().normalize('NFKC').replace(/\s+/g, ' ').trim();
+
+/**
+ * Whether a specialist matches what the person typed: every word they typed must appear in the specialty's name or
+ * keywords, the doctor's name (only when it is shown), the hospital's name, or a language. Empty text matches all.
+ */
+export function matchesSpecialistQuery(specialist: Pick<PublicSpecialist, 'specialty' | 'name' | 'hospitalName' | 'languages'>, query: string, specialtyLabels: readonly string[] = []): boolean {
+  const words = norm(query).split(' ').filter(Boolean);
+  if (words.length === 0) return true;
+  const keywords = SPECIALTY_KEYWORDS[specialist.specialty as (typeof SPECIALTIES)[number]] ?? [specialist.specialty];
+  const haystack = norm([specialist.specialty, ...keywords, ...specialtyLabels, specialist.name ?? '', specialist.hospitalName.en, specialist.hospitalName.th, ...specialist.languages].join(' | '));
+  return words.every((word) => haystack.includes(word));
+}
