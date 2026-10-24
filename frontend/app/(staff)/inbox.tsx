@@ -10,7 +10,7 @@ import { canAnswerRequest } from '@medora/shared/logic/access';
 import { quickRepliesFor, undoSecondsLeft } from '@medora/shared/logic/care';
 import type { CareRequest } from '@medora/shared/logic/types';
 import { MessageThread } from '../../src/components/MessageThread';
-import type { StringKey } from '../../src/i18n/t';
+import { pick, type StringKey } from '../../src/i18n/t';
 import { answerRequest } from '../../src/services/data';
 import { useApp, useT } from '../../src/state/AppProvider';
 import { Badge } from '../../src/ui/Badge';
@@ -35,7 +35,7 @@ const UNDO_WINDOW_S = 60;
 export default function StaffInboxScreen(): React.JSX.Element {
   const t = useT();
   const theme = useTheme();
-  const { data, session } = useApp();
+  const { data, session, lang } = useApp();
   const [now, setNow] = React.useState(Date.now());
   const [busy, setBusy] = React.useState<string | null>(null);
   const [failed, setFailed] = React.useState(false);
@@ -102,7 +102,9 @@ export default function StaffInboxScreen(): React.JSX.Element {
       ) : null}
       {requests.map((r, index) => {
         const undoLeft = undoSecondsLeft(r, now);
-        const name = r.patient.name || t('patient.requests.fromHospital');
+        const name =
+          r.patient.name ||
+          (r.patient.referredFrom ? t('staff.inbox.referralFrom', { hospital: pick(r.patient.referredFrom, lang) }) : t('patient.requests.fromHospital'));
         const answerable = r.status === 'waiting' || r.status === 'no_reply';
         return (
           <Reveal key={r.id} index={index}>

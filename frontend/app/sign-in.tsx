@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 import type { StringKey } from '../src/i18n/t';
 import { staffPoolConfigured } from '../src/services/amplify';
@@ -23,7 +23,9 @@ export default function SignInScreen(): React.JSX.Element {
   const [password, setPassword] = React.useState('');
   const [newPassword, setNewPasswordValue] = React.useState('');
   const theme = useTheme();
-  const [pool, setPool] = React.useState<PoolKind>(policy.defaultPool);
+  // `?staff=1` (the sign-up page's doctor link) opens the doctor and hospital staff sign-in directly.
+  const params = useLocalSearchParams<{ staff?: string }>();
+  const [pool, setPool] = React.useState<PoolKind>(params.staff === '1' && policy.showPoolSwitch ? 'staff' : policy.defaultPool);
   const [code, setCode] = React.useState('');
   const [step, setStep] = React.useState<'credentials' | 'newPassword' | 'totpSetup' | 'totpCode' | 'forgot' | 'forgotCode'>('credentials');
   const [info, setInfo] = React.useState<StringKey | null>(null);

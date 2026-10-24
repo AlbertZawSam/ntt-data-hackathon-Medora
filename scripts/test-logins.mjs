@@ -83,8 +83,10 @@ ACCOUNTS = ACCOUNTS.map((a) => ({ ...a, hospitalId, section: '' }));
 const DEPARTMENT_NAMES = { cardiology: 'Cardiology', surgery: 'Surgery', obstetrics: 'Obstetrics' };
 if (departmentsOnly) {
   // One account per department, readable emails: cardiology.rama9@medora.demo and so on.
-  ACCOUNTS = DEMO.filter((h) => DEPARTMENTS.every((d) => h.departments.includes(d.dept))).flatMap((h) =>
-    DEPARTMENTS.map((d) => ({
+  ACCOUNTS = DEMO.filter((h) => DEPARTMENTS.every((d) => h.departments.includes(d.dept))).flatMap((h) => [
+    // The hospital's referring doctor: runs the AI referral (for example a heart attack from Chao Phraya to Rama Nine).
+    { email: `doctor.${h.key}@medora.demo`, group: 'doctors', role: 'Doctor: AI referral to another hospital', hospitalId: seedId(h.key), section: h.name.en },
+    ...DEPARTMENTS.map((d) => ({
       email: `${d.unit}.${h.key}@medora.demo`,
       group: 'hospital_staff',
       unit: d.unit,
@@ -92,7 +94,7 @@ if (departmentsOnly) {
       hospitalId: seedId(h.key),
       section: h.name.en,
     })),
-  );
+  ]);
 }
 
 const localDir = resolve(root, 'scripts', '.local');
@@ -213,9 +215,9 @@ a.big{display:block;text-align:center;padding:14px;font-size:17px;margin-top:8px
 ol{padding-left:20px;margin:6px 0}h2{font-size:19px;margin:28px 0 4px}
 </style></head><body><main>
 <h1>${departmentsOnly ? 'Medora department logins' : 'Medora test logins'}</h1>
-<p>${departmentsOnly ? 'Department staff of the two demo hospitals: a patient request sent to a department reaches only that account.' : `Synthetic test accounts for hospital ${escape(hospitalId)}.`} In your own sandbox; keep this page on your laptop, don't share it.</p>
+<p>${departmentsOnly ? 'Doctor and department staff of the two demo hospitals: a request sent to a department reaches that department.' : `Synthetic test accounts for hospital ${escape(hospitalId)}.`} In your own sandbox; keep this page on your laptop, don't share it.</p>
 <div class="card"><ol>
-<li>Open the app (run <b>npm run web</b> first), then click <b>"Hospital staff? Sign in here"</b>.</li>
+<li>Open the app (run <b>npm run web</b> first), then click <b>"Doctor or hospital staff? Sign in here"</b>.</li>
 <li>Copy the email and password of the account below, click <b>Sign In</b>.</li>
 <li>Copy its 6-digit code (it changes every 30 seconds) and click <b>Verify code</b>.</li>
 <li>To switch account: open the <b>account menu</b> (profile icon, top right) → <b>Sign out</b>, then repeat with another card.</li></ol>

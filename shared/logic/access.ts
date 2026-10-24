@@ -79,12 +79,16 @@ export function canUpdateStatusItem(
 /**
  * Accept, decline, undo and messages on requests: unit staff of the request's hospital. A request
  * sent to a department (Cardiology, Surgery, Obstetrics) belongs to that department's staff only;
- * a request without one (general care, doctor referrals) to the other units. `all` answers both.
+ * a request without one (general care) to the other units. A doctor's referral routed to a department is
+ * answered by that department and, as a fallback, the other units. `all` answers everything.
  */
-export function canAnswerRequest(caller: Caller, request: { hospitalId: string; department?: string | null }): boolean {
+export function canAnswerRequest(caller: Caller, request: { hospitalId: string; department?: string | null; referralId?: string | null }): boolean {
   if (!inGroup(caller, GROUPS.staff) || !hasHospital(caller) || caller.hospitalId !== request.hospitalId) return false;
   if (caller.unit === ALL_UNITS) return true;
-  return isDepartment(request.department) ? caller.unit === request.department : !isDepartment(caller.unit);
+  if (!isDepartment(request.department)) return !isDepartment(caller.unit);
+  // A doctor's referral to a department can also be taken by the emergency and other units, so an urgent
+  // transfer never waits at a hospital that has the department open but no department staff account.
+  return caller.unit === request.department || (Boolean(request.referralId) && !isDepartment(caller.unit));
 }
 
 /** Doctors start referrals from their own hospital. */

@@ -1,8 +1,8 @@
 /**
- * Hospital details a person seeking care can open before choosing where to go: beds as a label,
- * whether the emergency department is open, which kinds of care it can take now, which specialties
- * have a doctor on duty, and the clinic specialists they can book. Simple labels only, never bed
- * counts, equipment faults or staff names on duty (AGENTS.md rule 6). Pure TypeScript.
+ * Hospital details a person seeking care can open before choosing where to go: free beds as a label and a
+ * broad range, whether the emergency department is open, which kinds of care it can take now, which
+ * specialties have a doctor on duty, and the clinic specialists they can book. Labels and broad ranges
+ * only, never exact bed counts, equipment faults or staff names on duty (AGENTS.md rule 6). Pure TypeScript.
  * Requirements: 5.2, 5.3, 8.1
  */
 import { openDepartments, type Department } from './departments';
@@ -13,8 +13,21 @@ import type { HospitalStatus, NeedKey } from './types';
 
 export type BedLabel = 'available' | 'limited' | 'full';
 
+/**
+ * Free beds as a range, never the exact number (AGENTS.md rule 6): realistic enough to choose between
+ * hospitals, without publishing a count people race for. Held beds count as taken.
+ */
+export type BedRange = 'none' | '1-2' | '3-5' | '6-10' | '10+';
+
+export function bedRange(status: HospitalStatus): BedRange {
+  const free = freeBeds(status);
+  return free <= 0 ? 'none' : free <= 2 ? '1-2' : free <= 5 ? '3-5' : free <= 10 ? '6-10' : '10+';
+}
+
 export interface HospitalDetails {
   beds: BedLabel;
+  /** Free beds as a range (see BedRange). */
+  bedsFree: BedRange;
   edOpen: boolean;
   /** Each kind of care, as the same label Find care uses. */
   care: Record<NeedKey, PublicLabel>;
@@ -59,6 +72,7 @@ export function hospitalDetails(
     .map((s) => ({ specialty: s.specialty, name: s.namePublic ? s.name : null }));
   return {
     beds: bedLabel(status),
+    bedsFree: bedRange(status),
     edOpen: entry.edOpen,
     care,
     onDuty,

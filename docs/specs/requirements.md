@@ -59,7 +59,7 @@ Acceptance criteria use EARS notation (WHEN / WHILE / IF / WHERE ... THE SYSTEM 
 3. WHEN ranking hospitals THE SYSTEM SHALL order them by drive time plus wait × 0.2, adding 10 if the hospital's data is over 30 minutes old and 12 if its data is marked unclear.
 4. WHEN results are shown THE SYSTEM SHALL show a map with the patient, the hospitals that can help, the crossed-out ones that can't, and the route to the best one.
 5. WHERE the nearest hospital cannot help THE SYSTEM SHALL explain that it was skipped and why, in simple terms.
-6. THE SYSTEM SHALL show public users only simple labels (Available, Limited, Not available, data freshness), never exact bed counts or equipment faults.
+6. THE SYSTEM SHALL show public users only simple labels (Available, Limited, Not available, data freshness) and free beds as broad ranges (none, 1–2, 3–5, 6–10, 10+), never exact bed counts or equipment faults.
 7. THE SYSTEM SHALL show the disclaimer "Medora doesn't give medical advice. In an emergency, call 1669." on this screen.
 
 ## Requirement 6: Request to hospital (RC3)

@@ -38,7 +38,7 @@ export function HospitalDetailsView({ details, nowMs, need }: { details: Hospita
   return (
     <View style={[styles.box, { borderColor: theme.border, backgroundColor: theme.background }]}>
       <View style={styles.tiles}>
-        <Tile title={t('details.bedsTitle')} value={t(`details.bedsShort.${details.beds}` as StringKey)} symbol={SYMBOL[beds]} color={color[beds]} tint={tint(beds)} />
+        <Tile title={t('details.bedsTitle')} value={t(`details.bedsFree.${details.bedsFree}` as StringKey)} symbol={SYMBOL[beds]} color={color[beds]} tint={tint(beds)} />
         <Tile title={t('details.edTitle')} value={t(details.edOpen ? 'details.edOpen' : 'details.edClosed')} symbol={SYMBOL[ed]} color={color[ed]} tint={tint(ed)} />
       </View>
 
