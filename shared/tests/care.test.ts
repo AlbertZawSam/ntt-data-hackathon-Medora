@@ -98,6 +98,12 @@ describe('toPublicHospital', () => {
     const none = hospital('E', openStatus({ beds: 0, updatedAt: minutesAgo(5) }));
     expect(toPublicHospital(evaluate([none], stroke, ORIGIN, { nowMs: NOW_MS })[0], stroke)).toMatchObject({ label: 'notAvailable', skipped: ['beds'] });
   });
+  it("shows a hospital that can't help as not available even when its data is old or unclear", () => {
+    const stroke = PATHWAYS.stroke;
+    for (const status of [openStatus({ beds: 0, updatedAt: minutesAgo(600) }), openStatus({ beds: 0, conflict: true, updatedAt: minutesAgo(5) })]) {
+      expect(toPublicHospital(evaluate([hospital('F', status)], stroke, ORIGIN, { nowMs: NOW_MS })[0], stroke).label).toBe('notAvailable');
+    }
+  });
 });
 
 import { couldTreat } from '../logic/care';
