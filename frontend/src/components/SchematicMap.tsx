@@ -6,10 +6,11 @@
  */
 import React from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
-import Svg, { Circle, G, Line, Rect, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, G, Line, Polyline, Rect, Text as SvgText } from 'react-native-svg';
 import type { MarkerKind } from '@medora/shared/logic/mapLayers';
 import type { LatLng } from '@medora/shared/logic/ranking';
 import { boundsOf, project, unproject, type Box } from '@medora/shared/logic/mapView';
+import { useRoutePath } from '../services/routePath';
 import { fonts, radii, useTheme } from '../ui/theme';
 
 export type { MarkerKind };
@@ -42,7 +43,9 @@ export function SchematicMap({ markers, route, onPick, height = 240, accessibili
   const theme = useTheme();
   const [width, setWidth] = React.useState(320);
   const box: Box = { width, height, padding: 28 };
-  const bounds = React.useMemo(() => boundsOf([...markers.map((m) => m.point), ...(route ?? [])]), [markers, route]);
+  // The real road route once it arrives; the straight line before that and when it isn't available.
+  const road = useRoutePath(route);
+  const bounds = React.useMemo(() => boundsOf([...markers.map((m) => m.point), ...(road ?? route ?? [])]), [markers, route, road]);
 
   const colors: Record<MarkerKind, string> = {
     me: theme.primary,
@@ -74,7 +77,16 @@ export function SchematicMap({ markers, route, onPick, height = 240, accessibili
           fill="transparent"
           onPress={onPick ? (e) => onPick(unproject({ x: e.nativeEvent.locationX, y: e.nativeEvent.locationY }, bounds, box)) : undefined}
         />
-        {route ? (() => {
+        {road ? (
+          <Polyline
+            points={road.map((p) => { const q = project(p, bounds, box); return `${q.x},${q.y}`; }).join(' ')}
+            fill="none"
+            stroke={theme.primary}
+            strokeWidth={4}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        ) : route ? (() => {
           const a = project(route[0], bounds, box);
           const b = project(route[1], bounds, box);
           return <Line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={theme.primary} strokeWidth={3} strokeDasharray="6 4" />;

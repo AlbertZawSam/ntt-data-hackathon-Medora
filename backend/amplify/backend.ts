@@ -26,10 +26,11 @@ import { inviteStaff } from './functions/invite-staff/resource';
 import { mapConfig } from './functions/map-config/resource';
 import { patientUnderstand } from './functions/patient-understand/resource';
 import { registerHospital } from './functions/register-hospital/resource';
+import { routePath } from './functions/route-path/resource';
 import { searchPlaces } from './functions/search-places/resource';
 import { updateStatus } from './functions/update-status/resource';
 
-const backend = defineBackend({ auth, postConfirmation, data, agentRunner, adminSettings, careActions, referralActions, specialistActions, findCare, inviteStaff, mapConfig, patientUnderstand, registerHospital, searchPlaces, updateStatus });
+const backend = defineBackend({ auth, postConfirmation, data, agentRunner, adminSettings, careActions, referralActions, specialistActions, findCare, inviteStaff, mapConfig, patientUnderstand, registerHospital, routePath, searchPlaces, updateStatus });
 
 // Tag every resource so Cost Explorer shows spend per stage (AGENTS.md section 5).
 const app = backend.stack.node.root;
@@ -268,6 +269,15 @@ backend.searchPlaces.resources.lambda.addToRolePolicy(
   new PolicyStatement({
     actions: ['geo-places:SearchText'],
     resources: [`arn:aws:geo-places:${Stack.of(backend.searchPlaces.resources.lambda).region}::provider/default`],
+  }),
+);
+
+// route-path may only calculate a route, on the one default data provider (AGENTS.md 4b.3).
+// Cost: nothing while idle; billed per route request (the app asks once per pair of points it draws).
+backend.routePath.resources.lambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ['geo-routes:CalculateRoutes'],
+    resources: [`arn:aws:geo-routes:${Stack.of(backend.routePath.resources.lambda).region}::provider/default`],
   }),
 );
 

@@ -9,6 +9,8 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import React from 'react';
 import { isCrossedOut, markerSize, routeGeoJson, visibleMarkers } from '@medora/shared/logic/mapLayers';
+import { pathGeoJson } from '@medora/shared/logic/routePath';
+import { useRoutePath } from '../services/routePath';
 import { fetchMapStyleUrl } from '../services/data';
 import { SchematicMap, shortLabel, type MapMarker, type MapViewProps, type MarkerKind } from './SchematicMap';
 import { fonts, radii, useTheme } from '../ui/theme';
@@ -52,7 +54,9 @@ function TileMap({ markers, route, onPick, height = 240, accessibilityLabel, sty
   // not redrawn or re-framed (fighting the person's panning) on every render.
   const shown = React.useMemo(() => visibleMarkers(markers), [markers]);
   const markerKey = JSON.stringify(shown.map((m) => [m.id, m.kind, m.point.lat, m.point.lng, m.label ?? '']));
-  const routeKey = JSON.stringify(route ?? null);
+  // The real road route when it is available; until then (and if it isn't) the straight line between the two points.
+  const road = useRoutePath(route);
+  const routeKey = JSON.stringify([route ?? null, road ? road.length : 0]);
   const onPickRef = React.useRef(onPick);
   onPickRef.current = onPick;
   const onFailedRef = React.useRef(onFailed);
@@ -81,7 +85,7 @@ function TileMap({ markers, route, onPick, height = 240, accessibilityLabel, sty
     map.on('load', () => {
       loaded = true;
       map.addSource('route', { type: 'geojson', data: routeGeoJson(undefined) });
-      map.addLayer({ id: 'route-line', type: 'line', source: 'route', paint: { 'line-color': theme.primary, 'line-width': 4, 'line-dasharray': [2, 1.5] } });
+      map.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': theme.primary, 'line-width': 5 } });
       setReady(true);
     });
     // A style that cannot load (a bad key, no network) means the offline map; a single missing tile later does not.
@@ -126,7 +130,7 @@ function TileMap({ markers, route, onPick, height = 240, accessibilityLabel, sty
       }
       return new maplibregl.Marker({ element, anchor: 'left', offset: [-size / 2, 0] }).setLngLat([m.point.lng, m.point.lat]).addTo(map);
     });
-    const points = [...shown.map((m) => m.point), ...(route ?? [])];
+    const points = [...shown.map((m) => m.point), ...(road ?? route ?? [])];
     if (points.length === 1) {
       map.easeTo({ center: [points[0].lng, points[0].lat], zoom: 13.5, duration: 300 });
     } else if (points.length > 1) {
@@ -142,7 +146,7 @@ function TileMap({ markers, route, onPick, height = 240, accessibilityLabel, sty
   // The route line.
   React.useEffect(() => {
     const source = mapRef.current?.getSource('route') as maplibregl.GeoJSONSource | undefined;
-    if (ready && source) source.setData(routeGeoJson(route) as never);
+    if (ready && source) source.setData((road ? pathGeoJson(road) : routeGeoJson(route)) as never);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, routeKey]);
 

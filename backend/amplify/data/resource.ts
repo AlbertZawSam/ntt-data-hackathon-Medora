@@ -6,6 +6,7 @@ import { referralActions } from '../functions/referral-actions/resource';
 import { specialistActions } from '../functions/specialist-actions/resource';
 import { findCare } from '../functions/find-care/resource';
 import { mapConfig } from '../functions/map-config/resource';
+import { routePath } from '../functions/route-path/resource';
 import { searchPlaces } from '../functions/search-places/resource';
 import { inviteStaff } from '../functions/invite-staff/resource';
 import { patientUnderstand } from '../functions/patient-understand/resource';
@@ -438,6 +439,17 @@ const schema = a.schema({
     .returns(a.string())
     .authorization((allow) => [allow.group('patients')])
     .handler(a.handler.function(searchPlaces)),
+
+  /**
+   * The road route between two points, for the line on the map. Any signed-in role; only two positions are sent, and
+   * the handler refuses points outside Bangkok.
+   */
+  routePath: a
+    .query()
+    .arguments({ fromLat: a.float().required(), fromLng: a.float().required(), toLat: a.float().required(), toLng: a.float().required() })
+    .returns(a.string())
+    .authorization((allow) => [allow.group('patients'), allow.group('hospital_staff'), allow.group('doctors'), allow.group('admins')])
+    .handler(a.handler.function(routePath)),
 
   /** Emergency check (layer 2), intake agent and ranking: hospitals as simple labels only. */
   findCare: a
