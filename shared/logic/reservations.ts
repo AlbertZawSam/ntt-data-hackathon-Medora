@@ -69,3 +69,11 @@ export function contradictsHolds(status: Pick<HospitalStatus, 'beds' | 'nicu'>, 
 export function newReservation(requestId: string, hospitalId: string, kind: ReservationKind, nowMs: number): Omit<Reservation, 'id'> {
   return { requestId, hospitalId, kind, state: 'held', createdAtMs: nowMs, expiresAtMs: nowMs + RESERVATION_MS };
 }
+
+/**
+ * A patient has arrived and now occupies a bed (or a NICU cot): one fewer free, never below zero.
+ * Used when staff mark a request arrived and when a doctor's transfer arrives (requirement 13.4).
+ */
+export function occupyOne(status: HospitalStatus, kind: ReservationKind): HospitalStatus {
+  return kind === 'nicu' ? { ...status, nicu: Math.max(0, status.nicu - 1) } : { ...status, beds: Math.max(0, status.beds - 1) };
+}

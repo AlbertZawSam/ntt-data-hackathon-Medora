@@ -125,3 +125,37 @@ describe('reservations', () => {
     expect(JSON.parse(String(fake.tables('HospitalStatus')[0].status)).beds).toBe(0);
   });
 });
+
+describe('a referred patient arrives', () => {
+  const er = { groups: ['hospital_staff'], hospitalId: 'H1', unit: 'er' };
+  beforeEach(() => {
+    fake.tables('CareRequest').push({ id: 'q1', type: 'referral', hospitalId: 'H1', ownerId: 'd1', needKey: 'stemi', status: 'accepted', auto: true, referralId: 'f1', createdAtMs: Date.now() } as never);
+    fake.tables('Transfer').push({ id: 't1', referralId: 'f1', toHospitalId: 'H1', status: 'in_progress' } as never);
+  });
+
+  it('takes one bed even with no held bed, and closes the doctor\'s transfer', async () => {
+    await call(staffEvent('answerRequest', { requestId: 'q1', action: 'arrived' }, er));
+    expect(fake.tables('CareRequest').find((r) => r.id === 'q1')?.status).toBe('completed');
+    expect(JSON.parse(String(fake.tables('HospitalStatus')[0].status)).beds).toBe(4);
+    expect(fake.tables('Transfer')[0].status).toBe('arrived');
+  });
+});
+
+describe('quick replies', () => {
+  const er = { groups: ['hospital_staff'], hospitalId: 'H1', unit: 'er' };
+  beforeEach(() => {
+    fake.tables('CareRequest').push({ id: 'q1', type: 'referral', hospitalId: 'H1', ownerId: 'd1', needKey: 'stemi', status: 'accepted', auto: true, referralId: 'f1', createdAtMs: Date.now() } as never);
+    fake.tables('CareRequest').push({ id: 'v1', type: 'visit', hospitalId: 'H1', ownerId: 'p1', needKey: 'general', status: 'waiting', auto: false, createdAtMs: Date.now() } as never);
+  });
+
+  it('offers doctor referrals their own set and refuses the patient set there', async () => {
+    await call(staffEvent('sendMessage', { requestId: 'q1', key: 'bedReady' }, er));
+    expect(fake.tables('Message')[0]).toMatchObject({ requestId: 'q1', from: 'hospital', key: 'bedReady' });
+    await expect(call(staffEvent('sendMessage', { requestId: 'q1', key: 'bringDocuments' }, er))).rejects.toThrow('bad-message');
+  });
+
+  it('keeps the patient set on patient requests', async () => {
+    await call(staffEvent('sendMessage', { requestId: 'v1', key: 'goToEmergency' }, er));
+    await expect(call(staffEvent('sendMessage', { requestId: 'v1', key: 'sendEcg' }, er))).rejects.toThrow('bad-message');
+  });
+});

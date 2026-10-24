@@ -6,7 +6,7 @@
  */
 import React from 'react';
 import { Platform, StyleSheet, Text, Vibration, View } from 'react-native';
-import { undoSecondsLeft } from '@medora/shared/logic/care';
+import { quickRepliesFor, undoSecondsLeft } from '@medora/shared/logic/care';
 import type { CareRequest } from '@medora/shared/logic/types';
 import { MessageThread } from '../../src/components/MessageThread';
 import type { StringKey } from '../../src/i18n/t';
@@ -112,7 +112,7 @@ export default function StaffInboxScreen(): React.JSX.Element {
             {r.status === 'accepted' ? (
               <>
                 <Text style={[styles.name, { color: theme.text }]}>{t('staff.inbox.messages')}</Text>
-                <MessageThread requestId={r.id} messages={data.messages} me="hospital" />
+                <MessageThread requestId={r.id} messages={data.messages} me="hospital" quickKeys={quickRepliesFor(r)} />
               </>
             ) : null}
           </View>
