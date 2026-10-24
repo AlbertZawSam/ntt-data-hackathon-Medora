@@ -142,8 +142,9 @@ export type PublicLabel = 'available' | 'limited' | 'notAvailable' | 'outdated';
  */
 export function publicLabel(row: RankedHospital, pathway: Pathway): PublicLabel {
   const { status } = row.hospital;
-  if (status.conflict || row.stale) return 'outdated';
+  // "Can't help" comes first: old or unclear data must never make a closed department look requestable.
   if (!row.eligible) return 'notAvailable';
+  if (status.conflict || row.stale) return 'outdated';
   const spare = pathway.needsNicu ? Math.min(freeBeds(status), freeNicu(status)) : pathway.needsBed ? freeBeds(status) : Infinity;
   return spare <= 2 ? 'limited' : 'available';
 }
