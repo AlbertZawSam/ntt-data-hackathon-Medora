@@ -152,7 +152,7 @@ export default function PatientCareScreen(): React.JSX.Element {
                   onPress={() => setDetailsFor(detailsFor === h.id ? null : h.id)}
                 />
               ) : null}
-              {h.details && detailsFor === h.id ? <HospitalDetailsView details={h.details} nowMs={Date.now()} /> : null}
+              {h.details && detailsFor === h.id ? <HospitalDetailsView details={h.details} nowMs={Date.now()} need={need} /> : null}
               {h.label === 'notAvailable' ? (
                 <Text style={[styles.note, { color: theme.textMuted }]}>{t('patient.care.skippedBecause', { reason: t('failure.simple') })}</Text>
               ) : (
