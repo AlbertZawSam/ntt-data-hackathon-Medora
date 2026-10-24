@@ -130,8 +130,32 @@ export class ReferralTools {
     return result;
   }
 
+  /**
+   * What the fixed rules say should happen next, from the real state of the referral. It is our own fixed wording,
+   * never staff or patient text. Live runs showed the model re-asking and re-assessing until its turns ran out
+   * because nothing told it a hospital had already accepted; this does.
+   */
+  private async nextStep(): Promise<string> {
+    if (!this.state) return 'Call assess_case.';
+    const requests = await this.store.requests(this.referral.id);
+    const accepted = this.state.assessment.ranked
+      .filter((row) => row.eligible)
+      .map((row) => requests.find((request) => request.hospitalId === row.hospital.id && request.status === 'accepted'))
+      .find((request): request is CareRequest => request !== undefined);
+    if (accepted) return `Hospital ${accepted.hospitalId} has accepted. Call recommend for it now, unless its staff note states a delay that breaks the treatment window.`;
+    if (requests.some((request) => request.status === 'waiting')) return 'Some replies are still pending. Call check_replies to wait for them.';
+    if (this.asked.size === 0) return 'Call ask_hospitals for the hospitals assess_case returned as able to help.';
+    if (this.rounds < 2 && nextHospitals(this.state.assessment, this.asked).length > 0) return 'No hospital has accepted yet. Call ask_hospitals for the next hospitals.';
+    return 'No hospital accepted and no asking rounds remain. Call report_no_placement.';
+  }
+
+  /** A refusal that also says what to do next, so the model does not repeat the same call. */
+  private async refuse(message: string): Promise<{ ok: false; error: string }> {
+    return toolError(`${message} ${await this.nextStep()}`);
+  }
+
   async assessCase(input: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if (this.state) return toolError('assess_case may be called only once per referral.');
+    if (this.state) return this.refuse('assess_case may be called only once per referral.');
     const pathway = asPathway(input.pathway);
     if (!pathway) return toolError('pathway must be stroke, stemi, preterm, peds, maternity, injury, or general.');
     const hospitals = await this.store.hospitals();
@@ -179,7 +203,7 @@ export class ReferralTools {
     return {
       ok: true,
       matches: brief,
-      next: this.state ? 'Now call ask_hospitals for the hospitals assess_case returned as able to help.' : 'Now call assess_case.',
+      next: await this.nextStep(),
     };
   }
 
@@ -189,9 +213,9 @@ export class ReferralTools {
     if (!ids) return toolError('hospital_ids must be a non-empty array of unique hospital ids.');
     if (waitSeconds === null) return toolError('wait_seconds must be an integer from 5 to 60.');
     if (!this.state) return toolError('Call assess_case before asking hospitals.');
-    if (this.rounds >= 2) return toolError('At most two hospital asking rounds are allowed.');
+    if (this.rounds >= 2) return this.refuse('At most two hospital asking rounds are allowed.');
     const allowed = new Set(nextHospitals(this.state.assessment, this.asked).map((row) => row.hospital.id));
-    if (ids.some((id) => !allowed.has(id))) return toolError('A hospital is unknown, cannot help, was already asked, or is outside the next allowed round.');
+    if (ids.some((id) => !allowed.has(id))) return this.refuse('A hospital is unknown, cannot help, was already asked, or is outside the next allowed round.');
 
     const rows = this.state.assessment.ranked.filter((row) => ids.includes(row.hospital.id));
     this.rounds += 1;
@@ -230,7 +254,7 @@ export class ReferralTools {
     await this.saveRows();
     await this.waitForReplies(ids, waitSeconds);
     await this.saveRows();
-    return { ok: true, replies: await this.replies() };
+    return { ok: true, replies: await this.replies(), next: await this.nextStep() };
   }
 
   /** What the doctor sees for each hospital asked: place, drive and answer. Never counts or equipment faults. */
@@ -250,10 +274,10 @@ export class ReferralTools {
     if (input.give_up_on_pending !== undefined && typeof input.give_up_on_pending !== 'boolean') {
       return toolError('give_up_on_pending must be true or false.');
     }
-    if (input.give_up_on_pending === true) return { ok: true, replies: await this.replies() };
+    if (input.give_up_on_pending === true) return { ok: true, replies: await this.replies(), next: await this.nextStep() };
     await this.waitForReplies([...this.asked], waitSeconds);
     await this.saveRows();
-    return { ok: true, replies: await this.replies() };
+    return { ok: true, replies: await this.replies(), next: await this.nextStep() };
   }
 
   async recommend(input: Record<string, unknown>): Promise<Record<string, unknown>> {
