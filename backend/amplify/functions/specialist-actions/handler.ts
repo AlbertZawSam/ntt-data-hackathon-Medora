@@ -170,7 +170,9 @@ async function bookSpecialist(client: Client, event: AppSyncResolverEvent<Rec>):
 
 export const handler = async (event: AppSyncResolverEvent<Rec>): Promise<string> => {
   const client = await dataClient();
-  switch (event.info.fieldName) {
+  // Amplify Gen 2 function resolvers pass the field at the top level (event.fieldName); AppSync's
+  // direct Lambda resolvers use event.info.fieldName. Accept both.
+  switch ((event as { fieldName?: string }).fieldName ?? event.info?.fieldName) {
     case 'saveSpecialist':
       return saveSpecialist(client, event);
     case 'removeSpecialist':

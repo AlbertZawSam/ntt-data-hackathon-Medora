@@ -5,8 +5,10 @@
 import { useRouter, type Href } from 'expo-router';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { transferProgress } from '@medora/shared/logic/transfer';
+import { parseDecisionRows } from '@medora/shared/logic/decisionTable';
+import { positionAlong, transferProgress } from '@medora/shared/logic/transfer';
 import type { Transfer } from '@medora/shared/logic/types';
+import { MapView, shortLabel } from '../../src/components/MapView';
 import { pick } from '../../src/i18n/t';
 import { markTransferArrived } from '../../src/services/data';
 import { useApp, useT } from '../../src/state/AppProvider';
@@ -48,10 +50,16 @@ function TransferCard({ transfer, now }: { transfer: Transfer; now: number }): R
   const { data, lang } = useApp();
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState(false);
+  // Shown as soon as the server accepts the click: a transfer changed by the server doesn't always arrive live.
+  const [markedArrived, setMarkedArrived] = React.useState(false);
   const referral = data.referrals.find((item) => item.id === transfer.referralId);
   const name = referral?.chosenName ? pick(referral.chosenName, lang) : transfer.toHospitalId;
-  const progress = transferProgress(transfer, now);
-  const arrived = transfer.status === 'arrived';
+  const progress = transferProgress(markedArrived ? { ...transfer, status: 'arrived' } : transfer, now);
+  const arrived = transfer.status === 'arrived' || markedArrived;
+  // Simulated ambulance: a straight line from the sending hospital to the receiving one (13.3).
+  const from = data.hospitalProfiles.find((profile) => profile.hospitalId === transfer.fromHospitalId);
+  const to = parseDecisionRows(referral?.rows).find((row) => row.hospitalId === transfer.toHospitalId);
+  const toPoint = to?.lat !== undefined && to.lng !== undefined ? { lat: to.lat, lng: to.lng } : undefined;
 
   return (
     <View style={[styles.card, { backgroundColor: theme.surface, borderColor: arrived ? theme.success : theme.border }]}>
@@ -61,6 +69,19 @@ function TransferCard({ transfer, now }: { transfer: Transfer; now: number }): R
           {referral.text}
         </Text>
       ) : null}
+      {from && toPoint ? (
+        <MapView
+          height={180}
+          accessibilityLabel={t('map.alt.transfer')}
+          route={[from, toPoint]}
+          markers={[
+            { id: 'from', point: { lat: from.lat, lng: from.lng }, kind: 'me', label: t('doctor.refer.mapYou') },
+            { id: 'to', point: toPoint, kind: 'chosen', label: shortLabel(name) },
+            ...(arrived ? [] : [{ id: 'ambulance', point: positionAlong(from, toPoint, progress.fraction), kind: 'vehicle' as const }]),
+          ]}
+        />
+      ) : null}
+      {from && toPoint && !arrived ? <Text style={[styles.muted, { color: theme.textMuted }]}>{t('doctor.transfers.ambulance')}</Text> : null}
       <View style={[styles.track, { backgroundColor: theme.border }]} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(progress.fraction * 100) }}>
         <View style={[styles.fill, { width: `${Math.round(progress.fraction * 100)}%`, backgroundColor: arrived ? theme.success : theme.primary }]} />
       </View>
@@ -77,6 +98,7 @@ function TransferCard({ transfer, now }: { transfer: Transfer; now: number }): R
             setBusy(true);
             setError(false);
             void markTransferArrived(transfer)
+              .then(() => setMarkedArrived(true))
               .catch(() => setError(true))
               .finally(() => setBusy(false));
           }}

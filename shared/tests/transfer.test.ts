@@ -1,4 +1,4 @@
-import { transferProgress } from '../logic/transfer';
+import { positionAlong, transferProgress } from '../logic/transfer';
 
 describe('transferProgress', () => {
   const start = 1_000_000;
@@ -18,5 +18,18 @@ describe('transferProgress', () => {
 
   it('never goes backwards for a clock behind the start', () => {
     expect(transferProgress({ startedAt: start, etaMin: 0, status: 'in_progress' }, start - 5_000).fraction).toBe(0);
+  });
+});
+
+describe('positionAlong', () => {
+  it('moves the ambulance from the sending to the receiving hospital', () => {
+    const from = { lat: 13.7, lng: 100.5 };
+    const to = { lat: 13.8, lng: 100.7 };
+    expect(positionAlong(from, to, 0)).toEqual(from);
+    expect(positionAlong(from, to, 1)).toEqual(to);
+    const half = positionAlong(from, to, 0.5);
+    expect(half.lat).toBeCloseTo(13.75);
+    expect(half.lng).toBeCloseTo(100.6);
+    expect(positionAlong(from, to, 2)).toEqual(to);
   });
 });

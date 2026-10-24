@@ -444,5 +444,8 @@
   "doctor.transfers.markArrived": "บันทึกว่าถึงแล้ว",
   "doctor.transfers.simulated": "ความคืบหน้าของรถพยาบาลเป็นการจำลองสำหรับการสาธิต",
   "doctor.transfers.back": "กลับไปหน้าส่งต่อ",
-  "doctor.transfers.error": "อัปเดตการส่งต่อไม่สำเร็จ โปรดลองอีกครั้ง"
+  "doctor.transfers.error": "อัปเดตการส่งต่อไม่สำเร็จ โปรดลองอีกครั้ง",
+  "doctor.refer.mapYou": "โรงพยาบาลของคุณ",
+  "doctor.refer.mapLegend": "เส้นประ: เส้นทางไปโรงพยาบาลที่แนะนำ สีเขียว ตอบรับ สีส้ม รอตอบ กากบาท ปฏิเสธหรือช่วยไม่ได้ จุดเทาเล็ก ถอนคำขอ",
+  "doctor.transfers.ambulance": "จุดสีส้ม: รถพยาบาลที่กำลังเดินทาง"
 }

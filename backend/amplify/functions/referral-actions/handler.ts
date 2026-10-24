@@ -161,7 +161,9 @@ async function arrive(client: Client, event: AppSyncResolverEvent<Rec>): Promise
 
 export const handler = async (event: AppSyncResolverEvent<Rec>): Promise<string> => {
   const client = await dataClient();
-  switch (event.info.fieldName) {
+  // Amplify Gen 2 function resolvers pass the field at the top level (event.fieldName); AppSync's
+  // direct Lambda resolvers use event.info.fieldName. Accept both.
+  switch ((event as { fieldName?: string }).fieldName ?? event.info?.fieldName) {
     case 'openReferral':
       return openReferral(client, event);
     case 'decideReferral':
