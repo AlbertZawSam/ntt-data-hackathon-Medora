@@ -23,6 +23,7 @@
     "kb": "tsx scripts/build-kb.ts",
     "upload-kb": "bash scripts/with-aws.sh tsx scripts/upload-kb.ts",
     "evals": "bash scripts/with-aws.sh tsx scripts/run-evals.ts",
-    "test-logins": "bash scripts/with-aws.sh node scripts/test-logins.mjs"
+    "test-logins": "bash scripts/with-aws.sh node scripts/test-logins.mjs",
+    "department-logins": "node scripts/test-logins.mjs --departments"
   }
 }
