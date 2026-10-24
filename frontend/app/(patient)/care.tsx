@@ -8,6 +8,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { ARRIVAL_MODES, type ArrivalMode, type PublicHospital } from '@medora/shared/logic/care';
 import type { NeedKey } from '@medora/shared/logic/types';
+import type { Bi } from '@medora/shared/logic/types';
 import { pick, type StringKey } from '../../src/i18n/t';
 import { MapView, type MapMarker } from '../../src/components/MapView';
 import { findCare, submitRequest } from '../../src/services/data';
@@ -41,6 +42,7 @@ export default function PatientCareScreen(): React.JSX.Element {
   const [error, setError] = React.useState<StringKey | null>(null);
   const [need, setNeed] = React.useState<NeedKey>('general');
   const [aiUsed, setAiUsed] = React.useState(true);
+  const [summary, setSummary] = React.useState<Bi | undefined>(undefined);
   const [hospitals, setHospitals] = React.useState<PublicHospital[]>([]);
   const [selected, setSelected] = React.useState<PublicHospital | null>(null);
   const [mode, setMode] = React.useState<ArrivalMode>('car');
@@ -64,6 +66,7 @@ export default function PatientCareScreen(): React.JSX.Element {
       setNeed(result.need);
       setLastNeed(result.need);
       setAiUsed(result.aiUsed);
+      setSummary(result.summary);
       setHospitals(result.hospitals);
       setLastResults(result.hospitals);
       setPhase('results');
@@ -123,6 +126,10 @@ export default function PatientCareScreen(): React.JSX.Element {
       ) : (
         <>
           {!aiUsed ? <Text style={[styles.note, { color: theme.warning }]}>{t('patient.care.aiUnavailable')}</Text> : null}
+          <Text style={[styles.section, { color: theme.text }]}>{t('patient.care.lookingFor', { need: t(`need.${need}` as StringKey) })}</Text>
+          {summary ? (
+            <Text style={[styles.note, { color: theme.textMuted }]}>{t('patient.care.understood', { summary: pick(summary, lang) })}</Text>
+          ) : null}
           {sent ? <Text accessibilityLiveRegion="polite" style={[styles.note, { color: theme.success }]}>{t('patient.care.requestSent')}</Text> : null}
           {error ? <Text style={[styles.error, { color: theme.emergency }]}>{t(error)}</Text> : null}
           <MapView accessibilityLabel={t('map.alt.results')} markers={markers} route={best ? [location, best] : undefined} />
