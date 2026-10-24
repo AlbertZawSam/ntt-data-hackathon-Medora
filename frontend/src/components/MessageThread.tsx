@@ -26,13 +26,9 @@ interface Props {
   quickKeys?: readonly QuickReplyKey[];
 }
 
-<<<<<<< HEAD
 const clock = (ms: number): string => new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-export function MessageThread({ requestId, messages, me, disabled }: Props): React.JSX.Element {
-=======
 export function MessageThread({ requestId, messages, me, disabled, quickKeys = QUICK_REPLY_KEYS }: Props): React.JSX.Element {
->>>>>>> 59db478012eb14bc9d137be476feffc3edcca1de
   const t = useT();
   const theme = useTheme();
   const [text, setText] = React.useState('');
@@ -79,13 +75,8 @@ export function MessageThread({ requestId, messages, me, disabled, quickKeys = Q
         <>
           {me === 'hospital' ? (
             <View style={styles.quick}>
-<<<<<<< HEAD
-              {QUICK_REPLY_KEYS.map((key) => (
-                <Chip key={key} label={t(`message.quickReply.${key}` as StringKey)} icon="flash-outline" selected={false} onPress={() => { if (!busy) void send({ key }); }} />
-=======
               {quickKeys.map((key) => (
-                <Button key={key} variant="secondary" label={t(`message.quickReply.${key}` as StringKey)} disabled={busy} onPress={() => void send({ key })} />
->>>>>>> 59db478012eb14bc9d137be476feffc3edcca1de
+                <Chip key={key} label={t(`message.quickReply.${key}` as StringKey)} icon="flash-outline" selected={false} onPress={() => { if (!busy) void send({ key }); }} />
               ))}
             </View>
           ) : null}

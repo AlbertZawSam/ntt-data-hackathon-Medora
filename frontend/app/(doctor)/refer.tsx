@@ -233,7 +233,6 @@ export default function DoctorReferScreen(): React.JSX.Element {
               {referral.recommendedAtMs !== undefined && referral.recommendedAtMs !== null ? (
                 <Badge tone="neutral" icon="flash" label={t('doctor.refer.timeToRecommendation', { seconds: elapsedSeconds })} />
               ) : null}
-<<<<<<< HEAD
             </View>
             {referral.why ? <Text style={[styles.body, { color: theme.text }]}>{pick(referral.why, lang)}</Text> : null}
             <Notice tone="info" title={t('doctor.refer.decisionNote')} />
@@ -253,53 +252,6 @@ export default function DoctorReferScreen(): React.JSX.Element {
             )}
           </Card>
         </Reveal>
-=======
-              <Text style={[styles.muted, { color: theme.textMuted }]}>{t('doctor.refer.decisionNote')}</Text>
-              <Button label={t('doctor.refer.confirmTransfer')} busy={deciding} onPress={() => confirm(referral)} />
-              {askReason ? (
-                <>
-                  <Text style={[styles.label, { color: theme.text }]}>{t('doctor.refer.setAsideTitle')}</Text>
-                  <View style={styles.chips}>
-                    {SET_ASIDE_REASONS.map((reason) => (
-                      <Chip key={reason} label={t(`doctor.refer.setAside.${reason}` as StringKey)} disabled={deciding} onPress={() => setAside(referral, reason)} />
-                    ))}
-                  </View>
-                  <Button variant="link" label={t('common.back')} onPress={() => setAskReason(false)} />
-                </>
-              ) : (
-                <Button variant="secondary" label={t('doctor.refer.notThisOne')} disabled={deciding} onPress={() => setAskReason(true)} />
-              )}
-            </Panel>
-          ) : null}
-
-          {referral.status === 'confirmed' ? (
-            <Panel highlight>
-              <Text style={[styles.chosenName, { color: theme.text }]}>{referral.chosenName ? pick(referral.chosenName, lang) : ''}</Text>
-              <Text style={[styles.body, { color: theme.success }]}>{t('doctor.refer.confirmed')}</Text>
-              <Button label={t('doctor.refer.viewTransfers')} onPress={() => router.push('/(doctor)/transfers' as Href)} />
-            </Panel>
-          ) : null}
-
-          {chosenRequest && (referral.status === 'awaiting' || referral.status === 'confirmed') ? (
-            <Panel>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('doctor.refer.messagesTitle')}</Text>
-              <MessageThread requestId={chosenRequest.id} messages={data.messages} me="patient" disabled />
-            </Panel>
-          ) : null}
-
-          {referral.status === 'set_aside' ? (
-            <Panel>
-              <Text style={[styles.body, { color: theme.text }]}>{t('doctor.refer.setAsideDone')}</Text>
-            </Panel>
-          ) : null}
-
-          {referral.status === 'failed' && referral.why ? (
-            <Panel>
-              <Text style={[styles.body, { color: theme.text }]}>{pick(referral.why, lang)}</Text>
-            </Panel>
-          ) : null}
-        </>
->>>>>>> 59db478012eb14bc9d137be476feffc3edcca1de
       ) : null}
 
       {referral.status === 'confirmed' ? (
@@ -307,6 +259,12 @@ export default function DoctorReferScreen(): React.JSX.Element {
           <Text style={[styles.chosenName, { color: theme.text }]}>{referral.chosenName ? pick(referral.chosenName, lang) : ''}</Text>
           <Notice tone="success">{t('doctor.refer.confirmed')}</Notice>
           <Button icon="car" label={t('doctor.refer.viewTransfers')} onPress={() => router.push('/(doctor)/transfers' as Href)} />
+        </Card>
+      ) : null}
+      {chosenRequest && (referral.status === 'awaiting' || referral.status === 'confirmed') ? (
+        <Card padding="lg">
+          <SectionHeader title={t('doctor.refer.messagesTitle')} />
+          <MessageThread requestId={chosenRequest.id} messages={data.messages} me="patient" disabled />
         </Card>
       ) : null}
       {referral.status === 'set_aside' ? <Notice tone="neutral">{t('doctor.refer.setAsideDone')}</Notice> : null}

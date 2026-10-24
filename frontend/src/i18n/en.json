@@ -455,7 +455,6 @@
   "staff.inbox.referral": "Doctor referral (AI agent)",
   "emergency.nearestEd": "Nearest open emergency department: {{name}} (about {{min}} min by car)",
   "patient.care.understood": "We understood (AI summary, not medical advice): {{summary}}",
-<<<<<<< HEAD
   "role.patients": "Patient",
   "role.hospital_staff": "Unit staff",
   "role.doctors": "Doctor",
@@ -500,8 +499,7 @@
   "brand.point2": "Hospitals share their live readiness, so nobody has to guess or phone around.",
   "brand.point3": "English and Thai, with fixed safety rules for emergencies.",
   "staff.inbox.sub": "Patient requests and doctor referrals for your hospital, newest first.",
-  "staff.inbox.undoHint": "You can undo this automatic acceptance for a short time."
-=======
+  "staff.inbox.undoHint": "You can undo this automatic acceptance for a short time.",
   "message.quickReply.bedReady": "Bed is ready for your patient",
   "message.quickReply.teamWaiting": "Our team is waiting at the emergency bay",
   "message.quickReply.sendEcg": "Please send the latest ECG and vital signs",
@@ -529,5 +527,4 @@
   "details.onDutyTitle": "On duty now",
   "details.clinicTitle": "Book a specialist",
   "details.waitShort": "~{{min}} min wait"
->>>>>>> 59db478012eb14bc9d137be476feffc3edcca1de
 }
