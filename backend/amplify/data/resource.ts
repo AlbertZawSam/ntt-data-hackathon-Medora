@@ -5,6 +5,7 @@ import { careActions } from '../functions/care-actions/resource';
 import { referralActions } from '../functions/referral-actions/resource';
 import { specialistActions } from '../functions/specialist-actions/resource';
 import { findCare } from '../functions/find-care/resource';
+import { mapConfig } from '../functions/map-config/resource';
 import { searchPlaces } from '../functions/search-places/resource';
 import { inviteStaff } from '../functions/invite-staff/resource';
 import { patientUnderstand } from '../functions/patient-understand/resource';
@@ -415,6 +416,17 @@ const schema = a.schema({
     .returns(a.string())
     .authorization((allow) => [allow.group('admins')])
     .handler(a.handler.function(adminSettings)),
+
+  /**
+   * The address of the real map for the app (Amazon Location tiles, read-only key). Every signed-in role draws maps,
+   * so all four groups may ask. Returns `{ styleUrl }`, with `null` when the map is not available (the app then
+   * draws its offline map).
+   */
+  mapConfig: a
+    .query()
+    .returns(a.string())
+    .authorization((allow) => [allow.group('patients'), allow.group('hospital_staff'), allow.group('doctors'), allow.group('admins')])
+    .handler(a.handler.function(mapConfig)),
 
   /**
    * Place suggestions for the location picker (requirement 3.2): Amazon Location text search inside Bangkok.

@@ -19,10 +19,10 @@ const config: ExpoConfig = {
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',
-  splash: { image: './assets/splash.png', resizeMode: 'contain', backgroundColor: '#0B6E57' },
+  splash: { image: './assets/splash.png', resizeMode: 'contain', backgroundColor: '#1C6B55' },
   ios: { supportsTablet: true, bundleIdentifier: ids[variant] },
   android: {
-    adaptiveIcon: { foregroundImage: './assets/adaptive-icon.png', backgroundColor: '#0B6E57' },
+    adaptiveIcon: { foregroundImage: './assets/adaptive-icon.png', backgroundColor: '#1C6B55' },
     package: ids[variant],
   },
   web: { favicon: './assets/favicon.png', bundler: 'metro' },
@@ -30,11 +30,21 @@ const config: ExpoConfig = {
   plugins: [
     'expo-router',
     'expo-font',
-    ['expo-splash-screen', { backgroundColor: '#0B6E57' }],
+    ['expo-splash-screen', { backgroundColor: '#1C6B55' }],
     // Only the patient app uses the phone's location.
     ...(variant === 'hospital'
       ? []
-      : [['expo-location', { locationAlwaysAndWhenInUsePermission: 'Allow Medora to use your location to find nearby hospitals.' }] as [string, Record<string, string>]]),
+      : [
+          [
+            'expo-location',
+            {
+              // Foreground only: Medora reads the position while the app is open and never in the background.
+              locationWhenInUsePermission: 'Medora uses your location only while the app is open, to show nearby hospitals that can help. It stays on your phone until you send a request.',
+              isIosBackgroundLocationEnabled: false,
+              isAndroidBackgroundLocationEnabled: false,
+            },
+          ] as [string, Record<string, string | boolean>],
+        ]),
   ],
   experiments: { typedRoutes: true },
   extra: { variant },

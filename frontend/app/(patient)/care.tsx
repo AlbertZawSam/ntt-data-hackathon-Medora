@@ -7,9 +7,9 @@ import { useRouter, type Href } from 'expo-router';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { ARRIVAL_MODES, type ArrivalMode, type PublicHospital } from '@medora/shared/logic/care';
-import type { NeedKey } from '@medora/shared/logic/types';
-import type { Bi } from '@medora/shared/logic/types';
+import type { Bi, NeedKey } from '@medora/shared/logic/types';
 import { pick, type StringKey } from '../../src/i18n/t';
+import { LocationChip } from '../../src/components/LocationChip';
 import { MapView, type MapMarker } from '../../src/components/MapView';
 import { findCare, submitRequest } from '../../src/services/data';
 import { setLastResults } from '../../src/services/lastResults';
@@ -17,10 +17,18 @@ import { setLastNeed } from '../../src/services/lastNeed';
 import { checkEmergency, logEmergencyCheck } from '../../src/services/emergency';
 import { useChosenLocation } from '../../src/services/location';
 import { useApp, useT } from '../../src/state/AppProvider';
+import { Badge, Chip } from '../../src/ui/Badge';
 import { Button } from '../../src/ui/Button';
+import { Card, type Tone } from '../../src/ui/Card';
 import { Field } from '../../src/ui/Field';
-import { Screen } from '../../src/ui/Screen';
-import { fonts, fontSizes, radii, spacing, useTheme } from '../../src/ui/theme';
+import { Icon, type IconName } from '../../src/ui/Icon';
+import { Notice } from '../../src/ui/Notice';
+import { Page } from '../../src/ui/Page';
+import { Reveal } from '../../src/ui/Reveal';
+import { Segmented } from '../../src/ui/Segmented';
+import { SectionHeader } from '../../src/ui/SectionHeader';
+import { SkeletonCard } from '../../src/ui/Skeleton';
+import { fonts, fontSizes, spacing, useBreakpoint, useTheme } from '../../src/ui/theme';
 
 type Phase = 'describe' | 'searching' | 'results';
 
@@ -31,10 +39,21 @@ const LABEL_KEY: Record<PublicHospital['label'], StringKey> = {
   outdated: 'availability.outdated',
 };
 
+const LABEL_LOOK: Record<PublicHospital['label'], { tone: Tone; icon: IconName }> = {
+  available: { tone: 'success', icon: 'checkmark-circle' },
+  limited: { tone: 'warning', icon: 'time' },
+  outdated: { tone: 'neutral', icon: 'help-circle' },
+  notAvailable: { tone: 'danger', icon: 'close-circle' },
+};
+
+const MODE_ICON: Record<ArrivalMode, IconName> = { car: 'car', taxi: 'car-sport', ambulance: 'medkit', walking: 'walk' };
+const EXAMPLES = ['patient.care.example1', 'patient.care.example2', 'patient.care.example3'] as const;
+
 export default function PatientCareScreen(): React.JSX.Element {
   const t = useT();
   const theme = useTheme();
   const router = useRouter();
+  const wide = useBreakpoint() === 'expanded';
   const { session, lang } = useApp();
   const location = useChosenLocation();
   const [text, setText] = React.useState('');
@@ -105,83 +124,164 @@ export default function PatientCareScreen(): React.JSX.Element {
     ...hospitals.map((h): MapMarker => ({ id: h.id, point: h, kind: h.label === 'available' ? 'ok' : h.label === 'notAvailable' ? 'no' : 'limited', label: pick(h.name, lang) })),
   ];
 
-  return (
-    <Screen title={t('patient.care.title')}>
-      {phase !== 'results' ? (
-        <>
-          <Field
-            label={t('patient.care.descriptionLabel')}
-            value={text}
-            onChangeText={setText}
-            hint={t('patient.care.descriptionPlaceholder')}
-            multiline
-            numberOfLines={5}
-            textAlignVertical="top"
-            inputStyle={styles.multiline}
-            maxLength={1000}
-          />
-          {error ? <Text style={[styles.error, { color: theme.emergency }]}>{t(error)}</Text> : null}
-          <Button label={phase === 'searching' ? t('patient.care.finding') : t('patient.care.submitButton')} busy={phase === 'searching'} disabled={!text.trim()} onPress={() => void search()} />
-        </>
-      ) : (
-        <>
-          {!aiUsed ? <Text style={[styles.note, { color: theme.warning }]}>{t('patient.care.aiUnavailable')}</Text> : null}
-          <Text style={[styles.section, { color: theme.text }]}>{t('patient.care.lookingFor', { need: t(`need.${need}` as StringKey) })}</Text>
-          {summary ? (
-            <Text style={[styles.note, { color: theme.textMuted }]}>{t('patient.care.understood', { summary: pick(summary, lang) })}</Text>
-          ) : null}
-          {sent ? <Text accessibilityLiveRegion="polite" style={[styles.note, { color: theme.success }]}>{t('patient.care.requestSent')}</Text> : null}
-          {error ? <Text style={[styles.error, { color: theme.emergency }]}>{t(error)}</Text> : null}
-          <MapView accessibilityLabel={t('map.alt.results')} markers={markers} route={best ? [location, best] : undefined} />
-          <Text style={[styles.note, { color: theme.textMuted }]}>{t('map.legend')}</Text>
-          <Text style={[styles.section, { color: theme.text }]}>{t('patient.care.nearbyTitle')}</Text>
-          {!canHelp ? <Text style={[styles.note, { color: theme.emergency }]}>{t('patient.care.nobodyHelp')}</Text> : null}
-          {hospitals.map((h) => (
-            <View key={h.id} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-              <Text style={[styles.name, { color: theme.text }]}>{pick(h.name, lang)}</Text>
-              <Text style={[styles.note, { color: theme.textMuted }]}>{t('patient.care.driveMin', { min: h.driveMin })}</Text>
-              <Text style={[styles.label, { color: h.label === 'available' ? theme.success : h.label === 'notAvailable' ? theme.emergency : theme.warning }]}>
-                {t(LABEL_KEY[h.label])}
-              </Text>
-              {h.label === 'notAvailable' ? (
-                <Text style={[styles.note, { color: theme.textMuted }]}>{t('patient.care.skippedBecause', { reason: t('failure.simple') })}</Text>
-              ) : (
-                <Button label={t('patient.care.requestButton')} variant="secondary" onPress={() => { setSelected(h); setSent(false); }} />
+  if (phase !== 'results') {
+    return (
+      <Page title={t('patient.care.title')} subtitle={t('patient.care.subtitle')} width="readable">
+        <Reveal>
+          <Card padding="lg">
+            <LocationChip />
+            <Field
+              label={t('patient.care.descriptionLabel')}
+              value={text}
+              onChangeText={setText}
+              hint={t('patient.care.characters', { n: text.length })}
+              multiline
+              numberOfLines={5}
+              textAlignVertical="top"
+              inputStyle={styles.multiline}
+              maxLength={1000}
+              editable={phase !== 'searching'}
+            />
+            {text.length === 0 ? (
+              <View style={styles.examples}>
+                <Text style={[styles.exampleTitle, { color: theme.textMuted }]}>{t('patient.care.examplesTitle')}</Text>
+                <View style={styles.chips}>
+                  {EXAMPLES.map((key) => (
+                    <Chip key={key} label={t(key)} icon="chatbubble-ellipses-outline" selected={false} onPress={() => setText(t(key))} />
+                  ))}
+                </View>
+              </View>
+            ) : null}
+            {error ? <Notice tone="danger">{t(error)}</Notice> : null}
+            <Button size="lg" icon="search" label={phase === 'searching' ? t('patient.care.finding') : t('patient.care.submitButton')} busy={phase === 'searching'} disabled={!text.trim()} onPress={() => void search()} />
+          </Card>
+        </Reveal>
+        {phase === 'searching' ? (
+          <View style={styles.stack} accessibilityLiveRegion="polite">
+            <SkeletonCard lines={2} />
+            <SkeletonCard lines={2} />
+          </View>
+        ) : null}
+        <Notice tone="neutral">{t('patient.care.disclaimer')}</Notice>
+      </Page>
+    );
+  }
+
+  const list = (
+    <View style={styles.stack}>
+      {!canHelp ? (
+        <Notice tone="danger" title={t('patient.care.noMatchTitle')}>
+          {t('patient.care.nobodyHelp')}
+        </Notice>
+      ) : null}
+      {hospitals.map((h, index) => {
+        const look = LABEL_LOOK[h.label];
+        const isBest = best?.id === h.id;
+        const unavailable = h.label === 'notAvailable';
+        return (
+          <Reveal key={h.id} index={index}>
+            <Card selected={isBest} padding="lg" style={unavailable ? styles.dim : undefined}>
+              <Text style={[styles.hospital, { color: theme.text }]}>{pick(h.name, lang)}</Text>
+              <View style={styles.row}>
+                <Icon name="car-outline" size={16} color={theme.textMuted} />
+                <Text style={[styles.meta, { color: theme.textMuted }]}>{t('patient.care.drive', { min: h.driveMin, km: h.distanceKm.toFixed(1) })}</Text>
+              </View>
+              <View style={styles.row}>
+                {isBest ? <Badge tone="primary" icon="star" label={t('patient.care.bestMatch')} /> : null}
+                <Badge tone={look.tone} icon={look.icon} label={t(LABEL_KEY[h.label])} />
+              </View>
+              {unavailable ? (
+                <Text style={[styles.meta, { color: theme.textMuted }]}>{t('patient.care.skippedBecause', { reason: t('failure.simple') })}</Text>
+              ) : selected?.id === h.id ? null : (
+                <Button
+                  variant={isBest ? 'primary' : 'secondary'}
+                  icon="paper-plane"
+                  label={t('patient.care.requestButton')}
+                  onPress={() => {
+                    setSelected(h);
+                    setSent(false);
+                  }}
+                />
               )}
               {selected?.id === h.id ? (
-                <View style={styles.form}>
-                  <Text style={[styles.section, { color: theme.text }]}>{t('patient.care.requestTitle', { hospital: pick(h.name, lang) })}</Text>
-                  <Text style={[styles.note, { color: theme.textMuted }]}>{t('patient.care.arrivalMode')}</Text>
-                  <View style={styles.modes}>
-                    {ARRIVAL_MODES.map((m) => (
-                      <Button key={m} label={t(`mode.${m}` as StringKey)} variant={mode === m ? 'primary' : 'secondary'} onPress={() => setMode(m)} />
-                    ))}
+                <Reveal y={6}>
+                  <View style={[styles.form, { borderTopColor: theme.border }]}>
+                    <Text accessibilityRole="header" style={[styles.formTitle, { color: theme.text }]}>
+                      {t('patient.care.requestTitle', { hospital: pick(h.name, lang) })}
+                    </Text>
+                    <Text style={[styles.meta, { color: theme.textMuted }]}>{t('patient.care.arrivalMode')}</Text>
+                    <Segmented<ArrivalMode>
+                      accessibilityLabel={t('patient.care.arrivalMode')}
+                      value={mode}
+                      onChange={setMode}
+                      options={ARRIVAL_MODES.map((m) => ({ value: m, label: t(`mode.${m}` as StringKey), icon: MODE_ICON[m] }))}
+                    />
+                    <Field label={t('patient.care.namePlaceholder')} icon="person-outline" value={name} onChangeText={setName} maxLength={80} />
+                    <Field label={t('patient.care.phonePlaceholder')} icon="call-outline" value={phone} onChangeText={setPhone} keyboardType="phone-pad" maxLength={20} />
+                    <View style={styles.buttons}>
+                      <View style={styles.flex}>
+                        <Button icon="send" label={sending ? t('patient.care.sending') : t('patient.care.sendRequest')} busy={sending} onPress={() => void send(h)} />
+                      </View>
+                      <Button variant="ghost" fullWidth={false} label={t('common.back')} onPress={() => setSelected(null)} />
+                    </View>
                   </View>
-                  <Field label={t('patient.care.namePlaceholder')} value={name} onChangeText={setName} maxLength={80} />
-                  <Field label={t('patient.care.phonePlaceholder')} value={phone} onChangeText={setPhone} keyboardType="phone-pad" maxLength={20} />
-                  <Button label={t('patient.care.sendRequest')} busy={sending} onPress={() => void send(h)} />
-                </View>
+                </Reveal>
               ) : null}
-            </View>
-          ))}
-          <Button variant="secondary" label={t('patient.requests.title')} onPress={() => router.push('/(patient)/requests' as Href)} />
-          <Button variant="link" label={t('common.back')} onPress={() => setPhase('describe')} />
-        </>
+            </Card>
+          </Reveal>
+        );
+      })}
+    </View>
+  );
+
+  return (
+    <Page title={t('patient.care.nearbyTitle')} subtitle={t('patient.care.resultsSub')} onBack={() => setPhase('describe')} backLabel={t('patient.care.newSearch')}>
+      <Card padding="md">
+        <View style={styles.row}>
+          <Badge tone="primary" icon="search" label={t('patient.care.lookingFor', { need: t(`need.${need}` as StringKey) })} />
+          {!aiUsed ? <Badge tone="warning" icon="information-circle" label={t('patient.care.aiUnavailable')} /> : null}
+        </View>
+        {summary ? <Text style={[styles.meta, { color: theme.textMuted }]}>{t('patient.care.understood', { summary: pick(summary, lang) })}</Text> : null}
+      </Card>
+      {sent ? <Notice tone="success" title={t('patient.care.requestSent')} actionLabel={t('patient.care.viewRequests')} onAction={() => router.push('/(patient)/requests' as Href)} /> : null}
+      {error ? <Notice tone="danger">{t(error)}</Notice> : null}
+      {wide ? (
+        <View style={styles.columns}>
+          <View style={styles.listColumn}>{list}</View>
+          <View style={styles.mapColumn}>
+            <MapView accessibilityLabel={t('map.alt.results')} height={520} markers={markers} route={best ? [location, best] : undefined} />
+            <Text style={[styles.legend, { color: theme.textMuted }]}>{t('map.legend')}</Text>
+          </View>
+        </View>
+      ) : (
+        <View style={styles.stack}>
+          <MapView accessibilityLabel={t('map.alt.results')} height={240} markers={markers} route={best ? [location, best] : undefined} />
+          <Text style={[styles.legend, { color: theme.textMuted }]}>{t('map.legend')}</Text>
+          <SectionHeader title={t('patient.care.canHelp')} />
+          {list}
+        </View>
       )}
-      <Text style={[styles.disclaimer, { color: theme.textMuted }]}>{t('patient.care.disclaimer')}</Text>
-    </Screen>
+      <Notice tone="neutral">{t('patient.care.disclaimer')}</Notice>
+    </Page>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
+  stack: { gap: spacing.md },
+  row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm },
   multiline: { minHeight: 120, paddingTop: 12 },
-  card: { borderWidth: 1, borderRadius: radii.lg, padding: spacing.md, gap: spacing.sm },
-  name: { fontSize: fontSizes.lg, fontFamily: fonts.semibold },
-  section: { fontSize: fontSizes.lg, fontFamily: fonts.semibold },
-  label: { fontSize: fontSizes.md, fontFamily: fonts.semibold },
-  note: { fontSize: fontSizes.sm, fontFamily: fonts.regular },
-  error: { fontSize: fontSizes.sm, fontFamily: fonts.medium },
-  form: { gap: spacing.sm, marginTop: spacing.sm },
-  modes: { gap: spacing.xs },
-  disclaimer: { fontSize: fontSizes.xs, fontFamily: fonts.regular, textAlign: 'center' },
+  examples: { gap: spacing.sm },
+  exampleTitle: { fontSize: fontSizes.sm, fontFamily: fonts.medium },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  columns: { flexDirection: 'row', gap: spacing.lg, alignItems: 'flex-start' },
+  listColumn: { flex: 1.1 },
+  mapColumn: { flex: 1, gap: spacing.sm },
+  hospital: { fontSize: fontSizes.lg, fontFamily: fonts.bold, lineHeight: 24 },
+  meta: { fontSize: fontSizes.sm, fontFamily: fonts.regular, lineHeight: 20 },
+  legend: { fontSize: fontSizes.xs, fontFamily: fonts.regular },
+  dim: { opacity: 0.7 },
+  form: { gap: spacing.md, paddingTop: spacing.md, marginTop: spacing.xs, borderTopWidth: 1 },
+  formTitle: { fontSize: fontSizes.lg, fontFamily: fonts.bold },
+  buttons: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
 });

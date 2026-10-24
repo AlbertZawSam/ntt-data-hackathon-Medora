@@ -100,6 +100,10 @@ npm run web
 
 Doctors who sign up in the patient app wait for an admin's approval, which no screen offers yet; use the invited doctor account from `test-logins` instead.
 
+### The real map (web) and privacy
+
+On the web the apps draw a real street map (Amazon Location tiles through MapLibre); the phone apps still draw the simple offline map. The map address, with a read-only map key, comes from the signed-in backend (`map-config`); if it is unavailable the web app falls back to the offline map. Privacy (requirement 3.6): Medora never sends the patient's position to any API of its own for the map. Like any map, the tile requests tell Amazon Location, inside our own AWS account in us-east-1, which area is on screen and the browser's IP address; nothing is stored by Medora. Place search sends only the text the patient typed. Before the web apps are public, restrict the key to your web address: deploy with `MEDORA_MAP_REFERERS="https://your-domain/*"`.
+
 ### Knowledge base and agent evaluations
 
 The knowledge base (25 bilingual documents, one per hospital department) deploys with the sandbox; turn it off only with `MEDORA_ENABLE_KB=false`, because deploying without it deletes it. A new deploy starts empty:

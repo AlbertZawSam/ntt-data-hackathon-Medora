@@ -11,6 +11,7 @@ import {
 } from 'aws-cdk-lib/aws-cognito';
 import { PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { BlockPublicAccess, Bucket, BucketEncryption } from 'aws-cdk-lib/aws-s3';
+import { CfnAPIKey } from 'aws-cdk-lib/aws-location';
 import { CfnIndex, CfnVectorBucket } from 'aws-cdk-lib/aws-s3vectors';
 import { auth } from './auth/resource';
 import { postConfirmation } from './auth/post-confirmation/resource';
@@ -22,12 +23,13 @@ import { referralActions } from './functions/referral-actions/resource';
 import { specialistActions } from './functions/specialist-actions/resource';
 import { findCare } from './functions/find-care/resource';
 import { inviteStaff } from './functions/invite-staff/resource';
+import { mapConfig } from './functions/map-config/resource';
 import { patientUnderstand } from './functions/patient-understand/resource';
 import { registerHospital } from './functions/register-hospital/resource';
 import { searchPlaces } from './functions/search-places/resource';
 import { updateStatus } from './functions/update-status/resource';
 
-const backend = defineBackend({ auth, postConfirmation, data, agentRunner, adminSettings, careActions, referralActions, specialistActions, findCare, inviteStaff, patientUnderstand, registerHospital, searchPlaces, updateStatus });
+const backend = defineBackend({ auth, postConfirmation, data, agentRunner, adminSettings, careActions, referralActions, specialistActions, findCare, inviteStaff, mapConfig, patientUnderstand, registerHospital, searchPlaces, updateStatus });
 
 // Tag every resource so Cost Explorer shows spend per stage (AGENTS.md section 5).
 const app = backend.stack.node.root;
@@ -235,6 +237,30 @@ if (process.env.MEDORA_ENABLE_KB !== 'false') {
     region: kbStack.region,
   };
 }
+
+// The real map (Amazon Location Maps v2). A map API key that can only fetch tiles from the default provider: keys are
+// built for use in the browser, and this one reads nothing else. CloudFormation cannot output a key's value, so the
+// map-config Lambda reads it with DescribeKey on this one key. No idle cost; billed per map tile request. forceDelete lets
+// `npm run sandbox:delete` remove the key. If anything here fails the app draws its offline map.
+const mapsStack = backend.createStack('maps');
+const mapKeyName = `medora-maps-${Names.uniqueResourceName(mapsStack, { maxLength: 80, separator: '-' })}`.replace(/[^0-9a-zA-Z_.-]/g, '');
+// Optional: MEDORA_MAP_REFERERS="https://app.example.com/*,http://localhost:*/*" lets only those web addresses use the
+// key (the phone apps send no address, and they draw the offline map). Unset, any address may use it, which is fine
+// for a demo because the key can only fetch tiles; set it before the apps are public.
+const mapReferers = (process.env.MEDORA_MAP_REFERERS ?? '').split(',').map((entry) => entry.trim()).filter(Boolean);
+const mapKey = new CfnAPIKey(mapsStack, 'MapKey', {
+  keyName: mapKeyName,
+  description: 'Medora map tiles for the apps (read-only).',
+  noExpiry: true,
+  forceDelete: true,
+  restrictions: {
+    allowActions: ['geo-maps:GetTile'],
+    allowResources: [`arn:aws:geo-maps:${mapsStack.region}::provider/default`],
+    ...(mapReferers.length ? { allowReferers: mapReferers } : {}),
+  },
+});
+backend.mapConfig.addEnvironment('MAP_KEY_NAME', mapKeyName);
+backend.mapConfig.resources.lambda.addToRolePolicy(new PolicyStatement({ actions: ['geo:DescribeKey'], resources: [mapKey.attrKeyArn] }));
 
 // search-places may only run Amazon Location text search, on the one default data provider (AGENTS.md 4b.3).
 // Cost: nothing while idle; billed per search request.
