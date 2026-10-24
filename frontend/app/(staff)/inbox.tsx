@@ -1,5 +1,5 @@
 /**
- * Inbox: patient requests for the staff member's own hospital. Accept, decline with a reason and an
+ * Inbox: patient requests and doctor referrals for the staff member's own hospital. Accept, decline with a reason and an
  * optional note, undo an automatic acceptance for 60 seconds, and message the patient. A new waiting
  * request raises an alert banner with a vibration. The server checks hospital and role again.
  * Requirements: 6.3, 6.4, 10.2, 10.3, 10.5
@@ -39,7 +39,7 @@ export default function StaffInboxScreen(): React.JSX.Element {
   const requests = React.useMemo(
     () =>
       data.careRequests
-        .filter((r) => r.hospitalId === session?.hospitalId && !r.referralId && !CLOSED.includes(r.status))
+        .filter((r) => r.hospitalId === session?.hospitalId && !CLOSED.includes(r.status))
         .sort((a, b) => b.createdAtMs - a.createdAtMs),
     [data.careRequests, session?.hospitalId],
   );
@@ -80,6 +80,7 @@ export default function StaffInboxScreen(): React.JSX.Element {
         const undoLeft = undoSecondsLeft(r, now);
         return (
           <View key={r.id} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            {r.referralId ? <Text style={[styles.status, { color: theme.primary }]}>{t('staff.inbox.referral')}</Text> : null}
             <Text style={[styles.name, { color: theme.text }]}>{r.patient.name || t('patient.requests.fromHospital')}</Text>
             <Text style={[styles.note, { color: theme.textMuted }]}>
               {t('staff.inbox.arriving', { min: r.etaMin, mode: t(`mode.${r.patient.mode}` as StringKey) })}
