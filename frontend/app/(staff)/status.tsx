@@ -5,6 +5,7 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { dataAgeMin, isStale } from '@medora/shared/logic/ranking';
+import { isDepartment } from '@medora/shared/logic/departments';
 import { MAX_NOTE, changeFor, controlsForUnit, type UnitControl } from '@medora/shared/logic/statusUpdate';
 import { activeHolds, contradictsHolds, withHolds } from '@medora/shared/logic/reservations';
 import type { HospitalStatus } from '@medora/shared/logic/types';
@@ -72,7 +73,9 @@ export default function StaffStatusScreen(): React.JSX.Element {
         {!status ? (
           <Text style={[styles.sub, { color: theme.warning }]}>{t('staff.status.noStatus')}</Text>
         ) : controls.length === 0 ? (
-          <Text style={[styles.sub, { color: theme.warning }]}>{t('staff.status.noUnit')}</Text>
+          <Text style={[styles.sub, { color: isDepartment(unit) ? theme.textMuted : theme.warning }]}>
+            {t(isDepartment(unit) ? 'staff.status.departmentUnit' : 'staff.status.noUnit')}
+          </Text>
         ) : (
           <>
             <View style={[styles.card, { backgroundColor: theme.surface, borderColor: stale ? theme.warning : theme.border }]}>

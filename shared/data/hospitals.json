@@ -9,15 +9,15 @@
       "totalBeds": 220,
       "nicuTotal": 6,
       "typicalWaitMin": 25,
-      "departments": ["ed", "neuro", "cardio", "pediatrics", "ortho"],
+      "departments": ["ed", "neuro", "cardio", "pediatrics", "ortho", "obstetrics"],
       "equipment": ["ct", "mri", "cathlab"],
-      "demo": "Full stroke and heart care; the demo-replies note says its neurologist is free in about 40 minutes.",
+      "demo": "Full stroke and heart care; the demo-replies note says its neurologist is free in about 40 minutes. Demo departments: Cardiology, Surgery and Obstetrics, each with its own staff inbox; requests wait for that department to accept.",
       "status": {
         "beds": 6, "icu": 2, "nicu": 2,
-        "depts": { "ed": "open", "neuro": "open", "cardio": "open", "pediatrics": "open", "ortho": "open" },
+        "depts": { "ed": "open", "neuro": "open", "cardio": "open", "pediatrics": "open", "ortho": "open", "obstetrics": "open" },
         "equip": { "ct": true, "mri": true, "cathlab": true },
-        "oncall": { "er": true, "neurologist": true, "cardiologist": true, "pediatrician": true, "orthopedist": true },
-        "rules": { "minBeds": 2, "visit": true },
+        "oncall": { "er": true, "neurologist": true, "cardiologist": true, "pediatrician": true, "orthopedist": true, "obstetrician": true },
+        "rules": { "minBeds": 2, "visit": false },
         "conflict": false,
         "updatedMinAgo": 4
       }
@@ -51,15 +51,15 @@
       "totalBeds": 180,
       "nicuTotal": 10,
       "typicalWaitMin": 30,
-      "departments": ["ed", "obstetrics", "pediatrics"],
+      "departments": ["ed", "obstetrics", "pediatrics", "cardio", "ortho"],
       "equipment": ["ct"],
-      "demo": "The maternity and newborn (NICU) hospital.",
+      "demo": "The maternity and newborn (NICU) hospital. Demo departments: Cardiology, Surgery and Obstetrics, each with its own staff inbox; requests wait for that department to accept.",
       "status": {
         "beds": 5, "icu": 1, "nicu": 3,
-        "depts": { "ed": "open", "obstetrics": "open", "pediatrics": "open" },
+        "depts": { "ed": "open", "obstetrics": "open", "pediatrics": "open", "cardio": "open", "ortho": "open" },
         "equip": { "ct": true },
-        "oncall": { "er": true, "obstetrician": true, "pediatrician": true },
-        "rules": { "minBeds": 1, "visit": true, "preterm": true },
+        "oncall": { "er": true, "obstetrician": true, "pediatrician": true, "cardiologist": true, "orthopedist": true },
+        "rules": { "minBeds": 1, "visit": false, "preterm": true },
         "conflict": false,
         "updatedMinAgo": 12
       }

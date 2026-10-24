@@ -44,6 +44,7 @@ export default function PatientRequestsScreen(): React.JSX.Element {
         return (
           <View key={r.id} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <Text style={[styles.name, { color: theme.text }]}>{r.hospitalName ? pick(r.hospitalName, lang) : r.hospitalId}</Text>
+            {r.department ? <Text style={{ color: theme.primary }}>{t(`department.${r.department}` as StringKey)}</Text> : null}
             <Text accessibilityLiveRegion="polite" style={[styles.status, { color: status === 'accepted' ? theme.success : status === 'declined' ? theme.emergency : theme.warning }]}>
               {t(`request.status.${status}` as StringKey)}
             </Text>

@@ -6,6 +6,7 @@
  */
 import React from 'react';
 import { Platform, StyleSheet, Text, Vibration, View } from 'react-native';
+import { canAnswerRequest } from '@medora/shared/logic/access';
 import { quickRepliesFor, undoSecondsLeft } from '@medora/shared/logic/care';
 import type { CareRequest } from '@medora/shared/logic/types';
 import { MessageThread } from '../../src/components/MessageThread';
@@ -39,9 +40,10 @@ export default function StaffInboxScreen(): React.JSX.Element {
   const requests = React.useMemo(
     () =>
       data.careRequests
-        .filter((r) => r.hospitalId === session?.hospitalId && !CLOSED.includes(r.status))
+        // The same rule the server applies: a department's requests reach only that department.
+        .filter((r) => session !== null && canAnswerRequest(session, r) && !CLOSED.includes(r.status))
         .sort((a, b) => b.createdAtMs - a.createdAtMs),
-    [data.careRequests, session?.hospitalId],
+    [data.careRequests, session],
   );
   const waiting = requests.filter((r) => r.status === 'waiting');
 
@@ -81,6 +83,11 @@ export default function StaffInboxScreen(): React.JSX.Element {
         return (
           <View key={r.id} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             {r.referralId ? <Text style={[styles.status, { color: theme.primary }]}>{t('staff.inbox.referral')}</Text> : null}
+            {r.department ? (
+              <Text style={[styles.status, { color: theme.primary }]}>
+                {t('staff.inbox.department', { department: t(`unit.name.${r.department}` as StringKey) })}
+              </Text>
+            ) : null}
             <Text style={[styles.name, { color: theme.text }]}>{r.patient.name || t('patient.requests.fromHospital')}</Text>
             <Text style={[styles.note, { color: theme.textMuted }]}>
               {t('staff.inbox.arriving', { min: r.etaMin, mode: t(`mode.${r.patient.mode}` as StringKey) })}

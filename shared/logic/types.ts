@@ -146,6 +146,8 @@ export interface CareRequest {
   };
   fromHospitalId?: string;
   referralId?: string;
+  /** Cardiology, surgery or obstetrics when the patient chose a department. */
+  department?: string;
   slot?: { day: string; time: string };
   doctorName?: string;
   hospitalName?: Bi;

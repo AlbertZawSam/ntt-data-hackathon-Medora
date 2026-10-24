@@ -68,6 +68,17 @@ describe('requests, referrals and settings', () => {
     expect(canAnswerRequest(patient, { hospitalId: H1 })).toBe(false);
   });
 
+  it('routes a department request to that department only, and general requests to the other units', () => {
+    const cardio = nurse('cardiology' as never);
+    expect(canAnswerRequest(cardio, { hospitalId: H1, department: 'cardiology' })).toBe(true);
+    expect(canAnswerRequest(nurse('surgery' as never), { hospitalId: H1, department: 'cardiology' })).toBe(false);
+    expect(canAnswerRequest(nurse('er'), { hospitalId: H1, department: 'cardiology' })).toBe(false);
+    expect(canAnswerRequest(cardio, { hospitalId: H2, department: 'cardiology' })).toBe(false);
+    expect(canAnswerRequest(cardio, { hospitalId: H1 })).toBe(false);
+    expect(canAnswerRequest(nurse('er'), { hospitalId: H1, department: null })).toBe(true);
+    expect(canAnswerRequest(nurse('all' as never), { hospitalId: H1, department: 'obstetrics' })).toBe(true);
+  });
+
   it('lets a doctor start and confirm their own referral only', () => {
     expect(canStartReferral(doctor)).toBe(true);
     expect(canConfirmReferral(doctor, { ownerId: 'doc-1' })).toBe(true);
@@ -87,6 +98,8 @@ describe('requests, referrals and settings', () => {
 describe('checkInvitation', () => {
   it('lets an admin invite a nurse with a unit at their hospital', () => {
     expect(checkInvitation(admin, { hospitalId: H1, group: 'hospital_staff', unit: 'ward' })).toEqual({ ok: true });
+    expect(checkInvitation(admin, { hospitalId: H1, group: 'hospital_staff', unit: 'cardiology' })).toEqual({ ok: true });
+    expect(checkInvitation(admin, { hospitalId: H2, group: 'hospital_staff', unit: 'cardiology' })).toEqual({ ok: false, reason: 'other-hospital' });
     expect(checkInvitation(admin, { hospitalId: H1, group: 'hospital_staff', unit: 'all' })).toEqual({ ok: true });
     expect(checkInvitation(admin, { hospitalId: H1, group: 'doctors' })).toEqual({ ok: true });
   });

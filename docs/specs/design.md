@@ -50,7 +50,7 @@ Code layout (npm workspaces): `frontend/` holds the Expo app, `backend/amplify/`
 | Resource | Responsibility |
 | --- | --- |
 | Cognito public pool | Patients: self sign-up, email |
-| Cognito staff pool | Invite only; TOTP MFA required; groups `hospital_staff`, `doctors`, `admins`; attributes `custom:hospitalId` and `custom:unit` (`ward`, `icu`, `nicu`, `er`, `radiology`, `cathlab`) |
+| Cognito staff pool | Invite only; TOTP MFA required; groups `hospital_staff`, `doctors`, `admins`; attributes `custom:hospitalId` and `custom:unit` (`ward`, `icu`, `nicu`, `er`, `radiology`, `cathlab`, or a department `cardiology`, `surgery`, `obstetrics` that answers requests sent to it) |
 | AppSync | One API with both pools as sign-in providers; per-model rules (public vs operational data) |
 | `safety-gate` Lambda | Second red-flag check on every patient description |
 | `patient-understand` Lambda | Nova Lite returns the type of care and a short summary in English and Thai (JSON) |

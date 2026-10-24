@@ -478,5 +478,15 @@
   "details.yourNeed": "your need",
   "details.onDutyTitle": "On duty now",
   "details.clinicTitle": "Book a specialist",
-  "details.waitShort": "~{{min}} min wait"
+  "details.waitShort": "~{{min}} min wait",
+  "patient.care.departmentLabel": "Which department?",
+  "department.cardiology": "Cardiology (heart)",
+  "department.surgery": "Surgery (injuries, bones)",
+  "department.obstetrics": "Obstetrics (pregnancy, birth)",
+  "department.general": "General / emergency",
+  "unit.name.cardiology": "Cardiology",
+  "unit.name.surgery": "Surgery",
+  "unit.name.obstetrics": "Obstetrics",
+  "staff.inbox.department": "To {{department}}",
+  "staff.status.departmentUnit": "Your department answers patient requests in the Inbox."
 }

@@ -4,6 +4,7 @@
  * Pure TypeScript, so the screen and the `update-status` Lambda follow exactly the same rules.
  * Requirements: 9.1 to 9.4, 19.1, 19.2, 19.8, 19.10
  */
+import { isDepartment } from './departments';
 import { ALL_UNITS, DEFAULT_OWNER_UNIT, DEFAULT_SPECIALIST_UNIT, canUpdateStatusItem, isUnit, type Caller, type Unit } from './access';
 import type { DeptState, HospitalStatus } from './types';
 
@@ -95,9 +96,10 @@ export function applyStatusChange(
   const owner = confirming ? undefined : ownerUnitOf(change);
   if (!confirming && owner === undefined) return { ok: false, reason: 'bad-change' };
 
-  // "Still correct?" needs no particular unit, only an account of this hospital's unit staff.
+  // "Still correct?" needs no particular unit, only an account of this hospital's unit staff. Department
+  // staff own no status items, so they can't confirm the hospital's status either.
   const allowed = confirming
-    ? canUpdateStatusItem(caller, { hospitalId, ownerUnit: isUnit(caller.unit) ? caller.unit : DEFAULT_OWNER_UNIT.beds }) ||
+    ? !isDepartment(caller.unit) && canUpdateStatusItem(caller, { hospitalId, ownerUnit: isUnit(caller.unit) ? caller.unit : DEFAULT_OWNER_UNIT.beds }) ||
       canUpdateStatusItem(caller, { hospitalId, ownerUnit: ALL_UNITS })
     : canUpdateStatusItem(caller, { hospitalId, ownerUnit: owner as Unit });
   if (!allowed) {

@@ -144,3 +144,22 @@ describe('controlsForUnit', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 });
+
+describe('department staff', () => {
+  it('own no status items and cannot confirm the hospital status', () => {
+    const changes: StatusChange[] = [
+      { kind: 'count', item: 'beds', value: 3 },
+      { kind: 'count', item: 'icu', value: 1 },
+      { kind: 'dept', key: 'ed', value: 'diverting' },
+      { kind: 'dept', key: 'neuro', value: 'diverting' },
+      { kind: 'equip', key: 'ct', value: false },
+      { kind: 'oncall', key: 'neurologist', value: false },
+      { kind: 'confirm' },
+    ];
+    for (const unit of ['cardiology', 'surgery', 'obstetrics']) {
+      for (const change of changes) expect(apply(change, nurse(unit)).ok).toBe(false);
+      expect(controlsForUnit(unit)).toEqual([]);
+    }
+    expect(apply({ kind: 'confirm' }, nurse('ward')).ok).toBe(true);
+  });
+});

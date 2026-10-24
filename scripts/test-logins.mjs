@@ -15,7 +15,7 @@
  * accounts it already set up. Calls only Cognito user actions on the staff pool (AdminCreateUser,
  * AdminAddUserToGroup, AdminSetUserPassword) and the normal sign-in; costs nothing.
  */
-import { createHmac, randomInt } from 'node:crypto';
+import { createHash, createHmac, randomInt } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -61,6 +61,20 @@ const ACCOUNTS = [
   { email: `cathlab.${slug}@medora.demo`, group: 'hospital_staff', unit: 'cathlab', role: 'Cath lab team' },
   { email: `admin.${slug}@medora.demo`, group: 'admins', role: 'Hospital admin: settings, staff, auto-accept rules' },
 ];
+
+// Department staff (shared/logic/departments.ts): one account per department this demo hospital has.
+// A patient request to that department reaches only this account's inbox.
+const DEPARTMENTS = [
+  { unit: 'cardiology', dept: 'cardio', role: 'Cardiology staff: patient requests to Cardiology' },
+  { unit: 'surgery', dept: 'ortho', role: 'Surgery staff: patient requests to Surgery' },
+  { unit: 'obstetrics', dept: 'obstetrics', role: 'Obstetrics staff: patient requests to Obstetrics' },
+];
+const demo = JSON.parse(readFileSync(resolve(root, 'shared', 'data', 'hospitals.json'), 'utf8')).hospitals.find(
+  (h) => `H-${createHash('sha256').update(`medora-demo:${h.key}`).digest('hex').slice(0, 16)}` === hospitalId,
+);
+for (const d of [...DEPARTMENTS].reverse()) {
+  if (demo?.departments.includes(d.dept)) ACCOUNTS.splice(2, 0, { email: `${d.unit}.${slug}@medora.demo`, group: 'hospital_staff', unit: d.unit, role: d.role });
+}
 
 const localDir = resolve(root, 'scripts', '.local');
 const storePath = resolve(localDir, 'test-logins.json');

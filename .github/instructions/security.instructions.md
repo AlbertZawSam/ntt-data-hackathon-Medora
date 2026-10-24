@@ -4,7 +4,7 @@ applyTo: "backend/amplify/**,frontend/app/**,frontend/src/services/**,frontend/s
 # Security rules (AGENTS.md section 4b, docs/roles.md)
 
 - **Two Cognito pools.** Patients sign up in the public pool (email). Hospital accounts exist only in the staff pool, created by an admin through the `invite-staff` Lambda, with TOTP MFA required (`Mfa.REQUIRED`, `otp: true`, `sms: false`).
-- **Roles:** groups `admins`, `hospital_staff`, `doctors`; attributes `custom:hospitalId` and `custom:unit` (`ward`, `icu`, `nicu`, `er`, `radiology`, `cathlab`, or `all` as the demo fallback) are writable only by admins, never by the user.
+- **Roles:** groups `admins`, `hospital_staff`, `doctors`; attributes `custom:hospitalId` and `custom:unit` (`ward`, `icu`, `nicu`, `er`, `radiology`, `cathlab`, the departments `cardiology`, `surgery`, `obstetrics`, or `all` as the demo fallback) are writable only by admins, never by the user.
 - **Enforce on the server.** AppSync rules and Lambda checks, never only hidden screens:
   - `StatusItem` writes go through `validateStatusUpdate`: caller in `hospital_staff`, same `custom:hospitalId`, `custom:unit` equals the item's `ownerUnit` (or `all`), conditional write on `ownerUnit` and `version`.
   - `CareRequest` accept, decline, undo: `hospital_staff` of that hospital. `Referral` create: `doctors`; confirm only by its owner.

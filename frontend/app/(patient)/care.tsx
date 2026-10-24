@@ -10,6 +10,7 @@ import { ARRIVAL_MODES, type ArrivalMode, type PublicHospital } from '@medora/sh
 import type { NeedKey } from '@medora/shared/logic/types';
 import type { Bi } from '@medora/shared/logic/types';
 import { pick, type StringKey } from '../../src/i18n/t';
+import { suggestedDepartment, type Department } from '@medora/shared/logic/departments';
 import { HospitalDetailsView } from '../../src/components/HospitalDetailsView';
 import { MapView, type MapMarker } from '../../src/components/MapView';
 import { findCare, submitRequest } from '../../src/services/data';
@@ -47,6 +48,7 @@ export default function PatientCareScreen(): React.JSX.Element {
   const [hospitals, setHospitals] = React.useState<PublicHospital[]>([]);
   const [selected, setSelected] = React.useState<PublicHospital | null>(null);
   const [detailsFor, setDetailsFor] = React.useState<string | null>(null);
+  const [department, setDepartment] = React.useState<Department | undefined>(undefined);
   const [mode, setMode] = React.useState<ArrivalMode>('car');
   const [name, setName] = React.useState('');
   const [phone, setPhone] = React.useState('');
@@ -90,6 +92,7 @@ export default function PatientCareScreen(): React.JSX.Element {
         description: text.trim(),
         ...(name.trim() ? { name: name.trim() } : {}),
         ...(phone.trim() ? { phone: phone.trim() } : {}),
+        ...(department ? { department } : {}),
       });
       setSent(true);
       setSelected(null);
@@ -156,11 +159,28 @@ export default function PatientCareScreen(): React.JSX.Element {
               {h.label === 'notAvailable' ? (
                 <Text style={[styles.note, { color: theme.textMuted }]}>{t('patient.care.skippedBecause', { reason: t('failure.simple') })}</Text>
               ) : (
-                <Button label={t('patient.care.requestButton')} variant="secondary" onPress={() => { setSelected(h); setSent(false); }} />
+                <Button label={t('patient.care.requestButton')} variant="secondary" onPress={() => {
+                    setSelected(h);
+                    setSent(false);
+                    // Pre-select the department that fits the need when this hospital has it open.
+                    const suggested = suggestedDepartment(need);
+                    setDepartment(suggested && h.details?.departments.includes(suggested) ? suggested : undefined);
+                  }} />
               )}
               {selected?.id === h.id ? (
                 <View style={styles.form}>
                   <Text style={[styles.section, { color: theme.text }]}>{t('patient.care.requestTitle', { hospital: pick(h.name, lang) })}</Text>
+                  {h.details && h.details.departments.length > 0 ? (
+                    <>
+                      <Text style={[styles.note, { color: theme.textMuted }]}>{t('patient.care.departmentLabel')}</Text>
+                      <View style={styles.modes}>
+                        {h.details.departments.map((d) => (
+                          <Button key={d} label={t(`department.${d}` as StringKey)} variant={department === d ? 'primary' : 'secondary'} onPress={() => setDepartment(d)} />
+                        ))}
+                        <Button label={t('department.general')} variant={department === undefined ? 'primary' : 'secondary'} onPress={() => setDepartment(undefined)} />
+                      </View>
+                    </>
+                  ) : null}
                   <Text style={[styles.note, { color: theme.textMuted }]}>{t('patient.care.arrivalMode')}</Text>
                   <View style={styles.modes}>
                     {ARRIVAL_MODES.map((m) => (

@@ -5,6 +5,7 @@
  * counts, equipment faults or staff names on duty (AGENTS.md rule 6). Pure TypeScript.
  * Requirements: 5.2, 5.3, 8.1
  */
+import { openDepartments, type Department } from './departments';
 import { NEED_KEYS, publicEntry, type PublicLabel, type PublicProfile } from './publicDirectory';
 import { freeBeds } from './ranking';
 import { openSlots, type SpecialistRecord, type Specialty } from './specialists';
@@ -21,6 +22,8 @@ export interface HospitalDetails {
   onDuty: Specialty[];
   /** Clinic specialists with an open slot; the name only when the doctor chose to show it. */
   clinic: Array<{ specialty: string; name: string | null }>;
+  /** Departments taking requests now; a request to one goes to that department's staff. */
+  departments: Department[];
   typicalWaitMin: number;
   /** When staff last confirmed the status (ISO). */
   updatedAt: string;
@@ -60,6 +63,7 @@ export function hospitalDetails(
     care,
     onDuty,
     clinic,
+    departments: openDepartments(status),
     typicalWaitMin: profile.typicalWaitMin,
     updatedAt: status.updatedAt,
   };
