@@ -60,3 +60,12 @@ describe('parseFoundPlaces', () => {
     for (const bad of [undefined, null, 'x', {}, { places: 'x' }]) expect(parseFoundPlaces(bad)).toEqual([]);
   });
 });
+
+import { mapStyleUrl } from '../logic/mapStyle';
+
+describe('mapStyleUrl', () => {
+  it('builds the Amazon Location Standard style address for the region, with the key escaped', () => {
+    expect(mapStyleUrl('a b+c', 'us-east-1')).toBe('https://maps.geo.us-east-1.amazonaws.com/v2/styles/Standard/descriptor?key=a%20b%2Bc&color-scheme=Light&variant=Default');
+    expect(mapStyleUrl('k', 'ap-southeast-7', 'Dark')).toContain('color-scheme=Dark');
+  });
+});

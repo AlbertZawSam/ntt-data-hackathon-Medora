@@ -19,6 +19,7 @@
     "start:patient": "npm run start:patient -w @medora/frontend --",
     "start:hospital": "npm run start:hospital -w @medora/frontend --",
     "login": "aws sso login --profile medora",
+    "design": "EXPO_PUBLIC_DESIGN_PREVIEW=1 npm run web",
     "seed": "bash scripts/with-aws.sh tsx scripts/seed.ts",
     "kb": "tsx scripts/build-kb.ts",
     "upload-kb": "bash scripts/with-aws.sh tsx scripts/upload-kb.ts",

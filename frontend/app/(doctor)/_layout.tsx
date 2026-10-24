@@ -1,27 +1,17 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { RoleTabs, tabIcon } from '../../src/components/RoleTabs';
 import { useT } from '../../src/state/AppProvider';
-import { fonts, useTheme } from '../../src/ui/theme';
 
 /** Doctors: refer with the AI agent, track transfers, see the activity log. The pending screen has no tab. */
 export default function DoctorLayout(): React.JSX.Element {
   const t = useT();
-  const theme = useTheme();
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: theme.primary,
-        tabBarInactiveTintColor: theme.textMuted,
-        tabBarStyle: { backgroundColor: theme.surface, borderTopColor: theme.border },
-        tabBarLabelStyle: { fontFamily: fonts.medium },
-        tabBarIconStyle: { display: 'none' },
-      }}
-    >
-      <Tabs.Screen name="refer" options={{ title: t('doctor.tab.refer') }} />
-      <Tabs.Screen name="transfers" options={{ title: t('doctor.tab.transfers') }} />
-      <Tabs.Screen name="activity" options={{ title: t('doctor.tab.activity') }} />
+    <RoleTabs>
+      <Tabs.Screen name="refer" options={{ title: t('doctor.tab.refer'), tabBarIcon: tabIcon('git-network-outline', 'git-network') }} />
+      <Tabs.Screen name="transfers" options={{ title: t('doctor.tab.transfers'), tabBarIcon: tabIcon('car-outline', 'car') }} />
+      <Tabs.Screen name="activity" options={{ title: t('doctor.tab.activity'), tabBarIcon: tabIcon('list-outline', 'list') }} />
       <Tabs.Screen name="pending" options={{ href: null }} />
-    </Tabs>
+    </RoleTabs>
   );
 }

@@ -19,24 +19,51 @@ import {
   type SetAsideReason,
 } from '../../src/services/data';
 import { useApp, useT } from '../../src/state/AppProvider';
+import { Badge, Chip } from '../../src/ui/Badge';
 import { Button } from '../../src/ui/Button';
+import { Card, type Tone } from '../../src/ui/Card';
 import { Field } from '../../src/ui/Field';
-import { FormScreen } from '../../src/ui/FormScreen';
-import { fonts, fontSizes, radii, spacing, useTheme } from '../../src/ui/theme';
+import { Icon, type IconName } from '../../src/ui/Icon';
+import { Notice } from '../../src/ui/Notice';
+import { Page } from '../../src/ui/Page';
+import { Reveal } from '../../src/ui/Reveal';
+import { SectionHeader } from '../../src/ui/SectionHeader';
+import { Timeline, type TimelineStep } from '../../src/ui/Timeline';
+import { focusRing, pointer, webTransition } from '../../src/ui/web';
+import { fonts, fontSizes, radii, spacing, useBreakpoint, useTheme } from '../../src/ui/theme';
 
 const SAMPLES = [
-  { key: 'stemi', onset: '40' },
-  { key: 'stroke', onset: '50' },
-  { key: 'preterm', onset: '' },
+  { key: 'stemi', onset: '40', icon: 'heart' },
+  { key: 'stroke', onset: '50', icon: 'pulse' },
+  { key: 'preterm', onset: '', icon: 'happy' },
 ] as const;
 
 const RECENT = 5;
+
+const STATUS_LOOK: Record<string, { tone: Tone; icon: IconName; key: StringKey }> = {
+  running: { tone: 'warning', icon: 'sync', key: 'doctor.refer.running' },
+  awaiting: { tone: 'success', icon: 'checkmark-circle', key: 'doctor.refer.awaiting' },
+  confirmed: { tone: 'success', icon: 'checkmark-done', key: 'doctor.refer.status.confirmed' },
+  set_aside: { tone: 'neutral', icon: 'remove-circle', key: 'doctor.refer.status.set_aside' },
+  failed: { tone: 'danger', icon: 'alert-circle', key: 'doctor.refer.failed' },
+};
+
+const REPLY_LOOK: Record<DecisionRow['reply'], { tone: Tone; icon: IconName }> = {
+  notAsked: { tone: 'neutral', icon: 'ellipse-outline' },
+  waiting: { tone: 'warning', icon: 'time' },
+  accepted: { tone: 'success', icon: 'checkmark-circle' },
+  acceptedByRule: { tone: 'success', icon: 'flash' },
+  declined: { tone: 'danger', icon: 'close-circle' },
+  noReply: { tone: 'danger', icon: 'help-circle' },
+  cancelled: { tone: 'neutral', icon: 'remove-circle' },
+};
 
 export default function DoctorReferScreen(): React.JSX.Element {
   const t = useT();
   const theme = useTheme();
   const router = useRouter();
-  const { data, lang, session, signOut } = useApp();
+  const wide = useBreakpoint() === 'expanded';
+  const { data, lang, session } = useApp();
   const [description, setDescription] = React.useState('');
   const [onset, setOnset] = React.useState('');
   const [busy, setBusy] = React.useState(false);
@@ -119,18 +146,28 @@ export default function DoctorReferScreen(): React.JSX.Element {
     ? Math.max(0, Math.round(((referral.recommendedAtMs ?? (running ? now : referral.startedAtMs)) - referral.startedAtMs) / 1_000))
     : 0;
 
-  return (
-    <FormScreen title={t('doctor.refer.title')} subtitle={t('doctor.refer.agentPrinciple')}>
-      <View style={[styles.badge, { borderColor: theme.primary }]}>
-        <Text style={[styles.badgeText, { color: theme.primary }]}>{t('doctor.refer.agentBadge')}</Text>
-      </View>
+  /** The agent's steps as a timeline: finished ones, the one in progress, and what is still to come. */
+  const steps: TimelineStep[] = trace.map((step, index) => ({
+    id: step.id,
+    title: pick(step.title, lang),
+    detail: pick(step.detail, lang),
+    state: referral?.status === 'failed' && index === trace.length - 1 ? 'error' : 'done',
+  }));
+  if (running) steps.push({ id: 'working', title: t('doctor.refer.running'), state: 'active' });
 
+  const form = (
+    <Card padding="lg">
+      <View style={styles.row}>
+        <Badge tone="info" icon="sparkles" label={t('doctor.refer.agentBadge')} />
+      </View>
       <Text style={[styles.label, { color: theme.text }]}>{t('doctor.refer.samplesTitle')}</Text>
-      <View style={styles.chips}>
+      <View style={styles.row}>
         {SAMPLES.map((sample) => (
           <Chip
             key={sample.key}
             label={t(`doctor.refer.sample.${sample.key}` as StringKey)}
+            icon={sample.icon}
+            selected={false}
             onPress={() => {
               setDescription(t(`doctor.refer.sample.${sample.key}.text` as StringKey));
               setOnset(sample.onset);
@@ -147,6 +184,7 @@ export default function DoctorReferScreen(): React.JSX.Element {
         maxLength={2_000}
         textAlignVertical="top"
         inputStyle={styles.description}
+        icon="document-text-outline"
       />
       <Field
         label={t('doctor.refer.onsetPlaceholder')}
@@ -155,136 +193,165 @@ export default function DoctorReferScreen(): React.JSX.Element {
         onChangeText={setOnset}
         keyboardType="number-pad"
         maxLength={5}
+        icon="time-outline"
       />
       <Text style={[styles.muted, { color: theme.textMuted }]}>{t('doctor.refer.startHint')}</Text>
-      {error ? (
-        <Text accessibilityLiveRegion="polite" style={[styles.error, { color: theme.emergency }]}>
-          {error}
-        </Text>
-      ) : null}
-      <Button label={t('doctor.refer.startButton')} busy={busy} disabled={running} onPress={submit} />
+      {error ? <Notice tone="danger">{error}</Notice> : null}
+      <Button size="lg" icon="rocket" label={t('doctor.refer.startButton')} busy={busy} disabled={running} onPress={submit} />
+    </Card>
+  );
 
-      {referral ? (
-        <>
-          <Panel>
-            <View style={styles.rowBetween}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('doctor.refer.traceTitle')}</Text>
-              <Text style={[styles.muted, { color: theme.textMuted }]}>{t('doctor.refer.elapsed', { seconds: elapsedSeconds })}</Text>
+  const live = referral ? (
+    <View style={styles.stack}>
+      <Reveal>
+        <Card padding="lg">
+          <View style={styles.between}>
+            <View style={styles.row}>
+              {STATUS_LOOK[referral.status] ? <Badge tone={STATUS_LOOK[referral.status].tone} icon={STATUS_LOOK[referral.status].icon} label={t(STATUS_LOOK[referral.status].key)} /> : null}
+              <Badge tone="neutral" icon={byRules ? 'git-branch' : 'sparkles'} label={t(byRules ? 'doctor.refer.byRules' : 'doctor.refer.byAgent')} />
             </View>
-            <StatusLine referral={referral} />
-            <Text style={[styles.muted, { color: theme.textMuted }]}>{t(byRules ? 'doctor.refer.byRules' : 'doctor.refer.byAgent')}</Text>
-            {trace.length === 0 ? <Text style={[styles.muted, { color: theme.textMuted }]}>{t('doctor.refer.noTrace')}</Text> : null}
-            {trace.map((step) => (
-              <View key={step.id} style={[styles.traceRow, { borderTopColor: theme.border }]}>
-                <Text style={[styles.stepNo, { color: theme.primary }]}>{step.n}</Text>
-                <View style={styles.flex}>
-                  <Text style={[styles.itemTitle, { color: theme.text }]}>{pick(step.title, lang)}</Text>
-                  <Text style={[styles.muted, { color: theme.textMuted }]}>{pick(step.detail, lang)}</Text>
-                </View>
-              </View>
-            ))}
-          </Panel>
+            <View style={styles.row}>
+              <Icon name="stopwatch-outline" size={18} color={theme.textMuted} />
+              <Text style={[styles.elapsed, { color: theme.text }]}>{t('doctor.refer.elapsed', { seconds: elapsedSeconds })}</Text>
+            </View>
+          </View>
+          {referral.text ? <Text numberOfLines={2} style={[styles.muted, { color: theme.textMuted }]}>{referral.text}</Text> : null}
+        </Card>
+      </Reveal>
 
-          {markers.length > 1 ? (
-            <Panel>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('doctor.refer.mapTitle')}</Text>
-              <MapView
-                accessibilityLabel={t('map.alt.referral')}
-                markers={markers}
-                route={origin && chosenRow ? [origin, { lat: chosenRow.lat!, lng: chosenRow.lng! }] : undefined}
-              />
-              <Text style={[styles.muted, { color: theme.textMuted }]}>{t('doctor.refer.mapLegend')}</Text>
-            </Panel>
-          ) : null}
-
-          <Panel>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('doctor.refer.tableTitle')}</Text>
-            {rows.length === 0 ? <Text style={[styles.muted, { color: theme.textMuted }]}>{t('doctor.refer.tableEmpty')}</Text> : null}
-            {rows.map((row) => (
-              <DecisionLine key={row.hospitalId} row={row} />
-            ))}
-          </Panel>
-
-          {referral.status === 'awaiting' ? (
-            <Panel highlight>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('doctor.refer.recommendationTitle')}</Text>
-              <Text style={[styles.chosenName, { color: theme.text }]}>{referral.chosenName ? pick(referral.chosenName, lang) : t('doctor.refer.noHospital')}</Text>
-              {referral.etaMin !== undefined && referral.etaMin !== null ? (
-                <Text style={[styles.muted, { color: theme.textMuted }]}>{t('doctor.refer.eta', { min: referral.etaMin })}</Text>
-              ) : null}
-              {referral.why ? <Text style={[styles.body, { color: theme.text }]}>{pick(referral.why, lang)}</Text> : null}
+      {referral.status === 'awaiting' ? (
+        <Reveal index={1}>
+          <Card padding="lg" selected tone="primary">
+            <View style={styles.row}>
+              <Badge tone="primary" icon="star" label={t('doctor.refer.recommendationTitle')} />
+            </View>
+            <Text accessibilityRole="header" style={[styles.chosenName, { color: theme.text }]}>
+              {referral.chosenName ? pick(referral.chosenName, lang) : t('doctor.refer.noHospital')}
+            </Text>
+            <View style={styles.row}>
+              {referral.etaMin !== undefined && referral.etaMin !== null ? <Badge tone="info" icon="car" label={t('doctor.refer.eta', { min: referral.etaMin })} /> : null}
               {referral.recommendedAtMs !== undefined && referral.recommendedAtMs !== null ? (
-                <Text style={[styles.muted, { color: theme.textMuted }]}>{t('doctor.refer.timeToRecommendation', { seconds: elapsedSeconds })}</Text>
+                <Badge tone="neutral" icon="flash" label={t('doctor.refer.timeToRecommendation', { seconds: elapsedSeconds })} />
               ) : null}
-              <Text style={[styles.muted, { color: theme.textMuted }]}>{t('doctor.refer.decisionNote')}</Text>
-              <Button label={t('doctor.refer.confirmTransfer')} busy={deciding} onPress={() => confirm(referral)} />
-              {askReason ? (
-                <>
-                  <Text style={[styles.label, { color: theme.text }]}>{t('doctor.refer.setAsideTitle')}</Text>
-                  <View style={styles.chips}>
-                    {SET_ASIDE_REASONS.map((reason) => (
-                      <Chip key={reason} label={t(`doctor.refer.setAside.${reason}` as StringKey)} disabled={deciding} onPress={() => setAside(referral, reason)} />
-                    ))}
-                  </View>
-                  <Button variant="link" label={t('common.back')} onPress={() => setAskReason(false)} />
-                </>
-              ) : (
-                <Button variant="secondary" label={t('doctor.refer.notThisOne')} disabled={deciding} onPress={() => setAskReason(true)} />
-              )}
-            </Panel>
-          ) : null}
-
-          {referral.status === 'confirmed' ? (
-            <Panel highlight>
-              <Text style={[styles.chosenName, { color: theme.text }]}>{referral.chosenName ? pick(referral.chosenName, lang) : ''}</Text>
-              <Text style={[styles.body, { color: theme.success }]}>{t('doctor.refer.confirmed')}</Text>
-              <Button label={t('doctor.refer.viewTransfers')} onPress={() => router.push('/(doctor)/transfers' as Href)} />
-            </Panel>
-          ) : null}
-
-          {chosenRequest && (referral.status === 'awaiting' || referral.status === 'confirmed') ? (
-            <Panel>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('doctor.refer.messagesTitle')}</Text>
-              <MessageThread requestId={chosenRequest.id} messages={data.messages} me="patient" disabled />
-            </Panel>
-          ) : null}
-
-          {referral.status === 'set_aside' ? (
-            <Panel>
-              <Text style={[styles.body, { color: theme.text }]}>{t('doctor.refer.setAsideDone')}</Text>
-            </Panel>
-          ) : null}
-
-          {referral.status === 'failed' && referral.why ? (
-            <Panel>
-              <Text style={[styles.body, { color: theme.text }]}>{pick(referral.why, lang)}</Text>
-            </Panel>
-          ) : null}
-        </>
+            </View>
+            {referral.why ? <Text style={[styles.body, { color: theme.text }]}>{pick(referral.why, lang)}</Text> : null}
+            <Notice tone="info" title={t('doctor.refer.decisionNote')} />
+            <Button size="lg" icon="checkmark-done" label={t('doctor.refer.confirmTransfer')} busy={deciding} onPress={() => confirm(referral)} />
+            {askReason ? (
+              <View style={styles.stack}>
+                <Text style={[styles.label, { color: theme.text }]}>{t('doctor.refer.setAsideTitle')}</Text>
+                <View style={styles.row}>
+                  {SET_ASIDE_REASONS.map((reason) => (
+                    <Chip key={reason} label={t(`doctor.refer.setAside.${reason}` as StringKey)} selected={false} onPress={() => { if (!deciding) setAside(referral, reason); }} />
+                  ))}
+                </View>
+                <Button variant="ghost" icon="chevron-back" label={t('common.back')} onPress={() => setAskReason(false)} />
+              </View>
+            ) : (
+              <Button variant="secondary" icon="close" label={t('doctor.refer.notThisOne')} disabled={deciding} onPress={() => setAskReason(true)} />
+            )}
+          </Card>
+        </Reveal>
       ) : null}
 
-      {owned.length > 1 ? (
-        <Panel>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('doctor.refer.recentTitle')}</Text>
-          {owned.slice(0, RECENT).map((item) => (
+      {referral.status === 'confirmed' ? (
+        <Card padding="lg" tone="success">
+          <Text style={[styles.chosenName, { color: theme.text }]}>{referral.chosenName ? pick(referral.chosenName, lang) : ''}</Text>
+          <Notice tone="success">{t('doctor.refer.confirmed')}</Notice>
+          <Button icon="car" label={t('doctor.refer.viewTransfers')} onPress={() => router.push('/(doctor)/transfers' as Href)} />
+        </Card>
+      ) : null}
+      {chosenRequest && (referral.status === 'awaiting' || referral.status === 'confirmed') ? (
+        <Card padding="lg">
+          <SectionHeader title={t('doctor.refer.messagesTitle')} />
+          <MessageThread requestId={chosenRequest.id} messages={data.messages} me="patient" disabled />
+        </Card>
+      ) : null}
+      {referral.status === 'set_aside' ? <Notice tone="neutral">{t('doctor.refer.setAsideDone')}</Notice> : null}
+      {referral.status === 'failed' && referral.why ? <Notice tone="danger">{pick(referral.why, lang)}</Notice> : null}
+
+      <Card padding="lg">
+        <SectionHeader title={t('doctor.refer.traceTitle')} />
+        {steps.length === 0 ? <Text style={[styles.muted, { color: theme.textMuted }]}>{t('doctor.refer.noTrace')}</Text> : <Timeline steps={steps} />}
+      </Card>
+
+      {markers.length > 1 ? (
+        <Card padding="lg">
+          <SectionHeader title={t('doctor.refer.mapTitle')} />
+          <MapView
+            accessibilityLabel={t('map.alt.referral')}
+            height={wide ? 320 : 240}
+            markers={markers}
+            route={origin && chosenRow ? [origin, { lat: chosenRow.lat!, lng: chosenRow.lng! }] : undefined}
+          />
+          <Text style={[styles.muted, { color: theme.textMuted }]}>{t('doctor.refer.mapLegend')}</Text>
+        </Card>
+      ) : null}
+
+      <Card padding="lg">
+        <SectionHeader title={t('doctor.refer.tableTitle')} />
+        {rows.length === 0 ? <Text style={[styles.muted, { color: theme.textMuted }]}>{t('doctor.refer.tableEmpty')}</Text> : null}
+        {rows.map((row) => (
+          <DecisionLine key={row.hospitalId} row={row} />
+        ))}
+      </Card>
+    </View>
+  ) : null;
+
+  const recent =
+    owned.length > 1 ? (
+      <Card padding="lg">
+        <SectionHeader title={t('doctor.refer.recentTitle')} />
+        {owned.slice(0, RECENT).map((item) => {
+          const selected = item.id === referral?.id;
+          const look = STATUS_LOOK[item.status];
+          return (
             <Pressable
               key={item.id}
               accessibilityRole="button"
+              accessibilityState={{ selected }}
               onPress={() => setActiveId(item.id)}
-              style={[styles.recent, { borderTopColor: theme.border, opacity: item.id === referral?.id ? 1 : 0.75 }]}
+              style={(state) => [
+                styles.recent,
+                { backgroundColor: selected ? theme.primarySoft : (state as { hovered?: boolean }).hovered === true ? theme.surfaceAlt : 'transparent' },
+                pointer,
+                webTransition(),
+                focusRing(theme.primary, (state as { focused?: boolean }).focused === true),
+              ]}
             >
-              <Text numberOfLines={1} style={[styles.flex, styles.body, { color: theme.text }]}>
-                {item.text}
-              </Text>
-              <Text style={[styles.muted, { color: theme.textMuted }]}>{t(`doctor.refer.status.${item.status}` as StringKey)}</Text>
+              <Text numberOfLines={1} style={[styles.flex, styles.body, { color: theme.text }]}>{item.text}</Text>
+              <Badge tone={look?.tone ?? 'neutral'} label={t(`doctor.refer.status.${item.status}` as StringKey)} />
             </Pressable>
-          ))}
-        </Panel>
-      ) : null}
+          );
+        })}
+      </Card>
+    ) : null;
 
-      <Button variant="link" label={t('doctor.refer.viewTransfers')} onPress={() => router.push('/(doctor)/transfers' as Href)} />
-      <Button variant="link" label={t('common.signOut')} onPress={() => void signOut()} />
-    </FormScreen>
+  return (
+    <Page title={t('doctor.refer.title')} subtitle={t('doctor.refer.agentPrinciple')}>
+      {wide ? (
+        <View style={styles.columns}>
+          <View style={styles.sideColumn}>
+            {form}
+            {recent}
+          </View>
+          <View style={styles.mainColumn}>
+            {live ?? (
+              <Card padding="lg">
+                <Text style={[styles.muted, { color: theme.textMuted }]}>{t('doctor.refer.noTrace')}</Text>
+              </Card>
+            )}
+          </View>
+        </View>
+      ) : (
+        <View style={styles.stack}>
+          {form}
+          {live}
+          {recent}
+        </View>
+      )}
+      <Button variant="ghost" icon="car" fullWidth={false} label={t('doctor.refer.viewTransfers')} onPress={() => router.push('/(doctor)/transfers' as Href)} />
+    </Page>
   );
 }
 
@@ -309,96 +376,47 @@ function referralMarkers(rows: DecisionRow[], origin: { lat: number; lng: number
   return markers;
 }
 
-function StatusLine({ referral }: { referral: Referral }): React.JSX.Element | null {
-  const t = useT();
-  const theme = useTheme();
-  const tone: Record<string, string> = {
-    running: theme.warning,
-    awaiting: theme.success,
-    confirmed: theme.success,
-    set_aside: theme.textMuted,
-    failed: theme.emergency,
-  };
-  const key: Record<string, StringKey> = {
-    running: 'doctor.refer.running',
-    awaiting: 'doctor.refer.awaiting',
-    confirmed: 'doctor.refer.status.confirmed',
-    set_aside: 'doctor.refer.status.set_aside',
-    failed: 'doctor.refer.failed',
-  };
-  const label = key[referral.status];
-  if (!label) return null;
-  return <Text style={[styles.status, { color: tone[referral.status] }]}>{t(label)}</Text>;
-}
-
+/** One hospital the agent considered: how far, whether it can help, and what it answered. */
 function DecisionLine({ row }: { row: DecisionRow }): React.JSX.Element {
   const t = useT();
   const theme = useTheme();
   const { lang } = useApp();
-  const replyTone =
-    row.reply === 'accepted' || row.reply === 'acceptedByRule'
-      ? theme.success
-      : row.reply === 'declined' || row.reply === 'noReply'
-        ? theme.emergency
-        : theme.textMuted;
+  const look = REPLY_LOOK[row.reply];
   return (
-    <View style={[styles.decision, { borderTopColor: theme.border }]}>
-      <View style={styles.rowBetween}>
+    <View style={[styles.decision, { borderTopColor: theme.border, backgroundColor: row.chosen ? theme.primarySoft : 'transparent' }]}>
+      <View style={styles.between}>
         <Text style={[styles.itemTitle, styles.flex, { color: theme.text }]}>{pick(row.name, lang)}</Text>
-        <Text style={[styles.muted, { color: theme.textMuted }]}>{t('doctor.refer.driveMin', { min: row.driveMin })}</Text>
+        <Badge tone="neutral" icon="car-outline" label={t('doctor.refer.driveMin', { min: row.driveMin })} />
       </View>
-      {row.chosen ? <Text style={[styles.tag, { color: theme.onPrimary, backgroundColor: theme.primary }]}>{t('doctor.refer.chosen')}</Text> : null}
-      {row.canHelp ? (
-        <Text style={[styles.muted, { color: replyTone }]}>{t(`doctor.refer.reply.${row.reply}` as StringKey)}</Text>
-      ) : (
-        <Text style={[styles.muted, { color: theme.textMuted }]}>{row.whyNot.slice(0, 2).map((kind) => t(`doctor.refer.whyNot.${kind}` as StringKey)).join(' · ')}</Text>
-      )}
-      {row.delayMin !== undefined ? <Text style={[styles.muted, { color: theme.warning }]}>{t('doctor.refer.delay', { min: row.delayMin })}</Text> : null}
-      {row.stale ? <Text style={[styles.muted, { color: theme.warning }]}>{t('doctor.refer.stale')}</Text> : null}
+      <View style={styles.row}>
+        {row.chosen ? <Badge tone="primary" icon="star" label={t('doctor.refer.chosen')} /> : null}
+        {row.canHelp ? (
+          <Badge tone={look.tone} icon={look.icon} label={t(`doctor.refer.reply.${row.reply}` as StringKey)} />
+        ) : (
+          row.whyNot.slice(0, 2).map((kind) => <Badge key={kind} tone="danger" icon="close-circle" label={t(`doctor.refer.whyNot.${kind}` as StringKey)} />)
+        )}
+        {row.delayMin !== undefined ? <Badge tone="warning" icon="hourglass" label={t('doctor.refer.delay', { min: row.delayMin })} /> : null}
+        {row.stale ? <Badge tone="neutral" icon="help-circle" label={t('doctor.refer.stale')} /> : null}
+      </View>
     </View>
   );
 }
 
-function Panel({ children, highlight = false }: { children: React.ReactNode; highlight?: boolean }): React.JSX.Element {
-  const theme = useTheme();
-  return <View style={[styles.panel, { backgroundColor: theme.surface, borderColor: highlight ? theme.primary : theme.border }]}>{children}</View>;
-}
-
-function Chip({ label, onPress, disabled = false }: { label: string; onPress: () => void; disabled?: boolean }): React.JSX.Element {
-  const theme = useTheme();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => [styles.chip, { borderColor: theme.primary, opacity: disabled ? 0.5 : pressed ? 0.7 : 1 }]}
-    >
-      <Text style={[styles.chipText, { color: theme.primary }]}>{label}</Text>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
-  badge: { alignSelf: 'center', borderWidth: 1, borderRadius: radii.lg, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
-  badgeText: { fontFamily: fonts.semibold, fontSize: fontSizes.sm },
-  body: { fontFamily: fonts.regular, fontSize: fontSizes.md },
-  chip: { borderWidth: 1, borderRadius: radii.lg, paddingHorizontal: spacing.md, paddingVertical: spacing.xs, minHeight: 36, justifyContent: 'center' },
-  chipText: { fontFamily: fonts.medium, fontSize: fontSizes.sm },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  chosenName: { fontFamily: fonts.bold, fontSize: fontSizes.xl },
-  decision: { borderTopWidth: 1, paddingTop: spacing.sm, gap: spacing.xs },
-  description: { minHeight: 112, paddingTop: spacing.sm },
-  error: { fontFamily: fonts.medium, fontSize: fontSizes.sm, textAlign: 'center' },
   flex: { flex: 1 },
-  itemTitle: { fontFamily: fonts.medium, fontSize: fontSizes.md },
-  label: { fontFamily: fonts.medium, fontSize: fontSizes.sm },
-  muted: { fontFamily: fonts.regular, fontSize: fontSizes.sm },
-  panel: { alignSelf: 'stretch', borderWidth: 1, borderRadius: radii.md, padding: spacing.md, gap: spacing.sm },
-  recent: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderTopWidth: 1, paddingTop: spacing.sm, minHeight: 44 },
-  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
-  sectionTitle: { fontFamily: fonts.semibold, fontSize: fontSizes.lg },
-  status: { fontFamily: fonts.semibold, fontSize: fontSizes.md },
-  stepNo: { fontFamily: fonts.bold, fontSize: fontSizes.md, minWidth: 20 },
-  tag: { alignSelf: 'flex-start', borderRadius: radii.sm, paddingHorizontal: spacing.sm, paddingVertical: 2, fontFamily: fonts.semibold, fontSize: fontSizes.xs, overflow: 'hidden' },
-  traceRow: { flexDirection: 'row', gap: spacing.sm, borderTopWidth: 1, paddingTop: spacing.sm },
+  stack: { gap: spacing.md },
+  row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm },
+  between: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, flexWrap: 'wrap' },
+  columns: { flexDirection: 'row', gap: spacing.lg, alignItems: 'flex-start' },
+  sideColumn: { flex: 0.85, gap: spacing.md },
+  mainColumn: { flex: 1.15 },
+  description: { minHeight: 112, paddingTop: spacing.sm },
+  label: { fontFamily: fonts.semibold, fontSize: fontSizes.sm },
+  muted: { fontFamily: fonts.regular, fontSize: fontSizes.sm, lineHeight: 20 },
+  body: { fontFamily: fonts.regular, fontSize: fontSizes.md, lineHeight: 24 },
+  elapsed: { fontFamily: fonts.semibold, fontSize: fontSizes.sm },
+  chosenName: { fontFamily: fonts.bold, fontSize: fontSizes.xxl, letterSpacing: -0.4 },
+  itemTitle: { fontFamily: fonts.semibold, fontSize: fontSizes.md },
+  decision: { borderTopWidth: 1, paddingVertical: spacing.sm + 2, paddingHorizontal: spacing.xs, gap: spacing.sm, borderRadius: radii.md },
+  recent: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: 48, paddingHorizontal: spacing.sm, borderRadius: radii.md },
 });

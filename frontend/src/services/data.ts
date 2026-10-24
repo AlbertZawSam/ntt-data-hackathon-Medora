@@ -89,6 +89,7 @@ interface Client {
     findSpecialists: (input: { lat: number; lng: number; specialty?: string; language?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     findCare: (input: { description: string; lat: number; lng: number }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     searchPlaces: (input: { query: string; lang?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
+    mapConfig: () => Promise<{ data?: string | null; errors?: unknown[] }>;
   };
 }
 
@@ -387,6 +388,29 @@ export async function searchPlacesRemote(query: string, lang: 'en' | 'th'): Prom
   } catch {
     return [];
   }
+}
+
+let mapStyle: Promise<string | null> | undefined;
+
+/**
+ * The address of the real map (Amazon Location tiles), or null when it is not available, in which case the web app
+ * draws its simple offline map. Asked once per visit: the answer does not change. Any failure gives null.
+ */
+export function fetchMapStyleUrl(): Promise<string | null> {
+  mapStyle ??= (async () => {
+    try {
+      const result = await client.queries.mapConfig();
+      if (result.errors?.length || !result.data) return null;
+      const url = (JSON.parse(result.data) as { styleUrl?: unknown }).styleUrl;
+      return typeof url === 'string' && url.startsWith('https://') ? url : null;
+    } catch {
+      return null;
+    }
+  })();
+  return mapStyle.then((url) => {
+    if (url === null) mapStyle = undefined; // ask again next time: a failure should not stick for the whole visit
+    return url;
+  });
 }
 
 export interface NewRequest {

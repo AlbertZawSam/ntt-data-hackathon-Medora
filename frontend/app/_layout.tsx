@@ -27,6 +27,8 @@ function useAuthGate(enabled: boolean): void {
   const router = useRouter();
   React.useEffect(() => {
     if (!enabled) return;
+    // The design gallery needs no sign-in, but only exists in a preview run (EXPO_PUBLIC_DESIGN_PREVIEW=1), never in a real build.
+    if (process.env.EXPO_PUBLIC_DESIGN_PREVIEW === '1' && segments[0] === 'design') return;
     // The patient app is for patients only and the hospital app for hospital roles only.
     if (session && !roleAllowedInVariant(appVariant, session)) {
       void signOut();

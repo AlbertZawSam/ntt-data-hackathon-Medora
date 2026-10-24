@@ -12,8 +12,13 @@ import { MapView, shortLabel } from '../../src/components/MapView';
 import { pick } from '../../src/i18n/t';
 import { markTransferArrived } from '../../src/services/data';
 import { useApp, useT } from '../../src/state/AppProvider';
+import { Badge } from '../../src/ui/Badge';
 import { Button } from '../../src/ui/Button';
-import { FormScreen } from '../../src/ui/FormScreen';
+import { Card } from '../../src/ui/Card';
+import { EmptyState } from '../../src/ui/EmptyState';
+import { Notice } from '../../src/ui/Notice';
+import { Page } from '../../src/ui/Page';
+import { Reveal } from '../../src/ui/Reveal';
 import { fonts, fontSizes, radii, spacing, useTheme } from '../../src/ui/theme';
 
 export default function DoctorTransfersScreen(): React.JSX.Element {
@@ -34,13 +39,19 @@ export default function DoctorTransfersScreen(): React.JSX.Element {
   );
 
   return (
-    <FormScreen title={t('doctor.transfers.title')} subtitle={t('doctor.transfers.simulated')}>
-      {transfers.length === 0 ? <Text style={[styles.muted, { color: theme.textMuted }]}>{t('doctor.transfers.empty')}</Text> : null}
-      {transfers.map((transfer) => (
-        <TransferCard key={transfer.id} transfer={transfer} now={now} />
+    <Page title={t('doctor.transfers.title')} subtitle={t('doctor.transfers.simulated')} width="readable">
+      {transfers.length === 0 ? (
+        <Card padding="lg">
+          <EmptyState icon="car-outline" title={t('doctor.transfers.empty')} />
+        </Card>
+      ) : null}
+      {transfers.map((transfer, index) => (
+        <Reveal key={transfer.id} index={index}>
+          <TransferCard transfer={transfer} now={now} />
+        </Reveal>
       ))}
-      <Button variant="link" label={t('doctor.transfers.back')} onPress={() => router.push('/(doctor)/refer' as Href)} />
-    </FormScreen>
+      <Button variant="ghost" icon="chevron-back" fullWidth={false} label={t('doctor.transfers.back')} onPress={() => router.push('/(doctor)/refer' as Href)} />
+    </Page>
   );
 }
 
@@ -62,8 +73,11 @@ function TransferCard({ transfer, now }: { transfer: Transfer; now: number }): R
   const toPoint = to?.lat !== undefined && to.lng !== undefined ? { lat: to.lat, lng: to.lng } : undefined;
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: arrived ? theme.success : theme.border }]}>
-      <Text style={[styles.title, { color: theme.text }]}>{t('doctor.transfers.toHospital', { name })}</Text>
+    <Card padding="lg" tone={arrived ? 'success' : undefined}>
+      <View style={styles.head}>
+        <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>{t('doctor.transfers.toHospital', { name })}</Text>
+        <Badge tone={arrived ? 'success' : progress.due ? 'warning' : 'info'} icon={arrived ? 'checkmark-done' : 'car'} label={arrived ? t('doctor.transfers.arrived') : progress.due ? t('doctor.transfers.due') : t('doctor.transfers.minutesLeft', { min: progress.minutesLeft })} />
+      </View>
       {referral ? (
         <Text numberOfLines={2} style={[styles.muted, { color: theme.textMuted }]}>
           {referral.text}
@@ -85,13 +99,11 @@ function TransferCard({ transfer, now }: { transfer: Transfer; now: number }): R
       <View style={[styles.track, { backgroundColor: theme.border }]} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(progress.fraction * 100) }}>
         <View style={[styles.fill, { width: `${Math.round(progress.fraction * 100)}%`, backgroundColor: arrived ? theme.success : theme.primary }]} />
       </View>
-      <Text style={[styles.status, { color: arrived ? theme.success : progress.due ? theme.warning : theme.text }]}>
-        {arrived ? t('doctor.transfers.arrived') : progress.due ? t('doctor.transfers.due') : t('doctor.transfers.minutesLeft', { min: progress.minutesLeft })}
-      </Text>
-      {error ? <Text style={[styles.muted, { color: theme.emergency }]}>{t('doctor.transfers.error')}</Text> : null}
+      {error ? <Notice tone="danger">{t('doctor.transfers.error')}</Notice> : null}
       {!arrived ? (
         <Button
           variant="secondary"
+          icon="flag"
           label={t('doctor.transfers.markArrived')}
           busy={busy}
           onPress={() => {
@@ -104,15 +116,14 @@ function TransferCard({ transfer, now }: { transfer: Transfer; now: number }): R
           }}
         />
       ) : null}
-    </View>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { alignSelf: 'stretch', borderWidth: 1, borderRadius: radii.md, padding: spacing.md, gap: spacing.sm },
+  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, flexWrap: 'wrap' },
   fill: { height: '100%', borderRadius: radii.sm },
   muted: { fontFamily: fonts.regular, fontSize: fontSizes.sm },
-  status: { fontFamily: fonts.semibold, fontSize: fontSizes.md },
-  title: { fontFamily: fonts.semibold, fontSize: fontSizes.lg },
+  title: { flex: 1, fontFamily: fonts.bold, fontSize: fontSizes.lg },
   track: { height: 10, borderRadius: radii.sm, overflow: 'hidden' },
 });
