@@ -448,5 +448,7 @@
   "doctor.refer.mapYou": "Your hospital",
   "doctor.refer.mapLegend": "Dashed line: route to the recommended hospital. Green accepted, amber waiting, crossed out declined or can't help, small grey withdrawn.",
   "doctor.transfers.ambulance": "Orange dot: the ambulance on its way.",
-  "staff.inbox.referral": "Doctor referral (AI agent)"
+  "staff.inbox.referral": "Doctor referral (AI agent)",
+  "emergency.nearestEd": "Nearest open emergency department: {{name}} (about {{min}} min by car)",
+  "patient.care.understood": "We understood (AI summary, not medical advice): {{summary}}"
 }

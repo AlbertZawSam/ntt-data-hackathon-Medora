@@ -6,8 +6,9 @@
  *   npm run seed            (uses your current AWS credentials; run `aws sso login` first)
  *
  * Reads the API from frontend/amplify_outputs.json, so it writes only to the sandbox you deployed.
- * Writes three tables per hospital: HospitalProfile, HospitalStatus and PublicDirectory. Synthetic data only.
- * Cost: 24 DynamoDB writes per run, well under one US cent.
+ * Writes three tables per hospital (HospitalProfile, HospitalStatus, PublicDirectory) and a few made-up
+ * specialists with clinic slots for the next three days. Synthetic data only.
+ * Cost: about 33 DynamoDB writes per run, well under one US cent.
  */
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -15,8 +16,9 @@ import { AppSyncClient, paginateListGraphqlApis } from '@aws-sdk/client-appsync'
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { DEMO_HOSPITALS, demoStatus } from '@medora/shared/logic/demoHospitals';
+import { demoSpecialists } from '@medora/shared/logic/demoSpecialists';
 import { publicEntry } from '@medora/shared/logic/publicDirectory';
-import { seedHospitalId } from './seed-id';
+import { seedHospitalId, seedSpecialistId } from './seed-id';
 
 const REGION = 'us-east-1';
 
@@ -67,8 +69,14 @@ async function main(): Promise<void> {
     await put('PublicDirectory', { id: hospitalId, hospitalId, entry: publicEntry(profile, status) });
     console.log(`${hospitalId}  ${hospital.name.en}`);
   }
+  // Specialists for Find a specialist; AWSJSON slots are stored as a list, as for the other seeded fields.
+  const specialists = demoSpecialists(now);
+  for (const { hospitalKey, input } of specialists) {
+    await put('Specialist', { id: seedSpecialistId(hospitalKey, input.name), hospitalId: seedHospitalId(hospitalKey), ...input });
+  }
+  console.log(`\n${specialists.length} specialists with clinic slots for the next three days.`);
   console.log('\nDone. Run it again any time to reset these hospitals to their starting status.');
-  console.log('Staff accounts for a hospital: node scripts/create-test-users.mjs <hospital id above>');
+  console.log('Test accounts with a login page: npm run test-logins -- <hospital id above>');
 }
 
 main().catch((error: unknown) => {
