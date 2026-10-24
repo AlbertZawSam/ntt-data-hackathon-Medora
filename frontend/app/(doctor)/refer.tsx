@@ -8,6 +8,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { parseDecisionRows, type DecisionRow } from '@medora/shared/logic/decisionTable';
 import type { Referral } from '@medora/shared/logic/types';
+import { MapView, shortLabel, type MapMarker, type MarkerKind } from '../../src/components/MapView';
 import { pick, type StringKey } from '../../src/i18n/t';
 import {
   confirmReferral,
@@ -54,6 +55,9 @@ export default function DoctorReferScreen(): React.JSX.Element {
     [data.traceSteps, referral],
   );
   const rows = React.useMemo(() => parseDecisionRows(referral?.rows), [referral?.rows]);
+  const origin = data.hospitalProfiles.find((profile) => profile.hospitalId === referral?.fromHospitalId);
+  const markers = React.useMemo(() => referralMarkers(rows, origin, t('doctor.refer.mapYou'), lang), [rows, origin, t, lang]);
+  const chosenRow = rows.find((row) => row.chosen && row.lat !== undefined && row.lng !== undefined);
   const byRules = trace.some((step) => step.kind === 'backup');
   const running = referral?.status === 'running';
 
@@ -178,6 +182,18 @@ export default function DoctorReferScreen(): React.JSX.Element {
             ))}
           </Panel>
 
+          {markers.length > 1 ? (
+            <Panel>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('doctor.refer.mapTitle')}</Text>
+              <MapView
+                accessibilityLabel={t('map.alt.referral')}
+                markers={markers}
+                route={origin && chosenRow ? [origin, { lat: chosenRow.lat!, lng: chosenRow.lng! }] : undefined}
+              />
+              <Text style={[styles.muted, { color: theme.textMuted }]}>{t('doctor.refer.mapLegend')}</Text>
+            </Panel>
+          ) : null}
+
           <Panel>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('doctor.refer.tableTitle')}</Text>
             {rows.length === 0 ? <Text style={[styles.muted, { color: theme.textMuted }]}>{t('doctor.refer.tableEmpty')}</Text> : null}
@@ -260,6 +276,27 @@ export default function DoctorReferScreen(): React.JSX.Element {
       <Button variant="link" label={t('common.signOut')} onPress={() => void signOut()} />
     </FormScreen>
   );
+}
+
+const ROW_KIND: Record<DecisionRow['reply'], MarkerKind> = {
+  notAsked: 'ok',
+  waiting: 'asked',
+  accepted: 'accepted',
+  acceptedByRule: 'accepted',
+  declined: 'declined',
+  noReply: 'declined',
+  cancelled: 'place',
+};
+
+/** The doctor's map: their hospital, then every hospital in the table that has a known position. */
+function referralMarkers(rows: DecisionRow[], origin: { lat: number; lng: number } | undefined, youLabel: string, lang: 'en' | 'th'): MapMarker[] {
+  const markers: MapMarker[] = origin ? [{ id: 'origin', point: { lat: origin.lat, lng: origin.lng }, kind: 'me', label: youLabel }] : [];
+  for (const row of rows) {
+    if (row.lat === undefined || row.lng === undefined) continue;
+    const kind: MarkerKind = row.chosen ? 'chosen' : !row.canHelp && row.reply === 'notAsked' ? 'no' : ROW_KIND[row.reply];
+    markers.push({ id: row.hospitalId, point: { lat: row.lat, lng: row.lng }, kind, label: row.chosen ? shortLabel(pick(row.name, lang)) : undefined });
+  }
+  return markers;
 }
 
 function StatusLine({ referral }: { referral: Referral }): React.JSX.Element | null {

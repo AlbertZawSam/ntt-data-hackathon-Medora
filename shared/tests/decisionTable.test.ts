@@ -31,6 +31,8 @@ describe('decisionRows', () => {
     const rows = decisionRows(assessment.ranked, []);
     expect(rows.map((row) => row.hospitalId)).toEqual(['mid', 'far', 'near']);
     expect(rows[2]).toMatchObject({ canHelp: false, whyNot: ['equip'], reply: 'notAsked' });
+    expect(rows[0].lat).toBe(mid.lat);
+    expect(rows[0].lng).toBe(mid.lng);
     expect(rows.every((row) => !row.chosen)).toBe(true);
   });
 

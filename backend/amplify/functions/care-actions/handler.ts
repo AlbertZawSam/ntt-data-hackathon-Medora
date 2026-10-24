@@ -264,7 +264,9 @@ async function sendMessage(client: Client, event: AppSyncResolverEvent<Record_>)
 
 export const handler = async (event: AppSyncResolverEvent<Record_>): Promise<string> => {
   const client = await dataClient();
-  switch (event.info.fieldName) {
+  // Amplify Gen 2 function resolvers pass the field at the top level (event.fieldName); AppSync's
+  // direct Lambda resolvers use event.info.fieldName. Accept both.
+  switch ((event as { fieldName?: string }).fieldName ?? event.info?.fieldName) {
     case 'submitRequest':
       return submitRequest(client, event);
     case 'cancelRequest':
