@@ -77,6 +77,11 @@ describe('requests, referrals and settings', () => {
     expect(canAnswerRequest(cardio, { hospitalId: H1 })).toBe(false);
     expect(canAnswerRequest(nurse('er'), { hospitalId: H1, department: null })).toBe(true);
     expect(canAnswerRequest(nurse('all' as never), { hospitalId: H1, department: 'obstetrics' })).toBe(true);
+    // A doctor's referral routed to Cardiology: Cardiology answers, the emergency unit can step in, other departments can't.
+    const referral = { hospitalId: H1, department: 'cardiology', referralId: 'f1' };
+    expect(canAnswerRequest(cardio, referral)).toBe(true);
+    expect(canAnswerRequest(nurse('er'), referral)).toBe(true);
+    expect(canAnswerRequest(nurse('surgery' as never), referral)).toBe(false);
   });
 
   it('lets a doctor start and confirm their own referral only', () => {

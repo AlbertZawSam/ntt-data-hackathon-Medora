@@ -1,5 +1,5 @@
 import { DEMO_HOSPITALS } from '../logic/demoHospitals';
-import { demoReply } from '../logic/demoReplies';
+import { demoReply, hasDepartmentStaff } from '../logic/demoReplies';
 import { statedDelayMin } from '../logic/referral';
 
 describe('demoReply', () => {
@@ -18,5 +18,14 @@ describe('demoReply', () => {
   it('only names demo hospitals that exist', () => {
     const keys = new Set(DEMO_HOSPITALS.map((hospital) => hospital.key));
     for (const key of ['rama9', 'chatuchak', 'thonburi']) expect(keys.has(key)).toBe(true);
+  });
+});
+
+describe('hasDepartmentStaff', () => {
+  it('is true only for the two department demo hospitals', () => {
+    expect(hasDepartmentStaff('rama9')).toBe(true);
+    expect(hasDepartmentStaff('chaophraya')).toBe(true);
+    expect(hasDepartmentStaff('ladprao')).toBe(false);
+    expect(hasDepartmentStaff('unknown')).toBe(false);
   });
 });

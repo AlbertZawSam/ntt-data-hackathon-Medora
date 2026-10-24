@@ -130,7 +130,7 @@
   "signUp.roleHint.patient": "ค้นหาการรักษาและแพทย์เฉพาะทางใกล้คุณ",
   "signUp.roleHint.admin": "ลงทะเบียนโรงพยาบาลและเชิญเจ้าหน้าที่",
   "signUp.roleHint.doctor": "ส่งต่อผู้ป่วย โดยผู้ดูแลโรงพยาบาลของคุณเป็นผู้อนุมัติ",
-  "signUp.staffNote": "เจ้าหน้าที่โรงพยาบาลและแพทย์: ขอให้ผู้ดูแลโรงพยาบาลเชิญคุณ ผู้ดูแลโรงพยาบาลจัดตั้งโดยองค์กรของคุณ",
+  "signUp.staffNote": "แพทย์และเจ้าหน้าที่โรงพยาบาลไม่ต้องสมัครที่นี่ โรงพยาบาลจะให้บัญชีแก่คุณ ใช้ \"แพทย์หรือเจ้าหน้าที่โรงพยาบาล? เข้าสู่ระบบที่นี่\" ด้านล่าง",
   "signUp.passwordHint": "อย่างน้อย 8 ตัวอักษร มีตัวพิมพ์ใหญ่ ตัวพิมพ์เล็ก ตัวเลข และสัญลักษณ์",
   "signUp.submit": "สร้างบัญชี",
   "signUp.haveAccount": "มีบัญชีอยู่แล้ว? เข้าสู่ระบบ",
@@ -192,8 +192,8 @@
   "admin.hospitalSetup.error.beds": "กรอกจำนวนเตียงทั้งหมดเป็นจำนวนเต็ม 1 ถึง 5000",
   "admin.hospitalSetup.error.nicu": "กรอกจำนวนเตียง NICU เป็นจำนวนเต็ม 0 ถึง 500",
   "admin.hospitalSetup.error.generic": "ลงทะเบียนโรงพยาบาลไม่สำเร็จ ตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง",
-  "signIn.staffTitle": "เข้าสู่ระบบสำหรับบุคลากรโรงพยาบาล",
-  "signIn.staffLink": "บุคลากรโรงพยาบาล? เข้าสู่ระบบที่นี่",
+  "signIn.staffTitle": "เข้าสู่ระบบสำหรับแพทย์และเจ้าหน้าที่โรงพยาบาล",
+  "signIn.staffLink": "แพทย์หรือเจ้าหน้าที่โรงพยาบาล? เข้าสู่ระบบที่นี่",
   "signIn.patientLink": "ไม่ใช่บุคลากรโรงพยาบาล? กลับไปเข้าสู่ระบบ",
   "signIn.totpSetupTitle": "ตั้งค่าแอปยืนยันตัวตน",
   "signIn.totpSetupHint": "บัญชีโรงพยาบาลต้องใช้แอปยืนยันตัวตน เปิดแอป (เช่น Google Authenticator หรือ Microsoft Authenticator) เพิ่มบัญชีด้วยคีย์ด้านล่าง แล้วกรอกรหัส 6 หลักที่แอปแสดง",
@@ -540,5 +540,11 @@
   "department.short.cardiology": "หัวใจ",
   "department.short.surgery": "ศัลยกรรม",
   "department.short.obstetrics": "สูติกรรม",
-  "department.short.general": "ทั่วไป"
+  "department.short.general": "ทั่วไป",
+  "details.bedsFree.none": "ไม่มีเตียงว่าง",
+  "details.bedsFree.1-2": "ว่าง 1–2 เตียง",
+  "details.bedsFree.3-5": "ว่าง 3–5 เตียง",
+  "details.bedsFree.6-10": "ว่าง 6–10 เตียง",
+  "details.bedsFree.10+": "ว่างมากกว่า 10 เตียง",
+  "staff.inbox.referralFrom": "จาก{{hospital}}"
 }

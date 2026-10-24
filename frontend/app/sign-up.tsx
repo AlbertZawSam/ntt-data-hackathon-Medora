@@ -122,6 +122,8 @@ export default function SignUpScreen(): React.JSX.Element {
       />
       <Button label={t('signUp.submit')} busy={busy} onPress={createAccount} />
       <Button variant="link" label={t('signUp.haveAccount')} onPress={() => router.replace('/sign-in')} />
+      {/* Doctors and hospital staff don't sign up: their hospital gives them an account with an authenticator code. */}
+      <Button variant="link" label={t('signIn.staffLink')} onPress={() => router.replace({ pathname: '/sign-in', params: { staff: '1' } })} />
     </FormScreen>
   );
 }
