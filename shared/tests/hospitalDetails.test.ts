@@ -1,5 +1,5 @@
 import fc from 'fast-check';
-import { bedLabel, hospitalDetails } from '../logic/hospitalDetails';
+import { bedLabel, bedRange, hospitalDetails } from '../logic/hospitalDetails';
 import type { SpecialistRecord } from '../logic/specialists';
 import { arbStatus, NOW_MS, openStatus } from './generators';
 
@@ -18,6 +18,11 @@ describe('hospitalDetails', () => {
     expect(bedLabel(openStatus({ beds: 2 }))).toBe('limited');
     expect(bedLabel(openStatus({ beds: 3, reservedBeds: 2 }))).toBe('limited');
     expect(bedLabel(openStatus({ beds: 0 }))).toBe('full');
+  });
+
+  it('shows free beds as a range, never the exact number', () => {
+    expect([0, 1, 2, 3, 5, 6, 10, 11, 40].map((beds) => bedRange(openStatus({ beds })))).toEqual(['none', '1-2', '1-2', '3-5', '3-5', '6-10', '6-10', '10+', '10+']);
+    expect(bedRange(openStatus({ beds: 4, reservedBeds: 3 }))).toBe('1-2');
   });
 
   it('lists specialties on duty only when their department is open', () => {

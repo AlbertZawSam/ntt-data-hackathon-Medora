@@ -1,6 +1,7 @@
 import { operationalText } from '@medora/shared/logic/agentText';
 import { decisionRows } from '@medora/shared/logic/decisionTable';
-import { DEMO_REPLY_AFTER_SEC, demoReply } from '@medora/shared/logic/demoReplies';
+import { referralDepartment } from '@medora/shared/logic/departments';
+import { DEMO_REPLY_AFTER_SEC, demoReply, hasDepartmentStaff } from '@medora/shared/logic/demoReplies';
 import { kbQueryForPathway, kbTraceDetail } from '@medora/shared/logic/kb';
 import { PATHWAYS } from '@medora/shared/logic/pathways';
 import { DEMO_REPLY_DELAY_SEC, assessReferral, delayExceedsWindow, demoReplyFor, nextHospitals, statedDelayMin, type ReferralAssessment } from '@medora/shared/logic/referral';
@@ -238,11 +239,13 @@ export class ReferralTools {
     if (ids.some((id) => !allowed.has(id))) return this.refuse('A hospital is unknown, cannot help, was already asked, or is outside the next allowed round.');
 
     const rows = this.state.assessment.ranked.filter((row) => ids.includes(row.hospital.id));
+    const origin = this.state.hospitals.find((hospital) => hospital.id === this.referral.fromHospitalId);
     this.rounds += 1;
     const created: CareRequest[] = [];
     for (const row of rows) {
       this.asked.add(row.hospital.id);
       const auto = ruleAccepts(row.hospital.status, PATHWAYS[this.state.assessment.pathway]);
+      const department = referralDepartment(this.state.assessment.pathway, row.hospital.status);
       const request = await this.store.createRequest({
         type: 'referral',
         hospitalId: row.hospital.id,
@@ -254,9 +257,12 @@ export class ReferralTools {
         reason: auto ? 'accepted_by_rule' : undefined,
         overrideUntil: auto ? this.store.now() + 60_000 : undefined,
         hospitalName: row.hospital.name,
-        patient: { mode: 'ambulance', description: this.referral.text },
+        // The referring hospital's name, so the receiving team sees where the patient comes from.
+        patient: { mode: 'ambulance', description: this.referral.text, ...(origin ? { referredFrom: origin.name } : {}) },
         fromHospitalId: this.referral.fromHospitalId,
         referralId: this.referral.id,
+        // A heart attack goes to the receiving hospital's Cardiology staff when it has that department open.
+        ...(department ? { department } : {}),
         createdAtMs: this.store.now(),
       });
       created.push(request);
@@ -419,7 +425,8 @@ export class ReferralTools {
     let replied = 0;
     for (const request of pending) {
       const key = this.store.demoHospitalKey(request.hospitalId);
-      if (!key) continue;
+      // At hospitals with department staff, a department referral waits for that department to accept.
+      if (!key || (request.department && hasDepartmentStaff(key))) continue;
       const reply = demoReply(key, this.state.assessment.pathway);
       await this.store.updateRequest(request.id, {
         status: reply.status,

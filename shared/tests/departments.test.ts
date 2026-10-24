@@ -1,5 +1,5 @@
 import { DEMO_HOSPITALS, demoStatus } from '../logic/demoHospitals';
-import { isDepartment, openDepartments, suggestedDepartment } from '../logic/departments';
+import { isDepartment, openDepartments, referralDepartment, suggestedDepartment } from '../logic/departments';
 import { openStatus } from './generators';
 
 describe('departments', () => {
@@ -22,5 +22,15 @@ describe('departments', () => {
       expect(openDepartments(demoStatus(hospital, Date.now()))).toEqual(['cardiology', 'surgery', 'obstetrics']);
       expect(hospital.status.rules.visit).toBe(false);
     }
+  });
+});
+
+describe('referralDepartment', () => {
+  it("sends a heart attack to the receiving hospital's Cardiology when it is open, else to the emergency unit", () => {
+    const open = openStatus({ depts: { ed: 'open', cardio: 'open', obstetrics: 'open' } });
+    expect(referralDepartment('stemi', open)).toBe('cardiology');
+    expect(referralDepartment('preterm', open)).toBe('obstetrics');
+    expect(referralDepartment('stroke', open)).toBeUndefined();
+    expect(referralDepartment('stemi', openStatus({ depts: { ed: 'open', cardio: 'diverting' } }))).toBeUndefined();
   });
 });

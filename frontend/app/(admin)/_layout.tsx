@@ -12,7 +12,8 @@ export default function AdminLayout(): React.JSX.Element {
       <Tabs.Screen name="rules" options={{ title: t('staff.rules.title'), tabBarIcon: tabIcon('shield-checkmark-outline', 'shield-checkmark') }} />
       <Tabs.Screen name="specialists" options={{ title: t('admin.tab.specialists'), tabBarIcon: tabIcon('medkit-outline', 'medkit') }} />
       <Tabs.Screen name="activity" options={{ title: t('doctor.tab.activity'), tabBarIcon: tabIcon('list-outline', 'list') }} />
-      <Tabs.Screen name="hospital-setup" options={{ href: null }} />
+      {/* ShellTabBar hides a screen only when it also hides the bar (Expo Router drops href: null there). */}
+      <Tabs.Screen name="hospital-setup" options={{ href: null, tabBarStyle: { display: 'none' } }} />
     </RoleTabs>
   );
 }

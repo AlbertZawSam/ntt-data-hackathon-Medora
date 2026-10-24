@@ -356,3 +356,38 @@ describe('automatic knowledge base search', () => {
     expect(steps).not.toContain('search_knowledge_base');
   });
 });
+
+describe('a heart attack referred from Chao Phraya', () => {
+  it("goes to Rama Nine's Cardiology, and the demo reply leaves it for the cardiology staff", async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(NOW);
+    try {
+      const { store } = makeStore(null);
+      store.demoHospitalKey = (id) => id; // demo replies on; fake hospital ids are the demo keys
+      const updated: Array<{ id: string; status?: string }> = [];
+      store.updateRequest = async (id, changes) => {
+        updated.push({ id, status: changes.status });
+      };
+      const created: CareRequest[] = [];
+      const create = store.createRequest;
+      store.createRequest = async (request) => {
+        const row = await create(request);
+        created.push(row);
+        return row;
+      };
+      const tools = new ReferralTools({ id: 'ref1', ownerId: 'd1', fromHospitalId: 'chaophraya', text: 'case', lang: 'en', requestIds: [], startedAtMs: Date.now() }, store);
+      const assessed = (await tools.execute('assess_case', { pathway: 'stemi' })) as { hospitals: Array<{ hospital_id: string; can_help: boolean }> };
+      const ids = assessed.hospitals.filter((h) => h.can_help).map((h) => h.hospital_id);
+      expect(ids).toEqual(expect.arrayContaining(['rama9', 'ladprao']));
+      const asking = tools.execute('ask_hospitals', { hospital_ids: ids, wait_seconds: 30 });
+      await jest.advanceTimersByTimeAsync(31_000);
+      await asking;
+      const rama9 = created.find((r) => r.hospitalId === 'rama9')!;
+      expect(rama9.department).toBe('cardiology');
+      // No demo reply for Rama Nine: its cardiology staff accept it themselves.
+      expect(updated.some((u) => u.id === rama9.id)).toBe(false);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+});

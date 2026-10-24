@@ -143,6 +143,8 @@ export interface CareRequest {
     phone?: string;
     mode: 'car' | 'taxi' | 'ambulance' | 'walking';
     description: string;
+    /** Doctor referrals: the referring hospital's name. */
+    referredFrom?: Bi;
   };
   fromHospitalId?: string;
   referralId?: string;

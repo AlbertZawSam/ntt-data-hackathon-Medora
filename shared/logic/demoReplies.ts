@@ -4,6 +4,7 @@
  * second person at a staff screen. Off unless `DEMO_REPLIES=true`; never used for real hospitals.
  * Pure TypeScript. Requirements: 17.2
  */
+import { DEMO_HOSPITALS } from './demoHospitals';
 import type { PathwayKey } from './types';
 
 /** Seconds before a demo hospital replies (requirement 17.2). */
@@ -28,4 +29,13 @@ const PRESETS: Record<string, Partial<Record<PathwayKey | '*', DemoReply>>> = {
 export function demoReply(hospitalKey: string, pathway: PathwayKey): DemoReply {
   const preset = PRESETS[hospitalKey];
   return preset?.[pathway] ?? preset?.['*'] ?? { status: 'accepted' };
+}
+
+/**
+ * Demo hospitals with department staff accounts (all three departments): their department referrals wait
+ * for that department to accept, so the demo shows the cardiology team taking the patient.
+ */
+export function hasDepartmentStaff(hospitalKey: string): boolean {
+  const hospital = DEMO_HOSPITALS.find((h) => h.key === hospitalKey);
+  return hospital !== undefined && ['cardio', 'ortho', 'obstetrics'].every((d) => hospital.departments.includes(d));
 }
