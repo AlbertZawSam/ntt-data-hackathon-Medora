@@ -315,9 +315,6 @@
   "specialty.general": "General",
   "lang.th": "Thai",
   "lang.en": "English",
-  "lang.zh": "Chinese",
-  "lang.ja": "Japanese",
-  "lang.ar": "Arabic",
   "admin.specialists.nameLabel": "Doctor name",
   "admin.specialists.namePublic": "Show the name before booking",
   "admin.specialists.languagesLabel": "Languages spoken",
@@ -541,10 +538,7 @@
   "department.short.surgery": "Surgery",
   "department.short.obstetrics": "Obstetrics",
   "department.short.general": "General",
-  "details.bedsFree.none": "No free beds",
-  "details.bedsFree.1-2": "1–2 beds free",
-  "details.bedsFree.3-5": "3–5 beds free",
-  "details.bedsFree.6-10": "6–10 beds free",
-  "details.bedsFree.10+": "10+ beds free",
-  "staff.inbox.referralFrom": "From {{hospital}}"
+  "patient.specialists.queryLabel": "Search for any specialty or doctor",
+  "patient.specialists.queryHint": "For example: heart, children, bone, or a doctor or hospital name",
+  "patient.specialists.anySpecialty": "All specialties"
 }

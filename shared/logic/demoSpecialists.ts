@@ -16,11 +16,11 @@ interface DemoSpecialist {
 const PEOPLE: DemoSpecialist[] = [
   { hospitalKey: 'rama9', name: 'Dr. Narin Suwan', specialty: 'neurology', languages: ['th', 'en'], namePublic: true },
   { hospitalKey: 'rama9', name: 'Dr. Ploy Kittichai', specialty: 'cardiology', languages: ['th', 'en'], namePublic: true },
-  { hospitalKey: 'chaophraya', name: 'Dr. Siriporn Thongdee', specialty: 'obstetrics', languages: ['th', 'en', 'zh'], namePublic: true },
+  { hospitalKey: 'chaophraya', name: 'Dr. Siriporn Thongdee', specialty: 'obstetrics', languages: ['th', 'en'], namePublic: true },
   { hospitalKey: 'chaophraya', name: 'Dr. Anan Wattana', specialty: 'pediatrics', languages: ['th'], namePublic: true },
-  { hospitalKey: 'ladprao', name: 'Dr. Kittisak Prasert', specialty: 'cardiology', languages: ['th', 'en', 'ja'], namePublic: true },
+  { hospitalKey: 'ladprao', name: 'Dr. Kittisak Prasert', specialty: 'cardiology', languages: ['th'], namePublic: true },
   { hospitalKey: 'victory', name: 'Dr. Malee Rattana', specialty: 'pediatrics', languages: ['th', 'en'], namePublic: true },
-  { hospitalKey: 'siam', name: 'Dr. Somchai Lert', specialty: 'general', languages: ['th', 'en', 'ar'], namePublic: true },
+  { hospitalKey: 'siam', name: 'Dr. Somchai Lert', specialty: 'general', languages: ['en'], namePublic: true },
   { hospitalKey: 'siam', name: 'Dr. Wanida Charoen', specialty: 'orthopedics', languages: ['th', 'en'], namePublic: false },
   { hospitalKey: 'thonburi', name: 'Dr. Preecha Nakorn', specialty: 'general', languages: ['th'], namePublic: true },
 ];

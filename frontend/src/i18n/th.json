@@ -315,9 +315,6 @@
   "specialty.general": "ทั่วไป",
   "lang.th": "ไทย",
   "lang.en": "อังกฤษ",
-  "lang.zh": "จีน",
-  "lang.ja": "ญี่ปุ่น",
-  "lang.ar": "อาหรับ",
   "admin.specialists.nameLabel": "ชื่อแพทย์",
   "admin.specialists.namePublic": "แสดงชื่อก่อนจอง",
   "admin.specialists.languagesLabel": "ภาษาที่พูดได้",
@@ -541,10 +538,7 @@
   "department.short.surgery": "ศัลยกรรม",
   "department.short.obstetrics": "สูติกรรม",
   "department.short.general": "ทั่วไป",
-  "details.bedsFree.none": "ไม่มีเตียงว่าง",
-  "details.bedsFree.1-2": "ว่าง 1–2 เตียง",
-  "details.bedsFree.3-5": "ว่าง 3–5 เตียง",
-  "details.bedsFree.6-10": "ว่าง 6–10 เตียง",
-  "details.bedsFree.10+": "ว่างมากกว่า 10 เตียง",
-  "staff.inbox.referralFrom": "จาก{{hospital}}"
+  "patient.specialists.queryLabel": "ค้นหาสาขาหรือแพทย์ใดก็ได้",
+  "patient.specialists.queryHint": "เช่น หัวใจ เด็ก กระดูก หรือชื่อแพทย์หรือโรงพยาบาล",
+  "patient.specialists.anySpecialty": "ทุกสาขา"
 }
