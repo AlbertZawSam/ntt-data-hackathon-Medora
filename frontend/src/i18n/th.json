@@ -451,5 +451,21 @@
   "doctor.transfers.ambulance": "จุดสีส้ม: รถพยาบาลที่กำลังเดินทาง",
   "staff.inbox.referral": "คำขอส่งต่อจากแพทย์ (เอเจนต์ AI)",
   "emergency.nearestEd": "ห้องฉุกเฉินที่เปิดอยู่ใกล้ที่สุด: {{name}} (ขับรถประมาณ {{min}} นาที)",
-  "patient.care.understood": "สิ่งที่เราเข้าใจ (สรุปโดย AI ไม่ใช่คำแนะนำทางการแพทย์): {{summary}}"
+  "patient.care.understood": "สิ่งที่เราเข้าใจ (สรุปโดย AI ไม่ใช่คำแนะนำทางการแพทย์): {{summary}}",
+  "details.button": "ข้อมูลโรงพยาบาล",
+  "details.hide": "ซ่อนข้อมูล",
+  "details.beds.available": "มีเตียงว่าง",
+  "details.beds.limited": "เตียงเหลือน้อย",
+  "details.beds.full": "ไม่มีเตียงว่างขณะนี้",
+  "details.ed.open": "ห้องฉุกเฉินเปิดรับผู้ป่วย",
+  "details.ed.closed": "ห้องฉุกเฉินงดรับผู้ป่วยชั่วคราว",
+  "details.care": "การรักษาที่รับได้ขณะนี้",
+  "details.onDuty": "แพทย์เฉพาะทางที่อยู่เวรขณะนี้",
+  "details.erDoctor": "แพทย์ฉุกเฉิน",
+  "details.none": "ยังไม่มีข้อมูลขณะนี้",
+  "details.clinic": "แพทย์เฉพาะทางที่จองนัดได้",
+  "details.namePrivate": "แสดงชื่อหลังจองนัด",
+  "details.book": "จองนัดแพทย์เฉพาะทาง",
+  "details.wait": "โดยทั่วไปรอประมาณ {{min}} นาที",
+  "details.labelsNote": "แสดงเป็นป้ายสถานะ ไม่ใช่ตัวเลขที่แน่นอน เพื่อให้โรงพยาบาลแบ่งปันข้อมูลได้อย่างปลอดภัย"
 }

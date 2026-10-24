@@ -451,5 +451,21 @@
   "doctor.transfers.ambulance": "Orange dot: the ambulance on its way.",
   "staff.inbox.referral": "Doctor referral (AI agent)",
   "emergency.nearestEd": "Nearest open emergency department: {{name}} (about {{min}} min by car)",
-  "patient.care.understood": "We understood (AI summary, not medical advice): {{summary}}"
+  "patient.care.understood": "We understood (AI summary, not medical advice): {{summary}}",
+  "details.button": "Hospital details",
+  "details.hide": "Hide details",
+  "details.beds.available": "Beds available",
+  "details.beds.limited": "Few beds left",
+  "details.beds.full": "No free beds right now",
+  "details.ed.open": "Emergency department open",
+  "details.ed.closed": "Emergency department not taking patients right now",
+  "details.care": "Care it can take now",
+  "details.onDuty": "Specialists on duty now",
+  "details.erDoctor": "Emergency doctor",
+  "details.none": "None reported right now",
+  "details.clinic": "Clinic specialists you can book",
+  "details.namePrivate": "name shown after booking",
+  "details.book": "Book a specialist",
+  "details.wait": "Typical wait about {{min}} min",
+  "details.labelsNote": "Shown as labels, not exact numbers, so hospitals can share their status safely."
 }
