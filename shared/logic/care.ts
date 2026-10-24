@@ -24,7 +24,14 @@ export const MAX_MESSAGE = 500;
 
 /** Quick replies are stored as keys (so they show in either language); keys match `message.quickReply.*`. */
 export const QUICK_REPLY_KEYS = ['onMyWay', 'enterMainEntrance', 'goToEmergency', 'waitingForYou', 'bringDocuments'] as const;
-export type QuickReplyKey = (typeof QUICK_REPLY_KEYS)[number];
+/** Quick replies staff send to a referring doctor: logistics only, never clinical advice. */
+export const REFERRAL_REPLY_KEYS = ['bedReady', 'teamWaiting', 'sendEcg', 'sendImaging', 'callBeforeArrival'] as const;
+export type QuickReplyKey = (typeof QUICK_REPLY_KEYS)[number] | (typeof REFERRAL_REPLY_KEYS)[number];
+
+/** The quick replies that fit a request: doctor referrals get their own set; patient requests the patient set. */
+export function quickRepliesFor(request: { referralId?: string | null }): readonly QuickReplyKey[] {
+  return request.referralId ? REFERRAL_REPLY_KEYS : QUICK_REPLY_KEYS;
+}
 
 export interface RequestInput {
   hospitalId: string;

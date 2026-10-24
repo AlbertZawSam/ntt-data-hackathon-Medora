@@ -94,3 +94,30 @@ describe('arriveTransfer', () => {
     expect(fake.tables('Transfer')[0].status).toBe('in_progress');
   });
 });
+
+describe('arriveTransfer', () => {
+  const bedStatus = (beds: number) => JSON.stringify({ beds, nicu: 1, depts: { ed: 'open' }, equip: {}, oncall: {}, rules: {}, conflict: false, updatedAt: new Date().toISOString() });
+  beforeEach(() => {
+    fake.tables('Transfer').push({ id: 't1', referralId: 'f1', toHospitalId: 'H2', ownerId: 'd1', status: 'in_progress' } as never);
+    fake.tables('HospitalStatus').push({ id: 'H2', hospitalId: 'H2', status: bedStatus(3) } as never);
+    Object.assign(fake.tables('CareRequest')[0], { needKey: 'stemi' });
+  });
+
+  it("completes the receiving hospital's request and takes one bed", async () => {
+    await call(staffEvent('arriveTransfer', { transferId: 't1' }, doctor));
+    expect(fake.tables('Transfer')[0].status).toBe('arrived');
+    expect(fake.tables('CareRequest')[0].status).toBe('completed');
+    expect(JSON.parse(String(fake.tables('HospitalStatus')[0].status)).beds).toBe(2);
+  });
+
+  it('takes no second bed when staff already marked the patient arrived', async () => {
+    fake.tables('CareRequest')[0].status = 'completed';
+    await call(staffEvent('arriveTransfer', { transferId: 't1' }, doctor));
+    expect(JSON.parse(String(fake.tables('HospitalStatus')[0].status)).beds).toBe(3);
+  });
+
+  it("refuses another doctor's transfer", async () => {
+    await expect(call(staffEvent('arriveTransfer', { transferId: 't1' }, { ...doctor, sub: 'd2' }))).rejects.toThrow('not-owner');
+    expect(JSON.parse(String(fake.tables('HospitalStatus')[0].status)).beds).toBe(3);
+  });
+});

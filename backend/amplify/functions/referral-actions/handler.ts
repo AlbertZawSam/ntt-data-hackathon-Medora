@@ -4,6 +4,8 @@ import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import { callerFromClaims, canStartReferral } from '@medora/shared/logic/access';
 import { SET_ASIDE_TEXT, checkReferralDecision, isSetAsideReason, type ReferralDecision } from '@medora/shared/logic/referral';
+import { kindForNeed, occupyOne } from '@medora/shared/logic/reservations';
+import type { HospitalStatus } from '@medora/shared/logic/types';
 
 type Rec = Record<string, unknown>;
 type Result<T> = { data: T | null; errors?: unknown[] };
@@ -24,8 +26,10 @@ interface ReferralRow {
 interface Client {
   models: {
     Referral: Model<ReferralRow>;
-    CareRequest: Model<{ id: string; hospitalId: string; status: string }>;
-    Transfer: Model<{ id: string; ownerId: string; status: string }>;
+    CareRequest: Model<{ id: string; hospitalId: string; status: string; needKey: string; referralId?: string | null }>;
+    Transfer: Model<{ id: string; ownerId: string; status: string; referralId: string; toHospitalId: string }>;
+    Reservation: Model<{ id: string; requestId: string; state: string }>;
+    HospitalStatus: Model<{ id: string; status: unknown }>;
     Activity: Model<{ id: string }>;
   };
 }
@@ -145,6 +149,27 @@ async function decide(client: Client, event: AppSyncResolverEvent<Rec>): Promise
   return check.status;
 }
 
+const parseStatus = (v: unknown): HospitalStatus => (typeof v === 'string' ? (JSON.parse(v) as HospitalStatus) : (v as HospitalStatus));
+
+/**
+ * The patient now occupies a bed at the receiving hospital (requirement 13.4): its accepted request is
+ * completed (so it leaves the inbox) and one bed, or one NICU cot, is taken. A held bed is converted
+ * rather than counted twice. If staff already marked the patient arrived, nothing changes.
+ */
+async function admitAtReceivingHospital(client: Client, transfer: { referralId: string; toHospitalId: string }): Promise<void> {
+  const requests = await client.models.CareRequest.list({ filter: { referralId: { eq: transfer.referralId } }, limit: 50 });
+  const request = requests.data.find((r) => r.hospitalId === transfer.toHospitalId && r.status === 'accepted');
+  if (!request) return;
+  must(await client.models.CareRequest.update({ id: request.id, status: 'completed' }), 'save-failed');
+  const held = (await client.models.Reservation.list({ filter: { requestId: { eq: request.id } }, limit: 10 })).data.find((r) => r.state === 'held');
+  if (held) await client.models.Reservation.update({ id: held.id, state: 'converted' });
+  const kind = kindForNeed(request.needKey);
+  if (!kind) return;
+  const row = await client.models.HospitalStatus.get({ id: transfer.toHospitalId });
+  if (!row.data) return;
+  await client.models.HospitalStatus.update({ id: transfer.toHospitalId, status: JSON.stringify(occupyOne(parseStatus(row.data.status), kind)) });
+}
+
 /** The owning doctor marks their simulated transfer as arrived (requirement 13.3). */
 async function arrive(client: Client, event: AppSyncResolverEvent<Rec>): Promise<string> {
   const me = doctor(event);
@@ -155,6 +180,7 @@ async function arrive(client: Client, event: AppSyncResolverEvent<Rec>): Promise
   }
   if (transfer.status !== 'in_progress') throw new Error('bad-state');
   must(await client.models.Transfer.update({ id: transfer.id, status: 'arrived' }), 'save-failed');
+  await admitAtReceivingHospital(client, transfer);
   await log(client, me.hospitalId, me.userId, `Transfer ${transfer.id}: arrived`, `การส่งต่อ ${transfer.id}: ถึงแล้ว`);
   return 'arrived';
 }

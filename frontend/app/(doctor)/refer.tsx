@@ -9,6 +9,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { parseDecisionRows, type DecisionRow } from '@medora/shared/logic/decisionTable';
 import type { Referral } from '@medora/shared/logic/types';
 import { MapView, shortLabel, type MapMarker, type MarkerKind } from '../../src/components/MapView';
+import { MessageThread } from '../../src/components/MessageThread';
 import { pick, type StringKey } from '../../src/i18n/t';
 import {
   confirmReferral,
@@ -58,6 +59,8 @@ export default function DoctorReferScreen(): React.JSX.Element {
   const origin = data.hospitalProfiles.find((profile) => profile.hospitalId === referral?.fromHospitalId);
   const markers = React.useMemo(() => referralMarkers(rows, origin, t('doctor.refer.mapYou'), lang), [rows, origin, t, lang]);
   const chosenRow = rows.find((row) => row.chosen && row.lat !== undefined && row.lng !== undefined);
+  // The chosen hospital's request carries its staff's messages to the doctor (read-only here).
+  const chosenRequest = data.careRequests.find((r) => r.referralId === referral?.id && r.hospitalId === referral?.chosenId);
   const byRules = trace.some((step) => step.kind === 'backup');
   const running = referral?.status === 'running';
 
@@ -236,6 +239,13 @@ export default function DoctorReferScreen(): React.JSX.Element {
               <Text style={[styles.chosenName, { color: theme.text }]}>{referral.chosenName ? pick(referral.chosenName, lang) : ''}</Text>
               <Text style={[styles.body, { color: theme.success }]}>{t('doctor.refer.confirmed')}</Text>
               <Button label={t('doctor.refer.viewTransfers')} onPress={() => router.push('/(doctor)/transfers' as Href)} />
+            </Panel>
+          ) : null}
+
+          {chosenRequest && (referral.status === 'awaiting' || referral.status === 'confirmed') ? (
+            <Panel>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('doctor.refer.messagesTitle')}</Text>
+              <MessageThread requestId={chosenRequest.id} messages={data.messages} me="patient" disabled />
             </Panel>
           ) : null}
 

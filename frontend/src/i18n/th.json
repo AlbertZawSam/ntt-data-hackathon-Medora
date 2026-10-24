@@ -450,5 +450,11 @@
   "doctor.transfers.ambulance": "จุดสีส้ม: รถพยาบาลที่กำลังเดินทาง",
   "staff.inbox.referral": "คำขอส่งต่อจากแพทย์ (เอเจนต์ AI)",
   "emergency.nearestEd": "ห้องฉุกเฉินที่เปิดอยู่ใกล้ที่สุด: {{name}} (ขับรถประมาณ {{min}} นาที)",
-  "patient.care.understood": "สิ่งที่เราเข้าใจ (สรุปโดย AI ไม่ใช่คำแนะนำทางการแพทย์): {{summary}}"
+  "patient.care.understood": "สิ่งที่เราเข้าใจ (สรุปโดย AI ไม่ใช่คำแนะนำทางการแพทย์): {{summary}}",
+  "message.quickReply.bedReady": "เตียงพร้อมรับผู้ป่วยของคุณแล้ว",
+  "message.quickReply.teamWaiting": "ทีมของเรารออยู่ที่จุดรับผู้ป่วยฉุกเฉิน",
+  "message.quickReply.sendEcg": "กรุณาส่งคลื่นไฟฟ้าหัวใจและสัญญาณชีพล่าสุด",
+  "message.quickReply.sendImaging": "กรุณาส่งผลภาพถ่ายทางรังสีถ้ามี",
+  "message.quickReply.callBeforeArrival": "กรุณาโทรแจ้งห้องฉุกเฉินของเรา 10 นาทีก่อนถึง",
+  "doctor.refer.messagesTitle": "ข้อความจากโรงพยาบาลปลายทาง"
 }
