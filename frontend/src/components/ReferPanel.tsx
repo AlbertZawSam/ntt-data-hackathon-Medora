@@ -16,6 +16,7 @@ import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import type { IconName } from '../ui/Icon';
+import { Field } from '../ui/Field';
 import { Notice } from '../ui/Notice';
 import { Skeleton } from '../ui/Skeleton';
 import { focusRing, pointer, webTransition } from '../ui/web';
@@ -26,7 +27,7 @@ const DEPARTMENT_ICON: Record<Department, IconName> = { cardiology: 'heart', sur
 
 interface Props {
   patientName: string;
-  onSend: (target: ReferralTarget, department: Department | undefined) => Promise<void>;
+  onSend: (target: ReferralTarget, department: Department | undefined, note: string) => Promise<void>;
   onUseAi: () => Promise<void>;
   onClose: () => void;
 }
@@ -39,6 +40,7 @@ export function ReferPanel({ patientName, onSend, onUseAi, onClose }: Props): Re
   const [loadError, setLoadError] = React.useState(false);
   const [chosen, setChosen] = React.useState<ReferralTarget | null>(null);
   const [department, setDepartment] = React.useState<Department | undefined>(undefined);
+  const [note, setNote] = React.useState('');
   const [busy, setBusy] = React.useState<'send' | 'ai' | null>(null);
   const [sendError, setSendError] = React.useState<StringKey | null>(null);
 
@@ -90,8 +92,20 @@ export function ReferPanel({ patientName, onSend, onUseAi, onClose }: Props): Re
             </View>
           </>
         ) : null}
+        <Field
+          label={t('doctor.referPanel.noteLabel')}
+          hint={t('doctor.referPanel.noteHint')}
+          value={note}
+          onChangeText={setNote}
+          multiline
+          numberOfLines={4}
+          maxLength={500}
+          textAlignVertical="top"
+          inputStyle={styles.note}
+          icon="document-text-outline"
+        />
         {sendError ? <Notice tone="danger">{t(sendError)}</Notice> : null}
-        <Button size="lg" icon="send" label={t('doctor.referPanel.send', { hospital: pick(chosen.name, lang) })} busy={busy === 'send'} onPress={() => void run('send', () => onSend(chosen, department))} />
+        <Button size="lg" icon="send" label={t('doctor.referPanel.send', { hospital: pick(chosen.name, lang) })} busy={busy === 'send'} onPress={() => void run('send', () => onSend(chosen, department, note))} />
         <Button variant="ghost" icon="chevron-back" label={t('doctor.referPanel.otherHospital')} onPress={() => setChosen(null)} />
       </Card>
     );
@@ -155,4 +169,5 @@ const styles = StyleSheet.create({
   target: { borderWidth: 1, borderRadius: radii.md, padding: spacing.md, gap: spacing.xs },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   cell: { flexBasis: '47%', flexGrow: 1 },
+  note: { minHeight: 96, paddingTop: spacing.sm },
 });

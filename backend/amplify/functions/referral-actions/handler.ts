@@ -253,9 +253,14 @@ async function targets(client: Client, event: AppSyncResolverEvent<Rec>): Promis
  * (mode `direct`) and the request at the receiving hospital, routed to that department; the department
  * accepts or declines (care-actions), then the doctor confirms the transfer as usual.
  */
+/** Longest note a referring doctor can add for the receiving team. */
+const MAX_DOCTOR_NOTE = 500;
+
 async function referPatient(client: Client, event: AppSyncResolverEvent<Rec>): Promise<string> {
   const me = doctor(event);
   const { requestId, toHospitalId, department } = event.arguments;
+  // The referring doctor's details for the receiving team: plain text only, never sent to a model.
+  const doctorNote = typeof event.arguments.note === 'string' ? event.arguments.note.trim().slice(0, MAX_DOCTOR_NOTE) : '';
   const source = must(await client.models.CareRequest.get({ id: String(requestId) }), 'no-request');
   const { hospitals } = await loadHospitals(client);
   const to = hospitals.find((h) => h.profile.hospitalId === toHospitalId);
@@ -304,7 +309,7 @@ async function referPatient(client: Client, event: AppSyncResolverEvent<Rec>): P
       status: 'waiting',
       auto: false,
       hospitalName: JSON.stringify(to.profile.name),
-      patient: JSON.stringify({ name: patient.name, phone: patient.phone, mode: 'ambulance', description, referredFrom: from.profile.name }),
+      patient: JSON.stringify({ name: patient.name, phone: patient.phone, mode: 'ambulance', description, referredFrom: from.profile.name, ...(doctorNote ? { doctorNote } : {}) }),
       fromHospitalId: me.hospitalId,
       referralId: referral.id,
       ...(dept ? { department: dept } : {}),

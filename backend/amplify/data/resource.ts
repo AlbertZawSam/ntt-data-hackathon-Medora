@@ -369,7 +369,8 @@ const schema = a.schema({
   /** Doctors: refer a patient of their hospital to a hospital and department they choose. */
   referPatient: a
     .mutation()
-    .arguments({ requestId: a.string().required(), toHospitalId: a.string().required(), department: a.string() })
+    // `note`: the referring doctor's details for the receiving team (plain text, up to 500 characters).
+    .arguments({ requestId: a.string().required(), toHospitalId: a.string().required(), department: a.string(), note: a.string() })
     .returns(a.string())
     .authorization((allow) => [allow.group('doctors')])
     .handler(a.handler.function(referralActions)),

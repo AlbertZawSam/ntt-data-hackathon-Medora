@@ -11,6 +11,8 @@ import type { CareRequest, Referral } from '@medora/shared/logic/types';
 import { MapView, shortLabel, type MapMarker, type MarkerKind } from '../../src/components/MapView';
 import { MessageThread } from '../../src/components/MessageThread';
 import { ReferPanel } from '../../src/components/ReferPanel';
+import { agoText } from '../../src/i18n/ago';
+import { patientLabel } from '../../src/i18n/patientLabel';
 import { pick, type StringKey } from '../../src/i18n/t';
 import {
   answerRequest,
@@ -61,6 +63,9 @@ const REPLY_LOOK: Record<DecisionRow['reply'], { tone: Tone; icon: IconName }> =
   cancelled: { tone: 'neutral', icon: 'remove-circle' },
 };
 
+/** Patients listed before "Show all": the newest first, so the current case stands out. */
+const PATIENTS_SHOWN = 3;
+
 export default function DoctorReferScreen(): React.JSX.Element {
   const t = useT();
   const theme = useTheme();
@@ -100,7 +105,7 @@ export default function DoctorReferScreen(): React.JSX.Element {
         .sort((a, b) => b.createdAtMs - a.createdAtMs),
     [data.careRequests, session?.hospitalId],
   );
-  const shownPatients = showAllPatients ? patients : patients.slice(0, 6);
+  const shownPatients = showAllPatients ? patients : patients.slice(0, PATIENTS_SHOWN);
 
   const answer = async (r: CareRequest, action: 'accept' | 'decline', reason?: string): Promise<void> => {
     setAnswering(r.id);
@@ -114,10 +119,9 @@ export default function DoctorReferScreen(): React.JSX.Element {
       setAnswering(null);
     }
   };
-  const patientName = (r: CareRequest): string => r.patient.name || t('doctor.patients.unnamed');
 
-  const sendDirect = async (r: CareRequest, toHospitalId: string, department: string | undefined): Promise<void> => {
-    const id = await referPatient({ requestId: r.id, toHospitalId, department });
+  const sendDirect = async (r: CareRequest, toHospitalId: string, department: string | undefined, note: string): Promise<void> => {
+    const id = await referPatient({ requestId: r.id, toHospitalId, department, note });
     setActiveId(id);
     setReferringId(null);
   };
@@ -380,87 +384,121 @@ export default function DoctorReferScreen(): React.JSX.Element {
     </View>
   ) : null;
 
+  const nowMs = Date.now();
+  const caseMeta = (r: CareRequest): string =>
+    [
+      r.patient.referredFrom ? t('doctor.incoming.from', { hospital: pick(r.patient.referredFrom, lang) }) : null,
+      r.department ? t(`department.short.${r.department}` as StringKey) : null,
+      t('staff.inbox.arriving', { min: r.etaMin, mode: t(`mode.${r.patient.mode}` as StringKey) }),
+      r.patient.phone || null,
+    ]
+      .filter(Boolean)
+      .join(' · ');
+
+  const answerButtons = (r: CareRequest): React.ReactNode => (
+    <>
+      {r.status === 'waiting' && declining !== r.id ? (
+        <View style={styles.row}>
+          <View style={styles.flex}>
+            <Button icon="checkmark" label={t('staff.inbox.accept')} busy={answering === r.id} onPress={() => void answer(r, 'accept')} />
+          </View>
+          <View style={styles.flex}>
+            <Button variant="secondary" icon="close" label={t('staff.inbox.decline')} onPress={() => setDeclining(r.id)} />
+          </View>
+        </View>
+      ) : null}
+      {r.status === 'waiting' && declining === r.id ? (
+        <View style={styles.stack}>
+          {(['nobed', 'busy', 'equip', 'divert'] as const).map((reason) => (
+            <Button key={reason} variant="secondary" label={t(`request.reason.${reason}` as StringKey)} busy={answering === r.id} onPress={() => void answer(r, 'decline', reason)} />
+          ))}
+          <Button variant="ghost" icon="chevron-back" label={t('common.back')} onPress={() => setDeclining(null)} />
+        </View>
+      ) : null}
+    </>
+  );
+
+  // The newest referral still waiting is the one that needs the doctor now: shown on its own, large.
+  const latestIncoming = incoming.find((r) => r.status === 'waiting');
+  const earlierIncoming = incoming.filter((r) => r.id !== latestIncoming?.id);
+
   const incomingSection =
     incoming.length > 0 ? (
-      <Card padding="lg" selected={incoming.some((r) => r.status === 'waiting')}>
-        <SectionHeader title={t('doctor.incoming.title')} />
+      <View style={styles.stack}>
         {answerError ? <Notice tone="danger">{t('staff.inbox.answerError')}</Notice> : null}
-        {incoming.map((r) => (
-          <View key={r.id} style={[styles.patient, { borderTopColor: theme.border }]}>
-            <View style={styles.between}>
-              <Text style={[styles.patientName, { color: theme.text }]}>{patientName(r)}</Text>
-              <Badge
-                tone={r.status === 'waiting' ? 'warning' : 'success'}
-                icon={r.status === 'waiting' ? undefined : 'checkmark'}
-                label={t(r.status === 'waiting' ? 'staff.inbox.status.waiting' : (`request.status.${r.status}` as StringKey))}
-              />
-            </View>
-            {/* Patient text is data, shown as plain text and never interpreted. */}
-            <Text numberOfLines={2} style={[styles.body, { color: theme.text }]}>{r.patient.description}</Text>
-            <Text numberOfLines={1} style={[styles.muted, { color: theme.textMuted }]}>
-              {[
-                r.patient.referredFrom ? pick(r.patient.referredFrom, lang) : null,
-                r.department ? t(`department.short.${r.department}` as StringKey) : null,
-                t('staff.inbox.arriving', { min: r.etaMin, mode: t(`mode.${r.patient.mode}` as StringKey) }),
-                r.patient.phone || null,
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-            </Text>
-            {r.status === 'waiting' && declining !== r.id ? (
-              <View style={styles.row}>
-                <View style={styles.flex}>
-                  <Button icon="checkmark" label={t('staff.inbox.accept')} busy={answering === r.id} onPress={() => void answer(r, 'accept')} />
-                </View>
-                <View style={styles.flex}>
-                  <Button variant="secondary" icon="close" label={t('staff.inbox.decline')} onPress={() => setDeclining(r.id)} />
-                </View>
+        {latestIncoming ? (
+          <Reveal>
+            <Card padding="lg" selected tone="primary">
+              <View style={styles.between}>
+                <Badge tone="warning" icon="notifications" label={t('doctor.incoming.newTitle')} />
+                <Text style={[styles.muted, { color: theme.textMuted }]}>{agoText(t, latestIncoming.createdAtMs, nowMs)}</Text>
               </View>
-            ) : null}
-            {r.status === 'waiting' && declining === r.id ? (
-              <View style={styles.stack}>
-                {(['nobed', 'busy', 'equip', 'divert'] as const).map((reason) => (
-                  <Button key={reason} variant="secondary" label={t(`request.reason.${reason}` as StringKey)} busy={answering === r.id} onPress={() => void answer(r, 'decline', reason)} />
-                ))}
-                <Button variant="ghost" icon="chevron-back" label={t('common.back')} onPress={() => setDeclining(null)} />
+              <Text accessibilityRole="header" style={[styles.spotName, { color: theme.text }]}>{patientLabel(t, latestIncoming.patient.name, latestIncoming.id)}</Text>
+              {/* Patient text is data, shown as plain text and never interpreted. */}
+              <Text style={[styles.body, { color: theme.text }]}>{latestIncoming.patient.description}</Text>
+              {latestIncoming.patient.doctorNote ? <DoctorNote text={latestIncoming.patient.doctorNote} /> : null}
+              <Text style={[styles.muted, { color: theme.textMuted }]}>{caseMeta(latestIncoming)}</Text>
+              {answerButtons(latestIncoming)}
+            </Card>
+          </Reveal>
+        ) : null}
+        {earlierIncoming.length > 0 ? (
+          <Card padding="lg">
+            <SectionHeader title={latestIncoming ? t('doctor.incoming.earlier') : t('doctor.incoming.title')} />
+            {earlierIncoming.map((r) => (
+              <View key={r.id} style={[styles.patient, { borderTopColor: theme.border }]}>
+                <View style={styles.between}>
+                  <Text style={[styles.patientName, { color: theme.text }]}>{patientLabel(t, r.patient.name, r.id)}</Text>
+                  <Badge
+                    tone={r.status === 'waiting' ? 'warning' : 'success'}
+                    icon={r.status === 'waiting' ? undefined : 'checkmark'}
+                    label={t(r.status === 'waiting' ? 'staff.inbox.status.waiting' : (`request.status.${r.status}` as StringKey))}
+                  />
+                </View>
+                <Text numberOfLines={1} style={[styles.body, { color: theme.text }]}>{r.patient.description}</Text>
+                {r.patient.doctorNote ? <DoctorNote text={r.patient.doctorNote} /> : null}
+                <Text numberOfLines={1} style={[styles.muted, { color: theme.textMuted }]}>{`${agoText(t, r.createdAtMs, nowMs)} · ${caseMeta(r)}`}</Text>
+                {answerButtons(r)}
+                {r.status === 'accepted' ? <Text style={[styles.muted, { color: theme.textMuted }]}>{t('doctor.incoming.accepted')}</Text> : null}
               </View>
-            ) : null}
-            {r.status === 'accepted' ? <Text style={[styles.muted, { color: theme.textMuted }]}>{t('doctor.incoming.accepted')}</Text> : null}
-          </View>
-        ))}
-      </Card>
+            ))}
+          </Card>
+        ) : null}
+      </View>
     ) : null;
 
   const patientsSection = (
     <Card padding="lg">
       <SectionHeader title={t('doctor.patients.title')} />
       {patients.length === 0 ? <Text style={[styles.muted, { color: theme.textMuted }]}>{t('doctor.patients.empty')}</Text> : null}
-      {shownPatients.map((r) =>
+      {shownPatients.map((r, index) =>
         referringId === r.id ? (
           <ReferPanel
             key={r.id}
-            patientName={patientName(r)}
-            onSend={(target, department) => sendDirect(r, target.hospitalId, department)}
+            patientName={patientLabel(t, r.patient.name, r.id)}
+            onSend={(target, department, note) => sendDirect(r, target.hospitalId, department, note)}
             onUseAi={() => askAi(r)}
             onClose={() => setReferringId(null)}
           />
         ) : (
-          <View key={r.id} style={[styles.patient, styles.line, { borderTopColor: theme.border }]}>
+          <View key={r.id} style={[styles.patient, styles.line, { borderTopColor: theme.border }, index === 0 && { backgroundColor: theme.primarySoft, borderRadius: radii.md, paddingHorizontal: spacing.sm }]}>
             <View style={styles.flex}>
               <View style={styles.row}>
-                <Text style={[styles.itemTitle, { color: theme.text }]}>{patientName(r)}</Text>
+                <Text style={[styles.itemTitle, { color: theme.text }]}>{patientLabel(t, r.patient.name, r.id)}</Text>
+                {index === 0 ? <Badge tone="primary" label={t('doctor.patients.latest')} /> : null}
                 {r.status === 'waiting' ? <Badge tone="warning" label={t('staff.inbox.status.waiting')} /> : null}
               </View>
               {/* Patient text is data, shown as plain text and never interpreted. */}
+              <Text numberOfLines={1} style={[styles.body, { color: theme.text }]}>{r.patient.description}</Text>
               <Text numberOfLines={1} style={[styles.muted, { color: theme.textMuted }]}>
-                {[r.department ? t(`department.short.${r.department}` as StringKey) : null, r.patient.description].filter(Boolean).join(' · ')}
+                {[r.department ? t(`department.short.${r.department}` as StringKey) : t('department.short.general'), agoText(t, r.createdAtMs, nowMs)].join(' · ')}
               </Text>
             </View>
-            <Button variant="secondary" fullWidth={false} icon="git-network" label={t('doctor.patients.refer')} onPress={() => setReferringId(r.id)} />
+            <Button variant={index === 0 ? 'primary' : 'secondary'} fullWidth={false} icon="git-network" label={t('doctor.patients.refer')} onPress={() => setReferringId(r.id)} />
           </View>
         ),
       )}
-      {patients.length > 6 ? (
+      {patients.length > PATIENTS_SHOWN ? (
         <Button variant="ghost" icon={showAllPatients ? 'chevron-up' : 'chevron-down'} label={showAllPatients ? t('doctor.patients.showFewer') : t('doctor.patients.showAll', { count: patients.length })} onPress={() => setShowAllPatients(!showAllPatients)} />
       ) : null}
     </Card>
@@ -534,6 +572,18 @@ export default function DoctorReferScreen(): React.JSX.Element {
   );
 }
 
+/** The referring doctor's note for the receiving team, as plain text (data, never instructions). */
+function DoctorNote({ text }: { text: string }): React.JSX.Element {
+  const t = useT();
+  const theme = useTheme();
+  return (
+    <View style={[styles.note, { backgroundColor: theme.surfaceAlt, borderLeftColor: theme.primary }]}>
+      <Text style={[styles.noteLabel, { color: theme.textMuted }]}>{t('doctor.incoming.doctorNote')}</Text>
+      <Text style={[styles.body, { color: theme.text }]}>{text}</Text>
+    </View>
+  );
+}
+
 const ROW_KIND: Record<DecisionRow['reply'], MarkerKind> = {
   notAsked: 'ok',
   waiting: 'asked',
@@ -598,6 +648,9 @@ const styles = StyleSheet.create({
   body: { fontFamily: fonts.regular, fontSize: fontSizes.md, lineHeight: 24 },
   elapsed: { fontFamily: fonts.semibold, fontSize: fontSizes.sm },
   chosenName: { fontFamily: fonts.bold, fontSize: fontSizes.xxl, letterSpacing: -0.4 },
+  note: { borderLeftWidth: 3, borderRadius: radii.md, padding: spacing.sm, gap: 2 },
+  noteLabel: { fontFamily: fonts.semibold, fontSize: fontSizes.xs },
+  spotName: { fontFamily: fonts.bold, fontSize: fontSizes.xl },
   itemTitle: { fontFamily: fonts.semibold, fontSize: fontSizes.md },
   decision: { borderTopWidth: 1, paddingVertical: spacing.sm + 2, paddingHorizontal: spacing.xs, gap: spacing.sm, borderRadius: radii.md },
   recent: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: 48, paddingHorizontal: spacing.sm, borderRadius: radii.md },

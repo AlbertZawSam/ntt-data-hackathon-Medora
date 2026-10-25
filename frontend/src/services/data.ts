@@ -78,7 +78,7 @@ interface Client {
     answerRequest: (input: { requestId: string; action: string; reason?: string; note?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     sendMessage: (input: { requestId: string; key?: string; text?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     openReferral: (input: { text: string; onsetMin?: number; lang: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
-    referPatient: (input: { requestId: string; toHospitalId: string; department?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
+    referPatient: (input: { requestId: string; toHospitalId: string; department?: string; note?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     decideReferral: (input: { referralId: string; decision: string; reason?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     arriveTransfer: (input: { transferId: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     saveSpecialist: (input: { id?: string; name: string; specialty: string; languages: string[]; namePublic: boolean; slots: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
@@ -275,8 +275,9 @@ export async function referralTargets(): Promise<ReferralTarget[]> {
 }
 
 /** Doctors: refer a patient of their hospital to a hospital and department they chose; returns the referral id. */
-export async function referPatient(input: { requestId: string; toHospitalId: string; department?: string }): Promise<string> {
-  const result = await client.mutations.referPatient({ requestId: input.requestId, toHospitalId: input.toHospitalId, ...(input.department ? { department: input.department } : {}) });
+export async function referPatient(input: { requestId: string; toHospitalId: string; department?: string; note?: string }): Promise<string> {
+  const note = input.note?.trim();
+  const result = await client.mutations.referPatient({ requestId: input.requestId, toHospitalId: input.toHospitalId, ...(input.department ? { department: input.department } : {}), ...(note ? { note } : {}) });
   // The server refuses a second referral of a patient whose first is still open: say so plainly.
   if (JSON.stringify(result.errors ?? []).includes('already-referred')) throw new DataServiceError('already-referred');
   ensureData(result, 'Refer patient');

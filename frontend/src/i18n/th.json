@@ -640,5 +640,18 @@
   "patient.specialists.unclearTitle": "เราไม่แน่ใจว่าคุณต้องการแพทย์เฉพาะทางด้านใด",
   "patient.specialists.unclearBody": "ลองพิมพ์คำเช่น หัวใจ กระดูก เด็ก หรือ ตั้งครรภ์ หรือเลือกสาขาด้านบน",
   "patient.specialists.noMatch": "ไม่พบที่ตรงกัน จึงแสดงแพทย์เฉพาะทางทั้งหมดใกล้คุณ",
-  "patient.home.locationDefault": "ยังไม่ได้ตั้งตำแหน่ง · แสดงบริเวณ{{place}}"
+  "patient.home.locationDefault": "ยังไม่ได้ตั้งตำแหน่ง · แสดงบริเวณ{{place}}",
+  "doctor.incoming.from": "จาก {{hospital}}",
+  "doctor.incoming.newTitle": "คำขอส่งต่อใหม่",
+  "doctor.incoming.earlier": "คำขอส่งต่อก่อนหน้า",
+  "doctor.patients.latest": "ล่าสุด",
+  "patient.label.coded": "ผู้ป่วย #{{code}}",
+  "doctor.transfers.route": "{{from}} → {{to}}",
+  "doctor.transfers.started": "รถพยาบาล · ออก{{ago}}",
+  "doctor.transfers.active": "กำลังเดินทาง",
+  "doctor.transfers.arrivedList": "ถึงแล้ว ({{count}})",
+  "doctor.transfers.why": "เหตุผล",
+  "doctor.referPanel.noteLabel": "ข้อมูลเพิ่มเติมสำหรับทีมที่รับผู้ป่วย (ไม่บังคับ)",
+  "doctor.referPanel.noteHint": "ผลตรวจ สัญญาณชีพ การรักษาที่ให้แล้ว เหตุผลที่ส่งต่อ ไม่เกิน 500 ตัวอักษร",
+  "doctor.incoming.doctorNote": "บันทึกจากแพทย์ผู้ส่งต่อ"
 }

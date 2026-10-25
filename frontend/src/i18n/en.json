@@ -640,5 +640,18 @@
   "patient.specialists.unclearTitle": "We couldn't tell which specialist you need",
   "patient.specialists.unclearBody": "Try a word like heart, bone, children or pregnancy, or pick a specialty above.",
   "patient.specialists.noMatch": "No exact match, so here are all specialists nearby.",
-  "patient.home.locationDefault": "Location not set · showing the {{place}} area"
+  "patient.home.locationDefault": "Location not set · showing the {{place}} area",
+  "doctor.incoming.from": "From {{hospital}}",
+  "doctor.incoming.newTitle": "New referral",
+  "doctor.incoming.earlier": "Earlier referrals",
+  "doctor.patients.latest": "Latest",
+  "patient.label.coded": "Patient #{{code}}",
+  "doctor.transfers.route": "{{from}} → {{to}}",
+  "doctor.transfers.started": "Ambulance · left {{ago}}",
+  "doctor.transfers.active": "On the way",
+  "doctor.transfers.arrivedList": "Arrived ({{count}})",
+  "doctor.transfers.why": "Why",
+  "doctor.referPanel.noteLabel": "Notes for the receiving team (optional)",
+  "doctor.referPanel.noteHint": "Findings, vital signs, treatment given, why you're referring. Up to 500 characters.",
+  "doctor.incoming.doctorNote": "Referring doctor's note"
 }
