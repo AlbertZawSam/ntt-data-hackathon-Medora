@@ -26,6 +26,7 @@
     "evals": "bash scripts/with-aws.sh tsx scripts/run-evals.ts",
     "test-logins": "bash scripts/with-aws.sh node scripts/test-logins.mjs",
     "department-logins": "node scripts/test-logins.mjs --departments",
-    "reset-demo": "bash scripts/with-aws.sh tsx scripts/reset-demo.ts"
+    "reset-demo": "bash scripts/with-aws.sh tsx scripts/reset-demo.ts",
+    "use-demo": "npm run use-demo -w @medora/backend"
   }
 }

@@ -78,7 +78,7 @@ describe('ask_hospitals waiting', () => {
 
   it('keeps waiting while a hospital has not answered, and stops at the policy limit', async () => {
     const result = await ask(null);
-    expect(result.settledAfterMs).toBe(60_000);
+    expect(result.settledAfterMs).toBe(20_000); // capped at MAX_WAIT_SECONDS, even though it asked for 60
   });
 });
 
@@ -386,6 +386,41 @@ describe('a heart attack referred from Chao Phraya', () => {
       expect(rama9.department).toBe('cardiology');
       // No demo reply for Rama Nine: its cardiology staff accept it themselves.
       expect(updated.some((u) => u.id === rama9.id)).toBe(false);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+});
+
+describe('demo replies never answer for hospitals with real staff accounts', () => {
+  it('leaves a referral without a department to Rama Nine waiting for a person', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(NOW);
+    try {
+      const { store } = makeStore(null);
+      store.demoHospitalKey = (id) => id;
+      const updated: string[] = [];
+      store.updateRequest = async (id) => {
+        updated.push(id);
+      };
+      const created: CareRequest[] = [];
+      const create = store.createRequest;
+      store.createRequest = async (request) => {
+        const row = await create(request);
+        created.push(row);
+        return row;
+      };
+      const tools = new ReferralTools({ id: 'ref1', ownerId: 'd1', fromHospitalId: 'chaophraya', text: 'case', lang: 'en', requestIds: [], startedAtMs: Date.now() }, store);
+      // A stroke has no department, so before this fix Rama Nine would have been answered automatically.
+      const assessed = (await tools.execute('assess_case', { pathway: 'stroke' })) as { suggested_parallel_requests: number; hospitals: Array<{ hospital_id: string; can_help: boolean }> };
+      const ids = assessed.hospitals.filter((h) => h.can_help).map((h) => h.hospital_id).slice(0, assessed.suggested_parallel_requests);
+      expect(ids).toContain('rama9');
+      const asking = tools.execute('ask_hospitals', { hospital_ids: ids, wait_seconds: 20 });
+      await jest.advanceTimersByTimeAsync(21_000);
+      await asking;
+      const rama9 = created.find((r) => r.hospitalId === 'rama9')!;
+      expect(rama9.department).toBeUndefined();
+      expect(updated).not.toContain(rama9.id);
     } finally {
       jest.useRealTimers();
     }

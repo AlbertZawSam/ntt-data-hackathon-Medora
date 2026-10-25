@@ -22,7 +22,8 @@ describe('demoReply', () => {
 });
 
 describe('hasDepartmentStaff', () => {
-  it('is true only for the two department demo hospitals', () => {
+  it('is true only for the three department demo hospitals', () => {
+    expect(hasDepartmentStaff('siam')).toBe(true);
     expect(hasDepartmentStaff('rama9')).toBe(true);
     expect(hasDepartmentStaff('chaophraya')).toBe(true);
     expect(hasDepartmentStaff('ladprao')).toBe(false);

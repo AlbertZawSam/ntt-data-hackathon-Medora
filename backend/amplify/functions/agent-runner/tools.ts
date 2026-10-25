@@ -6,6 +6,7 @@ import { kbQueryForPathway, kbTraceDetail } from '@medora/shared/logic/kb';
 import { PATHWAYS } from '@medora/shared/logic/pathways';
 import { DEMO_REPLY_DELAY_SEC, assessReferral, delayExceedsWindow, demoReplyFor, nextHospitals, statedDelayMin, type ReferralAssessment } from '@medora/shared/logic/referral';
 import { ruleAccepts } from '@medora/shared/logic/rules';
+import { MAX_WAIT_SECONDS } from '@medora/shared/logic/timeBudget';
 import type {
   Bi,
   CareRequest,
@@ -83,8 +84,9 @@ function asHospitalIds(value: unknown): string[] | null {
   return [...new Set(value)];
 }
 
+/** The model's requested wait, kept within 5 s and the policy maximum (hospitals answer in seconds). */
 function asWait(value: unknown): number | null {
-  return typeof value === 'number' && Number.isInteger(value) && value >= 5 && value <= 60 ? value : null;
+  return typeof value === 'number' && Number.isInteger(value) && value >= 5 && value <= 60 ? Math.min(value, MAX_WAIT_SECONDS) : null;
 }
 
 /**
@@ -425,8 +427,9 @@ export class ReferralTools {
     let replied = 0;
     for (const request of pending) {
       const key = this.store.demoHospitalKey(request.hospitalId);
-      // At hospitals with department staff, a department referral waits for that department to accept.
-      if (!key || (request.department && hasDepartmentStaff(key))) continue;
+      // Hospitals with real staff accounts (Siam Central, Rama Nine, Chao Phraya) never get an automatic demo
+      // reply: every referral there waits for a person to accept or decline it.
+      if (!key || hasDepartmentStaff(key)) continue;
       const reply = demoReply(key, this.state.assessment.pathway);
       await this.store.updateRequest(request.id, {
         status: reply.status,
