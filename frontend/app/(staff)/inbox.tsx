@@ -86,8 +86,6 @@ export default function StaffInboxScreen(): React.JSX.Element {
   return (
     <Page
       title={t('staff.inbox.title')}
-      subtitle={t('staff.inbox.sub')}
-      actions={waiting.length > 0 ? <Badge tone="warning" icon="notifications" label={`${t('staff.inbox.alert')}: ${waiting.length}`} /> : undefined}
       width="readable"
     >
       {waiting.length > 0 ? (
@@ -106,7 +104,7 @@ export default function StaffInboxScreen(): React.JSX.Element {
         const undoLeft = undoSecondsLeft(r, now);
         const name =
           r.patient.name ||
-          (r.patient.referredFrom ? t('staff.inbox.referralFrom', { hospital: pick(r.patient.referredFrom, lang) }) : t('patient.requests.fromHospital'));
+          (r.patient.referredFrom ? t('staff.inbox.referralFrom', { hospital: pick(r.patient.referredFrom, lang) }) : t('doctor.patients.unnamed'));
         const answerable = r.status === 'waiting' || r.status === 'no_reply';
         return (
           <Reveal key={r.id} index={index}>
@@ -119,7 +117,7 @@ export default function StaffInboxScreen(): React.JSX.Element {
                   <Text style={[styles.name, { color: theme.text }]}>{name}</Text>
                   {r.patient.phone ? <Text style={[styles.note, { color: theme.textMuted }]}>{r.patient.phone}</Text> : null}
                 </View>
-                <Badge tone={STATUS_TONE[r.status]} label={t(`request.status.${r.status}` as StringKey)} />
+                <Badge tone={STATUS_TONE[r.status]} label={t(r.status === 'waiting' ? 'staff.inbox.status.waiting' : (`request.status.${r.status}` as StringKey))} />
               </View>
               <View style={styles.row}>
                 {r.referralId ? <Badge tone="primary" icon="git-network" label={t('staff.inbox.referral')} /> : null}

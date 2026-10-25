@@ -71,11 +71,11 @@ export default function IncomingReferralScreen(): React.JSX.Element {
   ];
 
   return (
-    <Page title={t('staff.referral.title')} subtitle={t('staff.referral.subtitle')}>
+    <Page title={t('staff.referral.title')}>
       <Card padding="lg" selected={request.status === 'waiting'}>
         <View style={styles.row}>
           <Badge tone="primary" icon="git-network" label={t('staff.inbox.referral')} />
-          <Badge tone={request.status === 'waiting' ? 'warning' : request.status === 'accepted' ? 'success' : 'neutral'} label={t(`request.status.${request.status}` as StringKey)} />
+          <Badge tone={request.status === 'waiting' ? 'warning' : request.status === 'accepted' ? 'success' : 'neutral'} label={t(request.status === 'waiting' ? 'staff.inbox.status.waiting' : (`request.status.${request.status}` as StringKey))} />
         </View>
         {rows.map(([label, value]) => (
           <View key={label} style={[styles.line, { borderBottomColor: theme.border }]}>

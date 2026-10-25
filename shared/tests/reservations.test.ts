@@ -1,4 +1,4 @@
-import { RESERVATION_MS, activeHolds, contradictsHolds, kindForNeed, newReservation, occupyOne, reservationKind, withHolds, type Reservation } from '../logic/reservations';
+import { RESERVATION_MS, activeHolds, contradictsHolds, holdKind, kindForNeed, newReservation, occupyOne, reservationKind, withHolds, type Reservation } from '../logic/reservations';
 import { failsFor, freeBeds } from '../logic/ranking';
 import { PATHWAYS } from '../logic/pathways';
 import { NOW_MS, openStatus } from './generators';
@@ -60,5 +60,14 @@ describe('occupyOne', () => {
     expect(occupyOne(status, 'bed')).toMatchObject({ beds: 2, nicu: 1 });
     expect(occupyOne(status, 'nicu')).toMatchObject({ beds: 3, nicu: 0 });
     expect(occupyOne(openStatus({ beds: 0 }), 'bed').beds).toBe(0);
+  });
+});
+
+describe('holdKind', () => {
+  it('holds a bed for every accepted request, and a NICU cot when the care needs one', () => {
+    expect(holdKind('general')).toBe('bed');
+    expect(holdKind('injury')).toBe('bed');
+    expect(holdKind('stemi')).toBe('bed');
+    expect(holdKind('preterm')).toBe('nicu');
   });
 });

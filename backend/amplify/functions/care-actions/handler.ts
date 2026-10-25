@@ -13,7 +13,7 @@ import {
   validateRequestInput,
   type RequestAction,
 } from '@medora/shared/logic/care';
-import { activeHolds, kindForNeed, newReservation, occupyOne, withHolds, type Reservation } from '@medora/shared/logic/reservations';
+import { activeHolds, holdKind, newReservation, occupyOne, withHolds, type Reservation } from '@medora/shared/logic/reservations';
 import { GROUPS } from '@medora/shared/logic/session';
 import type { CareRequest, HospitalStatus, NeedKey } from '@medora/shared/logic/types';
 
@@ -57,10 +57,9 @@ async function currentHolds(client: Client, hospitalId: string) {
 }
 
 async function hold(client: Client, request: { id: string; hospitalId: string; needKey: string }): Promise<void> {
-  const kind = kindForNeed(request.needKey);
-  if (!kind) return;
-  const r = await client.models.Reservation.create(newReservation(request.id, request.hospitalId, kind, Date.now()));
-  if (r.errors?.length) console.error('care-actions: hold failed');
+  // One bed (or NICU cot) is held as soon as the request is accepted, so the hospital shows one fewer free.
+  const r = await client.models.Reservation.create(newReservation(request.id, request.hospitalId, holdKind(request.needKey), Date.now()));
+  if (r.errors?.length) console.error(`care-actions: hold failed (${r.errors.map((e) => (e as { errorType?: string }).errorType ?? 'error').join(',')})`);
 }
 
 async function settle(client: Client, requestId: string, state: 'released' | 'converted'): Promise<Reservation | undefined> {
@@ -216,8 +215,8 @@ async function answerRequest(client: Client, event: AppSyncResolverEvent<Record_
     // The patient now occupies the bed: the hold becomes a used bed, so the count goes down by one.
     // A doctor's referral accepted by a hospital rule or a demo reply holds no bed, but still takes one (13.4).
     const held = await settle(client, request.id, 'converted');
-    const kind = held?.kind ?? (request.referralId ? kindForNeed(request.needKey) : null);
-    if (kind) await occupy(client, request.hospitalId, kind);
+    // The held bed becomes an occupied one; an older request accepted before holds existed still takes one.
+    await occupy(client, request.hospitalId, held?.kind ?? holdKind(request.needKey));
     if (request.referralId) await arriveTransfer(client, request.referralId, request.hospitalId);
   }
   await log(client, request.hospitalId, sub, staffMember ? `Unit: ${caller.unit ?? '-'}` : 'Doctor', staffMember ? `หน่วย: ${caller.unit ?? '-'}` : 'แพทย์', `Request ${request.id}: ${action}`, `คำขอ ${request.id}: ${action}`);

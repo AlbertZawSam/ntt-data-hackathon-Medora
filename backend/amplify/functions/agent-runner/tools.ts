@@ -51,6 +51,8 @@ export interface ReferralStore {
   trace(kind: string, title: Bi, detail: Bi): Promise<void>;
   activity(text: Bi): Promise<void>;
   knowledgeSearch(query: string): Promise<Array<{ hospitalId: string; text: string; source: string }>>;
+  /** Holds one bed (or NICU cot) for an accepted request, as care-actions does when staff accept. */
+  holdBed?(request: CareRequest): Promise<void>;
   /** The demo hospital key when demo replies are switched on (task 21), else null. */
   demoHospitalKey(hospitalId: string): string | null;
   now(): number;
@@ -268,6 +270,8 @@ export class ReferralTools {
         createdAtMs: this.store.now(),
       });
       created.push(request);
+      // Accepted at once by the hospital's rule: hold its bed now, so it shows one fewer free straight away.
+      if (auto) await this.store.holdBed?.(request);
       if (auto) await this.store.activity({ en: 'Referral accepted by hospital rule', th: 'คำขอส่งต่อได้รับการตอบรับตามกฎของโรงพยาบาล' });
     }
     await this.store.trace(
@@ -431,6 +435,7 @@ export class ReferralTools {
       // reply: every referral there waits for a person to accept or decline it.
       if (!key || hasDepartmentStaff(key)) continue;
       const reply = demoReply(key, this.state.assessment.pathway);
+      if (reply.status === 'accepted') await this.store.holdBed?.(request);
       await this.store.updateRequest(request.id, {
         status: reply.status,
         ...(reply.reason ? { reason: reply.reason } : {}),

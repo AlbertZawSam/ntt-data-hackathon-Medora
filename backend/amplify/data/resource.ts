@@ -132,7 +132,8 @@ const schema = a.schema({
       kind: a.string().required(),
       state: a.string().required(),
       createdAtMs: a.float().required(),
-      expiresAtMs: a.integer().required(),
+      // Milliseconds since 1970 don't fit AppSync's 32-bit Int, so timestamps are floats.
+      expiresAtMs: a.float().required(),
     })
     .secondaryIndexes((index) => [index('hospitalId'), index('requestId')])
     // A held bed is promised to an accepted patient. Staff of the hospital read it; only `care-actions`
