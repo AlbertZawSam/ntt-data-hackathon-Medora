@@ -621,5 +621,6 @@
   "referralProgress.set_aside": "แพทย์กำลังเลือกโรงพยาบาลอื่น",
   "referralProgress.arrived": "ถึงแล้ว",
   "patient.care.alreadyOpen": "คุณมีคำขอที่ยังเปิดอยู่ ยกเลิกในคำขอของฉันก่อนส่งใหม่",
-  "patient.care.badPhone": "ตรวจสอบเบอร์โทรศัพท์: ใช้ตัวเลขเท่านั้น เช่น 081 234 5678"
+  "patient.care.badPhone": "ตรวจสอบเบอร์โทรศัพท์: ใช้ตัวเลขเท่านั้น เช่น 081 234 5678",
+  "doctor.refer.track": "ติดตาม"
 }

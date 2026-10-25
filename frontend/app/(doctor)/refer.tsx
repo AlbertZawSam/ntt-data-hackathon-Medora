@@ -261,8 +261,11 @@ export default function DoctorReferScreen(): React.JSX.Element {
     </Card>
   );
 
+  const hasMessages = chosenRequest !== undefined && data.messages.some((m) => m.requestId === chosenRequest.id);
+
   const live = referral ? (
     <View style={styles.stack}>
+      {referral.status !== 'confirmed' ? (
       <Reveal>
         <Card padding="lg">
           <View style={styles.between}>
@@ -284,6 +287,7 @@ export default function DoctorReferScreen(): React.JSX.Element {
           ) : null}
         </Card>
       </Reveal>
+      ) : null}
 
       {referral.status === 'awaiting' ? (
         <Reveal index={1}>
@@ -321,13 +325,18 @@ export default function DoctorReferScreen(): React.JSX.Element {
       ) : null}
 
       {referral.status === 'confirmed' ? (
-        <Card padding="lg" tone="success">
-          <Text style={[styles.chosenName, { color: theme.text }]}>{referral.chosenName ? pick(referral.chosenName, lang) : ''}</Text>
-          <Notice tone="success">{t('doctor.refer.confirmed')}</Notice>
-          <Button icon="car" label={t('doctor.refer.viewTransfers')} onPress={() => router.push('/(doctor)/transfers' as Href)} />
+        <Card padding="lg">
+          <View style={styles.line}>
+            <Icon name="checkmark-circle" size={22} color={theme.success} />
+            <View style={styles.flex}>
+              <Text style={[styles.itemTitle, { color: theme.text }]}>{referral.chosenName ? pick(referral.chosenName, lang) : ''}</Text>
+              <Text style={[styles.muted, { color: theme.textMuted }]}>{t('doctor.refer.confirmed')}</Text>
+            </View>
+            <Button variant="secondary" fullWidth={false} icon="car" label={t('doctor.refer.track')} onPress={() => router.push('/(doctor)/transfers' as Href)} />
+          </View>
         </Card>
       ) : null}
-      {chosenRequest && (referral.status === 'awaiting' || referral.status === 'confirmed') ? (
+      {chosenRequest && (referral.status === 'awaiting' || (referral.status === 'confirmed' && hasMessages)) ? (
         <Card padding="lg">
           <SectionHeader title={t('doctor.refer.messagesTitle')} />
           <MessageThread requestId={chosenRequest.id} messages={data.messages} me="patient" disabled />
@@ -377,19 +386,27 @@ export default function DoctorReferScreen(): React.JSX.Element {
         <SectionHeader title={t('doctor.incoming.title')} />
         {answerError ? <Notice tone="danger">{t('staff.inbox.answerError')}</Notice> : null}
         {incoming.map((r) => (
-          <View key={r.id} style={[styles.patient, { borderColor: r.status === 'waiting' ? theme.warning : theme.border }]}>
+          <View key={r.id} style={[styles.patient, { borderTopColor: theme.border }]}>
             <View style={styles.between}>
               <Text style={[styles.patientName, { color: theme.text }]}>{patientName(r)}</Text>
-              <Badge tone={r.status === 'waiting' ? 'warning' : 'success'} label={t(`request.status.${r.status}` as StringKey)} />
-            </View>
-            <View style={styles.row}>
-              {r.patient.referredFrom ? <Badge tone="info" icon="git-network" label={t('staff.inbox.referralFrom', { hospital: pick(r.patient.referredFrom, lang) })} /> : null}
-              {r.department ? <Badge tone="primary" icon="medkit" label={t(`department.short.${r.department}` as StringKey)} /> : null}
-              {r.patient.phone ? <Badge tone="neutral" icon="call" label={r.patient.phone} /> : null}
-              <Badge tone="info" icon="car" label={t('staff.inbox.arriving', { min: r.etaMin, mode: t(`mode.${r.patient.mode}` as StringKey) })} />
+              <Badge
+                tone={r.status === 'waiting' ? 'warning' : 'success'}
+                icon={r.status === 'waiting' ? undefined : 'checkmark'}
+                label={t(r.status === 'waiting' ? 'staff.inbox.status.waiting' : (`request.status.${r.status}` as StringKey))}
+              />
             </View>
             {/* Patient text is data, shown as plain text and never interpreted. */}
-            <Text style={[styles.body, { color: theme.text }]}>{r.patient.description}</Text>
+            <Text numberOfLines={2} style={[styles.body, { color: theme.text }]}>{r.patient.description}</Text>
+            <Text numberOfLines={1} style={[styles.muted, { color: theme.textMuted }]}>
+              {[
+                r.patient.referredFrom ? pick(r.patient.referredFrom, lang) : null,
+                r.department ? t(`department.short.${r.department}` as StringKey) : null,
+                t('staff.inbox.arriving', { min: r.etaMin, mode: t(`mode.${r.patient.mode}` as StringKey) }),
+                r.patient.phone || null,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </Text>
             {r.status === 'waiting' && declining !== r.id ? (
               <View style={styles.row}>
                 <View style={styles.flex}>
@@ -408,9 +425,7 @@ export default function DoctorReferScreen(): React.JSX.Element {
                 <Button variant="ghost" icon="chevron-back" label={t('common.back')} onPress={() => setDeclining(null)} />
               </View>
             ) : null}
-            {r.status === 'accepted' ? (
-              <Notice tone="success">{t('doctor.incoming.accepted')}</Notice>
-            ) : null}
+            {r.status === 'accepted' ? <Text style={[styles.muted, { color: theme.textMuted }]}>{t('doctor.incoming.accepted')}</Text> : null}
           </View>
         ))}
       </Card>
@@ -430,19 +445,18 @@ export default function DoctorReferScreen(): React.JSX.Element {
             onClose={() => setReferringId(null)}
           />
         ) : (
-          <View key={r.id} style={[styles.patient, { borderColor: theme.border }]}>
-            <View style={styles.between}>
-              <Text style={[styles.patientName, { color: theme.text }]}>{patientName(r)}</Text>
-              <Badge tone={r.status === 'waiting' ? 'warning' : 'success'} label={t(`request.status.${r.status}` as StringKey)} />
+          <View key={r.id} style={[styles.patient, styles.line, { borderTopColor: theme.border }]}>
+            <View style={styles.flex}>
+              <View style={styles.row}>
+                <Text style={[styles.itemTitle, { color: theme.text }]}>{patientName(r)}</Text>
+                {r.status === 'waiting' ? <Badge tone="warning" label={t('staff.inbox.status.waiting')} /> : null}
+              </View>
+              {/* Patient text is data, shown as plain text and never interpreted. */}
+              <Text numberOfLines={1} style={[styles.muted, { color: theme.textMuted }]}>
+                {[r.department ? t(`department.short.${r.department}` as StringKey) : null, r.patient.description].filter(Boolean).join(' · ')}
+              </Text>
             </View>
-            <View style={styles.row}>
-              {r.patient.phone ? <Badge tone="neutral" icon="call" label={r.patient.phone} /> : null}
-              {r.department ? <Badge tone="primary" icon="medkit" label={t(`department.short.${r.department}` as StringKey)} /> : null}
-              {r.patient.referredFrom ? <Badge tone="info" icon="git-network" label={t('staff.inbox.referralFrom', { hospital: pick(r.patient.referredFrom, lang) })} /> : null}
-            </View>
-            {/* Patient text is data, shown as plain text and never interpreted. */}
-            <Text style={[styles.body, { color: theme.text }]}>{r.patient.description}</Text>
-            <Button variant="secondary" icon="git-network" label={t('doctor.patients.refer')} onPress={() => setReferringId(r.id)} />
+            <Button variant="secondary" fullWidth={false} icon="git-network" label={t('doctor.patients.refer')} onPress={() => setReferringId(r.id)} />
           </View>
         ),
       )}
@@ -568,7 +582,8 @@ function DecisionLine({ row }: { row: DecisionRow }): React.JSX.Element {
 }
 
 const styles = StyleSheet.create({
-  patient: { borderWidth: 1, borderRadius: radii.md, padding: spacing.md, gap: spacing.sm },
+  patient: { borderTopWidth: StyleSheet.hairlineWidth, paddingVertical: spacing.md, gap: spacing.xs },
+  line: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   patientName: { flex: 1, fontSize: fontSizes.md, fontFamily: fonts.semibold },
   flex: { flex: 1 },
   stack: { gap: spacing.md },
