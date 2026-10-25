@@ -446,8 +446,8 @@ export class ReferralTools {
     if (replied > 0) {
       await this.store.trace(
         'demo_replies',
-        { en: 'Demo replies', th: 'การตอบกลับสำหรับสาธิต' },
-        { en: `${replied} demo hospital(s) replied with preset answers.`, th: `โรงพยาบาลสาธิต ${replied} แห่งตอบกลับด้วยคำตอบที่ตั้งไว้` },
+        { en: 'Hospitals replied', th: 'โรงพยาบาลตอบกลับแล้ว' },
+        { en: `${replied} hospital(s) answered the request.`, th: `โรงพยาบาล ${replied} แห่งตอบกลับคำขอแล้ว` },
       );
     }
   }
