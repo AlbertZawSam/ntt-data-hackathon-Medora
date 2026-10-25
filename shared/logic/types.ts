@@ -149,7 +149,7 @@ export interface CareRequest {
   fromHospitalId?: string;
   referralId?: string;
   /** On a patient's own request: the hospital their doctor referred them to, and how far it got. */
-  referredTo?: ReferralProgress;
+  referredTo?: ReferralProgress | null;
   /** Cardiology, surgery or obstetrics when the patient chose a department. */
   department?: string;
   slot?: { day: string; time: string };

@@ -79,7 +79,8 @@ export default function PatientRequestsScreen(): React.JSX.Element {
         const status = statusOf(r);
         const look = STATUS_LOOK[status];
         // While a doctor's referral is in progress, the referral is the news: no "no reply" warning, no cancel.
-        const referred = r.referredTo !== undefined && r.referredTo.status !== 'declined' && r.referredTo.status !== 'set_aside';
+        // The API returns null (not undefined) for a request that was never referred.
+        const referred = r.referredTo != null && r.referredTo.status !== 'declined' && r.referredTo.status !== 'set_aside';
         const open = !referred && (status === 'waiting' || status === 'accepted' || status === 'no_reply');
         const chat = status === 'accepted' || status === 'waiting';
         const expanded = openId === r.id;
