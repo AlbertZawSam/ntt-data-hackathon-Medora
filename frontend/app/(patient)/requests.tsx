@@ -20,7 +20,6 @@ import type { IconName } from '../../src/ui/Icon';
 import { Notice } from '../../src/ui/Notice';
 import { Page } from '../../src/ui/Page';
 import { Reveal } from '../../src/ui/Reveal';
-import { Timeline, type TimelineStep } from '../../src/ui/Timeline';
 import { fonts, fontSizes, spacing, useTheme } from '../../src/ui/theme';
 
 const STATUS_LOOK: Record<CareRequest['status'], { tone: Tone; icon: IconName }> = {
@@ -54,25 +53,13 @@ export default function PatientRequestsScreen(): React.JSX.Element {
   const statusOf = (r: CareRequest): CareRequest['status'] => (r.status === 'waiting' && now - r.createdAtMs >= NO_REPLY_MS ? 'no_reply' : r.status);
 
   /** Where the request stands, as three steps: sent, the hospital looking at it, and its answer. */
-  const stepsFor = (status: CareRequest['status']): TimelineStep[] => {
-    const answered = status === 'accepted' || status === 'declined' || status === 'completed';
-    return [
-      { id: 'sent', title: t('patient.requests.stepSent'), state: 'done' },
-      { id: 'review', title: t('patient.requests.stepReview'), state: status === 'waiting' ? 'active' : status === 'cancelled' || status === 'no_reply' ? 'error' : 'done' },
-      {
-        id: 'answer',
-        title: answered || status === 'cancelled' || status === 'no_reply' ? t(`request.status.${status}` as StringKey) : t('patient.requests.stepAnswer'),
-        state: status === 'accepted' || status === 'completed' ? 'done' : status === 'declined' || status === 'cancelled' || status === 'no_reply' ? 'error' : 'pending',
-      },
-    ];
-  };
 
   const minutesAgo = (ms: number): string => {
     return t('patient.requests.sentAgo', { ago: agoText(t, ms, now) });
   };
 
   return (
-    <Page title={t('patient.requests.title')} subtitle={t('patient.requests.sub')} width="readable">
+    <Page title={t('patient.requests.title')} width="readable">
       {mine.length === 0 ? (
         <Card padding="lg">
           <EmptyState icon="chatbubbles-outline" title={t('patient.requests.emptyTitle')} text={t('patient.requests.empty')} actionLabel={t('patient.requests.emptyAction')} onAction={() => router.push('/(patient)/care' as Href)} />
@@ -90,7 +77,7 @@ export default function PatientRequestsScreen(): React.JSX.Element {
               <View style={styles.head}>
                 <View style={styles.flex}>
                   <Text style={[styles.name, { color: theme.text }]}>{r.hospitalName ? pick(r.hospitalName, lang) : r.hospitalId}</Text>
-                  {r.department ? <Text style={[styles.meta, { color: theme.primary }]}>{t(`department.${r.department}` as StringKey)}</Text> : null}
+                  {r.department ? <Text style={[styles.meta, { color: theme.primary }]}>{t(`department.short.${r.department}` as StringKey)}</Text> : null}
                   <Text style={[styles.meta, { color: theme.textMuted }]}>{minutesAgo(r.createdAtMs)}</Text>
                 </View>
                 <View accessibilityLiveRegion="polite">
@@ -98,7 +85,6 @@ export default function PatientRequestsScreen(): React.JSX.Element {
                 </View>
               </View>
 
-              <Timeline steps={stepsFor(status)} />
 
               {r.auto && status === 'accepted' ? <Notice tone="success">{t('patient.requests.autoAccepted')}</Notice> : null}
               {status === 'declined' && r.reason && ['nobed', 'busy', 'equip', 'divert'].includes(r.reason) ? (

@@ -71,6 +71,14 @@ export function newReservation(requestId: string, hospitalId: string, kind: Rese
 }
 
 /**
+ * Every accepted patient request or doctor referral holds one bed until the patient arrives: a NICU cot when
+ * the care needs one, otherwise a general bed. So the hospital shows one bed fewer as soon as it accepts.
+ */
+export function holdKind(need: NeedKey | string): ReservationKind {
+  return kindForNeed(need) ?? 'bed';
+}
+
+/**
  * A patient has arrived and now occupies a bed (or a NICU cot): one fewer free, never below zero.
  * Used when staff mark a request arrived and when a doctor's transfer arrives (requirement 13.4).
  */

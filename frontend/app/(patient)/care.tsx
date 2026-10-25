@@ -132,7 +132,7 @@ export default function PatientCareScreen(): React.JSX.Element {
 
   if (phase !== 'results') {
     return (
-      <Page title={t('patient.care.title')} subtitle={t('patient.care.subtitle')} width="readable">
+      <Page title={t('patient.care.title')} width="readable">
         <Reveal>
           <Card padding="lg">
             <LocationChip />
@@ -284,7 +284,7 @@ export default function PatientCareScreen(): React.JSX.Element {
   );
 
   return (
-    <Page title={t('patient.care.nearbyTitle')} subtitle={t('patient.care.resultsSub')} onBack={() => setPhase('describe')} backLabel={t('patient.care.newSearch')}>
+    <Page title={t('patient.care.nearbyTitle')} onBack={() => setPhase('describe')} backLabel={t('patient.care.newSearch')}>
       <Card padding="md">
         <View style={styles.row}>
           <Badge tone="primary" icon="search" label={t('patient.care.lookingFor', { need: t(`need.${need}` as StringKey) })} />

@@ -130,7 +130,7 @@ export function ReferPanel({ patientName, onSend, onUseAi, onClose }: Props): Re
               icon="bed"
               label={t(`details.bedsFree.${target.details.bedsFree}` as StringKey)}
             />
-            <Badge tone={target.details.edOpen ? 'success' : 'danger'} icon="medkit" label={t(target.details.edOpen ? 'details.edOpenLong' : 'details.edClosedLong')} />
+            <Badge tone={target.details.edOpen ? 'success' : 'danger'} icon="medkit" label={t(target.details.edOpen ? 'details.er.open' : 'details.er.closed')} />
             {target.details.departments.map((d) => (
               <Badge key={d} tone="primary" icon={DEPARTMENT_ICON[d]} label={t(`department.short.${d}` as StringKey)} />
             ))}

@@ -8,6 +8,7 @@ import { routeMinutes } from '../../lib/routes';
 import { createHash } from 'node:crypto';
 import { DEMO_HOSPITALS } from '@medora/shared/logic/demoHospitals';
 import { classifyReferralPathway } from '@medora/shared/logic/referral';
+import { holdKind, newReservation } from '@medora/shared/logic/reservations';
 import type { Bi, CareRequest, HospitalStatus } from '@medora/shared/logic/types';
 import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
@@ -252,6 +253,11 @@ class AmplifyReferralStore implements ReferralStore {
     const result = await this.client.models.CareRequest.list({ filter: { referralId: { eq: referralId } }, limit: 1_000 });
     dataError(result.errors, 'list referral requests');
     return result.data.map((record) => fromWire(record, ['patient', 'slot', 'hospitalName']) as unknown as CareRequest);
+  }
+
+  async holdBed(request: CareRequest): Promise<void> {
+    const result = await this.client.models.Reservation.create(newReservation(request.id, request.hospitalId, holdKind(request.needKey), this.now()) as never);
+    if (result.errors?.length) console.error('agent-runner: bed hold failed');
   }
 
   async createRequest(request: Omit<CareRequest, 'id'>): Promise<CareRequest> {

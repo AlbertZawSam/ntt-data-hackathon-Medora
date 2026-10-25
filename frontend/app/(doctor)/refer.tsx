@@ -388,7 +388,6 @@ export default function DoctorReferScreen(): React.JSX.Element {
               {r.patient.phone ? <Badge tone="neutral" icon="call" label={r.patient.phone} /> : null}
               <Badge tone="info" icon="car" label={t('staff.inbox.arriving', { min: r.etaMin, mode: t(`mode.${r.patient.mode}` as StringKey) })} />
             </View>
-            <Text style={[styles.label, { color: theme.textMuted }]}>{t('staff.referral.reason')}</Text>
             {/* Patient text is data, shown as plain text and never interpreted. */}
             <Text style={[styles.body, { color: theme.text }]}>{r.patient.description}</Text>
             {r.status === 'waiting' && declining !== r.id ? (
@@ -443,7 +442,7 @@ export default function DoctorReferScreen(): React.JSX.Element {
             </View>
             {/* Patient text is data, shown as plain text and never interpreted. */}
             <Text style={[styles.body, { color: theme.text }]}>{r.patient.description}</Text>
-            <Button icon="git-network" label={t('doctor.patients.refer')} onPress={() => setReferringId(r.id)} />
+            <Button variant="secondary" icon="git-network" label={t('doctor.patients.refer')} onPress={() => setReferringId(r.id)} />
           </View>
         ),
       )}
@@ -490,7 +489,7 @@ export default function DoctorReferScreen(): React.JSX.Element {
     ) : null;
 
   return (
-    <Page title={t('doctor.refer.title')} subtitle={t('doctor.refer.agentPrinciple')}>
+    <Page title={t('doctor.refer.title')}>
       {wide ? (
         <View style={styles.columns}>
           <View style={styles.sideColumn}>

@@ -292,3 +292,15 @@ describe('doctors only accept or decline referrals', () => {
     await expect(call(event)).rejects.toThrow('not-staff');
   });
 });
+
+describe('every accepted request holds one bed', () => {
+  const ward = { groups: ['hospital_staff'], hospitalId: 'H1', unit: 'ward' };
+  it('a general visit: accepting holds a bed, arrival makes it one bed fewer', async () => {
+    const id = await call(patientEvent('submitRequest', req));
+    await call(staffEvent('answerRequest', { requestId: id, action: 'accept' }, ward));
+    expect(fake.tables('Reservation').filter((r) => r.requestId === id && r.state === 'held')).toHaveLength(1);
+    await call(staffEvent('answerRequest', { requestId: id, action: 'arrived' }, ward));
+    expect(fake.tables('Reservation').find((r) => r.requestId === id)?.state).toBe('converted');
+    expect(JSON.parse(String(fake.tables('HospitalStatus')[0].status)).beds).toBe(4);
+  });
+});

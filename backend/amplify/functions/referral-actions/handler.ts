@@ -5,7 +5,7 @@ import { generateClient } from 'aws-amplify/data';
 import { callerFromClaims, canStartReferral } from '@medora/shared/logic/access';
 import { SET_ASIDE_TEXT, checkReferralDecision, isSetAsideReason, type ReferralDecision } from '@medora/shared/logic/referral';
 import { checkDirectReferral, referralTargets } from '@medora/shared/logic/directReferral';
-import { activeHolds, kindForNeed, occupyOne, withHolds, type Reservation } from '@medora/shared/logic/reservations';
+import { activeHolds, holdKind, occupyOne, withHolds, type Reservation } from '@medora/shared/logic/reservations';
 import { driveEstimate, haversineKm } from '@medora/shared/logic/ranking';
 import type { SpecialistRecord } from '@medora/shared/logic/specialists';
 import type { Bi, HospitalStatus } from '@medora/shared/logic/types';
@@ -169,8 +169,7 @@ async function admitAtReceivingHospital(client: Client, transfer: { referralId: 
   must(await client.models.CareRequest.update({ id: request.id, status: 'completed' }), 'save-failed');
   const held = (await client.models.Reservation.list({ filter: { requestId: { eq: request.id } }, limit: 10 })).data.find((r) => r.state === 'held');
   if (held) await client.models.Reservation.update({ id: held.id, state: 'converted' });
-  const kind = kindForNeed(request.needKey);
-  if (!kind) return;
+  const kind = holdKind(request.needKey);
   const row = await client.models.HospitalStatus.get({ id: transfer.toHospitalId });
   if (!row.data) return;
   await client.models.HospitalStatus.update({ id: transfer.toHospitalId, status: JSON.stringify(occupyOne(parseStatus(row.data.status), kind)) });

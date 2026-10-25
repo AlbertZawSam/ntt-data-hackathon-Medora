@@ -39,7 +39,7 @@ export default function DoctorTransfersScreen(): React.JSX.Element {
   );
 
   return (
-    <Page title={t('doctor.transfers.title')} subtitle={t('doctor.transfers.simulated')} width="readable">
+    <Page title={t('doctor.transfers.title')} width="readable">
       {transfers.length === 0 ? (
         <Card padding="lg">
           <EmptyState icon="car-outline" title={t('doctor.transfers.empty')} />
