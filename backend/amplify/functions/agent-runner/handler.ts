@@ -7,7 +7,7 @@ import { NUDGE_TEXT, afterTurn, pickModel } from './model';
 import { routeMinutes } from '../../lib/routes';
 import { createHash } from 'node:crypto';
 import { DEMO_HOSPITALS } from '@medora/shared/logic/demoHospitals';
-import { classifyReferralPathway } from '@medora/shared/logic/referral';
+import { aiRunsToday, classifyReferralPathway } from '@medora/shared/logic/referral';
 import { holdKind, newReservation } from '@medora/shared/logic/reservations';
 import type { Bi, CareRequest, HospitalStatus } from '@medora/shared/logic/types';
 import { Amplify } from 'aws-amplify';
@@ -386,9 +386,7 @@ const TOOL_CONFIG: Tool[] = [
 async function hasDailyCapacity(client: DataClient, referral: ReferralRun, nowMs: number): Promise<boolean> {
   const result = await client.models.Referral.list({ filter: { ownerId: { eq: referral.ownerId } }, limit: 1_000 });
   dataError(result.errors, 'check daily referral limit');
-  const startOfDay = new Date(nowMs);
-  startOfDay.setUTCHours(0, 0, 0, 0);
-  return result.data.filter((entry) => entry.startedAtMs >= startOfDay.getTime()).length <= MAX_DAILY_RUNS;
+  return aiRunsToday(result.data, nowMs) <= MAX_DAILY_RUNS;
 }
 
 /**

@@ -1,5 +1,6 @@
 import { PATHWAYS } from '../logic/pathways';
 import { assessReferral, classifyReferralPathway, delayExceedsWindow, nextHospitals, statedDelayMin } from '../logic/referral';
+import { aiRunsToday } from '../logic/referral';
 import { makeHospital, NOW_MS, ORIGIN } from './generators';
 
 describe('classifyReferralPathway', () => {
@@ -91,5 +92,14 @@ describe('demoReplyFor', () => {
   it('lets every other hospital and pathway accept plainly', () => {
     expect(demoReplyFor('stroke', 1)).toEqual({});
     expect(demoReplyFor('stemi', 0)).toEqual({});
+  });
+});
+
+describe('aiRunsToday', () => {
+  it('counts only AI runs since midnight UTC, never direct referrals', () => {
+    const now = Date.UTC(2026, 9, 25, 9, 0);
+    const today = Date.UTC(2026, 9, 25, 1, 0);
+    const yesterday = Date.UTC(2026, 9, 24, 23, 0);
+    expect(aiRunsToday([{ startedAtMs: today, mode: 'ai' }, { startedAtMs: today }, { startedAtMs: today, mode: 'direct' }, { startedAtMs: yesterday, mode: 'ai' }], now)).toBe(2);
   });
 });
