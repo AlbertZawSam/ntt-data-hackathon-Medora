@@ -50,6 +50,13 @@ describe('findCare', () => {
     expect(out.emergency).toBeDefined();
     expect(out.hospitals).toBeUndefined();
   });
+  it('refreshes known results with the care type the app sends, without a model call', async () => {
+    const out = JSON.parse(await run(findCare, patientEvent('findCare', { ...args, need: 'injury' })));
+    expect(out).toMatchObject({ need: 'injury', aiUsed: false, unclear: false });
+    const ignored = JSON.parse(await run(findCare, patientEvent('findCare', { ...args, need: 'not-a-need' })));
+    expect(ignored.need).toBe('child'); // an unknown care type is ignored
+    await expect(run(findCare, patientEvent('findCare', { ...args, description: 'chest pain and cannot breathe', need: 'injury' }))).resolves.toContain('emergency');
+  });
   it('marks text that is not a description as unclear, and still returns hospitals', async () => {
     const out = JSON.parse(await run(findCare, patientEvent('findCare', { ...args, description: 'asdfgh' })));
     expect(out.unclear).toBe(true);

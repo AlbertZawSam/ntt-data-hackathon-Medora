@@ -21,6 +21,8 @@ interface Args {
   description: string;
   lat: number;
   lng: number;
+  /** Set when the app refreshes results it already has: the care type is known, so no model call. */
+  need?: string | null;
 }
 
 type Rec = Record<string, unknown>;
@@ -95,10 +97,11 @@ export const handler = async (event: AppSyncResolverEvent<Args>): Promise<string
     return JSON.stringify({ emergency: { key: flag.key, label: flag.label } });
   }
 
-  // Text that can't be a description ("asdfgh", "???") needs no model call.
-  const nonsense = looksLikeNonsense(description);
-  const ai = nonsense ? null : await understand(description.trim());
-  const need: NeedKey = ai?.need ?? classifyNeed(description);
+  // Text that can't be a description ("asdfgh", "???") needs no model call, nor does a refresh of known results.
+  const known = NEED_KEYS.includes(event.arguments.need as NeedKey) ? (event.arguments.need as NeedKey) : undefined;
+  const nonsense = !known && looksLikeNonsense(description);
+  const ai = nonsense || known ? null : await understand(description.trim());
+  const need: NeedKey = known ?? ai?.need ?? classifyNeed(description);
   const unclear = nonsense || ai?.unclear === true;
 
   const client = await dataClient();

@@ -60,13 +60,15 @@ interface SavedSearch {
   atMs: number;
 }
 const SAVED_SEARCH_MS = 60 * 60_000;
+const LIVE_REFRESH_EVERY_MS = 20_000;
+const LIVE_REFRESH_FOR_MS = 10 * 60_000;
 
 export default function PatientCareScreen(): React.JSX.Element {
   const t = useT();
   const theme = useTheme();
   const router = useRouter();
   const wide = useBreakpoint() === 'expanded';
-  const { session, lang } = useApp();
+  const { session, lang, data } = useApp();
   const location = useChosenLocation();
   const [text, setText] = React.useState('');
   const [phase, setPhase] = React.useState<Phase>('describe');
@@ -95,6 +97,37 @@ export default function PatientCareScreen(): React.JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Results stay live: free beds change when a ward updates its count or another patient asks for a bed.
+  // A refresh sends the care type already found, so it makes no model call; failures keep the last results.
+  const searchedAtMs = React.useRef(0);
+  const refresh = React.useRef<() => Promise<void>>(async () => {});
+  refresh.current = async () => {
+    if (phase !== 'results' || !text.trim()) return;
+    try {
+      const result = await findCare({ description: text.trim(), lat: location.lat, lng: location.lng, need });
+      if ('emergency' in result) return;
+      setHospitals(result.hospitals);
+      setLastResults(result.hospitals);
+    } catch {
+      // keep showing the last results
+    }
+  };
+  // A ward's change arrives at once through the live public directory.
+  const directory = React.useRef(data.publicDirectory);
+  React.useEffect(() => {
+    if (directory.current === data.publicDirectory) return;
+    directory.current = data.publicDirectory;
+    void refresh.current();
+  }, [data.publicDirectory]);
+  // Beds held by other patients' requests send no update: check again every 20 s for 10 minutes after a search.
+  React.useEffect(() => {
+    if (phase !== 'results') return;
+    const timer = setInterval(() => {
+      if (Date.now() - searchedAtMs.current < LIVE_REFRESH_FOR_MS) void refresh.current();
+    }, LIVE_REFRESH_EVERY_MS);
+    return () => clearInterval(timer);
+  }, [phase]);
+
   const emergency = (key: string): void => router.push({ pathname: '/(patient)/emergency', params: { flag: key } } as unknown as Href);
 
   const search = async (input: string = text): Promise<void> => {
@@ -119,6 +152,7 @@ export default function PatientCareScreen(): React.JSX.Element {
         return;
       }
       setPhase('results');
+      searchedAtMs.current = Date.now();
       remember('care', { text: input.trim(), atMs: Date.now() } satisfies SavedSearch);
     } catch {
       setError('patient.care.findError');

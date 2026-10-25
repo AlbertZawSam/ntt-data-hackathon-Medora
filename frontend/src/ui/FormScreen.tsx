@@ -1,5 +1,5 @@
 import React from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BrandMark } from '../components/BrandMark';
 import { LanguageToggle } from '../components/LanguageToggle';
@@ -64,9 +64,8 @@ export function FormScreen({ title, subtitle, message, children }: Props): React
             <View style={[styles.circle, styles.circleB, { backgroundColor: theme.accent }]} />
             <View style={styles.brandContent}>
               <View style={styles.brandLogo}>
-                <View style={[styles.logoBox, { backgroundColor: theme.onPrimary }]}>
-                  <Icon name="medical" size={26} color={theme.primary} />
-                </View>
+                {/* The real Medora logo (assets/logo.png), outlined so the green tile stands out on the green panel. */}
+                <Image source={require('../../assets/logo.png')} accessibilityIgnoresInvertColors style={[styles.logoImage, { borderColor: theme.onPrimary }]} />
                 <Text style={[styles.brandName, { color: theme.onPrimary }]}>{t('app.name')}</Text>
               </View>
               <Text accessibilityRole="header" style={[styles.tagline, { color: theme.onPrimary }]}>{t('brand.tagline')}</Text>
@@ -100,7 +99,7 @@ const styles = StyleSheet.create({
   circleB: { width: 300, height: 300, bottom: -90, left: -80, opacity: 0.18 },
   brandContent: { gap: spacing.lg, maxWidth: 480 },
   brandLogo: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 2 },
-  logoBox: { width: 48, height: 48, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  logoImage: { width: 56, height: 56, borderRadius: 16, borderWidth: 2 },
   brandName: { fontSize: fontSizes.xxl, fontFamily: fonts.bold, letterSpacing: -0.4 },
   tagline: { fontSize: 40, lineHeight: 48, fontFamily: fonts.bold, letterSpacing: -0.8 },
   points: { gap: spacing.md },

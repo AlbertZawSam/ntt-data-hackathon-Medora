@@ -478,7 +478,8 @@ const schema = a.schema({
   /** Emergency check (layer 2), intake agent and ranking: hospitals as simple labels only. */
   findCare: a
     .query()
-    .arguments({ description: a.string().required(), lat: a.float().required(), lng: a.float().required() })
+    // `need` is set only when the app refreshes results it already has: the care type is known, so no model call.
+    .arguments({ description: a.string().required(), lat: a.float().required(), lng: a.float().required(), need: a.string() })
     .returns(a.string())
     .authorization((allow) => [allow.group('patients')])
     .handler(a.handler.function(findCare)),
