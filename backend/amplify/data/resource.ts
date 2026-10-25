@@ -103,6 +103,8 @@ const schema = a.schema({
       patient: a.json().required(),
       fromHospitalId: a.string(),
       referralId: a.string(),
+      // On the patient's own request: where their doctor referred them and how far it got (Lambdas write it).
+      referredTo: a.json(),
       /** Cardiology, surgery or obstetrics: only that department's staff may answer it (care-actions); hospital staff can still read it. */
       department: a.string(),
       slot: a.json(),

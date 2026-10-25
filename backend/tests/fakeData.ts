@@ -21,6 +21,9 @@ export function makeFakeClient(seed: Record<string, Row[]> = {}) {
       Object.assign(row, input);
       return { data: row };
     },
+    // Secondary-index queries, as the generated client names them.
+    listReservationByRequestId: async ({ requestId }: { requestId: string }) => ({ data: table(name).filter((r) => r.requestId === requestId) }),
+    listCareRequestByOwnerIdAndCreatedAtMs: async ({ ownerId }: { ownerId: string }) => ({ data: table(name).filter((r) => r.ownerId === ownerId) }),
     delete: async ({ id }: { id: string }) => {
       tables[name] = table(name).filter((r) => r.id !== id);
       return { data: null };

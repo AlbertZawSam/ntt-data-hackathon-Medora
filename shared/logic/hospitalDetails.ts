@@ -1,11 +1,13 @@
 /**
- * Hospital details a person seeking care can open before choosing where to go: free beds as a label and a
- * broad range, whether the emergency department is open, which kinds of care it can take now, which
- * specialties have a doctor on duty, and the clinic specialists they can book. Labels and broad ranges
- * only, never exact bed counts, equipment faults or staff names on duty (AGENTS.md rule 6). Pure TypeScript.
+ * Hospital details a person seeking care can open before choosing where to go: free beds as a label and the
+ * exact count, whether the emergency department is open, which kinds of care it can take now, which
+ * specialties have a doctor on duty, and the clinic specialists they can book. Free beds are shown as the
+ * exact count and each piece of equipment as working or not (team decision, 25 Oct 2026, AGENTS.md rule 6);
+ * never staff names or rosters. Pure TypeScript.
  * Requirements: 5.2, 5.3, 8.1
  */
 import { openDepartments, type Department } from './departments';
+import { equipmentList, type EquipmentKey } from './equipment';
 import { NEED_KEYS, publicEntry, type PublicLabel, type PublicProfile } from './publicDirectory';
 import { freeBeds } from './ranking';
 import { openSlots, type SpecialistRecord, type Specialty } from './specialists';
@@ -28,6 +30,10 @@ export interface HospitalDetails {
   beds: BedLabel;
   /** Free beds as a range (see BedRange). */
   bedsFree: BedRange;
+  /** Free beds now: ready beds minus those held for patients who have asked or been accepted. */
+  freeBeds: number;
+  /** The hospital's equipment, each working or down. */
+  equipment: Array<{ key: EquipmentKey; working: boolean }>;
   edOpen: boolean;
   /** Each kind of care, as the same label Find care uses. */
   care: Record<NeedKey, PublicLabel>;
@@ -73,6 +79,8 @@ export function hospitalDetails(
   return {
     beds: bedLabel(status),
     bedsFree: bedRange(status),
+    freeBeds: freeBeds(status),
+    equipment: equipmentList(status.equip),
     edOpen: entry.edOpen,
     care,
     onDuty,
