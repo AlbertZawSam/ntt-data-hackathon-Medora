@@ -73,6 +73,8 @@ export interface HospitalStatus {
   notes?: Record<string, string>;
   /** Which unit last changed each item, and when. Freshness labels read this. */
   meta?: Record<string, { unit: string; at: string }>;
+  /** Which unit owns each item, set by the hospital admin (item id → unit); items not listed keep the default owner. */
+  owners?: Record<string, string>;
   depts: Record<string, DeptState>;
   /** true = working */
   equip: Record<string, boolean>;

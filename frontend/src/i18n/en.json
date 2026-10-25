@@ -625,5 +625,16 @@
   "doctor.refer.track": "Track",
   "patient.care.unclearTitle": "We couldn't tell what's wrong",
   "patient.care.unclearBody": "Describe your symptoms, for example \"I twisted my ankle\" or \"my child has a fever\".",
-  "patient.care.showAnyway": "Show hospitals anyway"
+  "patient.care.showAnyway": "Show hospitals anyway",
+  "admin.tab.hospital": "Hospital",
+  "admin.tab.units": "Units",
+  "admin.hospital.title": "Hospital set-up",
+  "admin.hospital.sub": "Beds and departments",
+  "admin.units.title": "Who owns what",
+  "admin.units.sub": "Each item is updated only by the unit that owns it",
+  "consent.title": "Before you start",
+  "consent.point1": "What you describe is read by AI to find the right care, and sent only to the hospital you choose.",
+  "consent.point2": "Medora doesn't give medical advice. In an emergency, call 1669.",
+  "consent.point3": "Your location is used only to find nearby hospitals.",
+  "consent.agree": "I agree"
 }

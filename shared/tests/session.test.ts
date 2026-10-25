@@ -73,7 +73,7 @@ describe('staff pool sessions', () => {
 
   it('sends a staff-pool admin to the admin area, not the patient app', () => {
     const poolAdmin = session(['admins'], { hospitalId: 'H1' });
-    expect(homeRoute(poolAdmin)).toBe('/(admin)/staff-invite');
+    expect(homeRoute(poolAdmin)).toBe('/(admin)/hospital');
     expect(canOpen(poolAdmin, 'patient')).toBe(false);
     expect(canOpen(poolAdmin, 'admin', 'staff-invite')).toBe(true);
   });

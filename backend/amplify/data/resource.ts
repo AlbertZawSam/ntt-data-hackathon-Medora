@@ -313,7 +313,9 @@ const schema = a.schema({
     .mutation()
     .arguments({ change: a.json().required(), note: a.string() })
     .returns(a.string())
-    .authorization((allow) => [allow.group('hospital_staff')])
+    // Unit staff update their unit's items; the hospital admin sets up beds and departments and who owns
+    // each item. `applyStatusChange` decides which change each may make, for their own hospital only.
+    .authorization((allow) => [allow.group('hospital_staff'), allow.group('admins')])
     .handler(a.handler.function(updateStatus)),
 
   /** A patient sends a request to one hospital; the admin's auto-accept rule may accept it at once. */

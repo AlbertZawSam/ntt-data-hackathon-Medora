@@ -625,5 +625,16 @@
   "doctor.refer.track": "ติดตาม",
   "patient.care.unclearTitle": "เราไม่เข้าใจอาการของคุณ",
   "patient.care.unclearBody": "โปรดอธิบายอาการ เช่น \"ข้อเท้าพลิก\" หรือ \"ลูกมีไข้\"",
-  "patient.care.showAnyway": "แสดงโรงพยาบาลต่อไป"
+  "patient.care.showAnyway": "แสดงโรงพยาบาลต่อไป",
+  "admin.tab.hospital": "โรงพยาบาล",
+  "admin.tab.units": "หน่วยงาน",
+  "admin.hospital.title": "ตั้งค่าโรงพยาบาล",
+  "admin.hospital.sub": "เตียงและแผนก",
+  "admin.units.title": "หน่วยที่รับผิดชอบ",
+  "admin.units.sub": "แต่ละรายการอัปเดตได้เฉพาะหน่วยที่รับผิดชอบ",
+  "consent.title": "ก่อนเริ่มใช้งาน",
+  "consent.point1": "สิ่งที่คุณอธิบายจะถูกอ่านโดย AI เพื่อหาการรักษาที่เหมาะสม และส่งให้เฉพาะโรงพยาบาลที่คุณเลือก",
+  "consent.point2": "Medora ไม่ให้คำแนะนำทางการแพทย์ หากฉุกเฉินโทร 1669",
+  "consent.point3": "ตำแหน่งของคุณใช้เพื่อหาโรงพยาบาลใกล้เคียงเท่านั้น",
+  "consent.agree": "ยอมรับ"
 }

@@ -19,6 +19,7 @@ import { setLastResults } from '../../src/services/lastResults';
 import { setLastNeed } from '../../src/services/lastNeed';
 import { checkEmergency, logEmergencyCheck } from '../../src/services/emergency';
 import { useChosenLocation } from '../../src/services/location';
+import { giveConsent, hasConsented } from '../../src/services/consent';
 import { forget, recall, remember } from '../../src/services/tabMemory';
 import { useApp, useT } from '../../src/state/AppProvider';
 import { Badge, Chip } from '../../src/ui/Badge';
@@ -86,16 +87,7 @@ export default function PatientCareScreen(): React.JSX.Element {
   const [sending, setSending] = React.useState(false);
   const [sent, setSent] = React.useState(false);
 
-  // After a reload of the web app, bring back the last search of this tab (under an hour old) and run it
-  // again, so the results show live bed counts instead of an empty form.
-  React.useEffect(() => {
-    const saved = recall<SavedSearch>('care');
-    if (!saved?.text || Date.now() - saved.atMs > SAVED_SEARCH_MS) return;
-    setText(saved.text);
-    void search(saved.text);
-    // Only once, when the screen opens.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
 
   // Results stay live: free beds change when a ward updates its count or another patient asks for a bed.
   // A refresh sends the care type already found, so it makes no model call; failures keep the last results.
@@ -127,6 +119,26 @@ export default function PatientCareScreen(): React.JSX.Element {
     }, LIVE_REFRESH_EVERY_MS);
     return () => clearInterval(timer);
   }, [phase]);
+
+  // Consent comes first (once per device): what the AI reads, where the description goes, no medical advice.
+  const [consented, setConsented] = React.useState<boolean | null>(null);
+  React.useEffect(() => {
+    void hasConsented().then(setConsented);
+  }, []);
+
+  // After a reload of the web app, bring back the last search of this tab (under an hour old) and run it
+  // again, so the results show live bed counts instead of an empty form. Only once consent is given.
+  const restored = React.useRef(false);
+  React.useEffect(() => {
+    if (consented !== true || restored.current) return;
+    restored.current = true;
+    const saved = recall<SavedSearch>('care');
+    if (!saved?.text || Date.now() - saved.atMs > SAVED_SEARCH_MS) return;
+    setText(saved.text);
+    void search(saved.text);
+    // Runs once, as soon as consent is known.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [consented]);
 
   const emergency = (key: string): void => router.push({ pathname: '/(patient)/emergency', params: { flag: key } } as unknown as Href);
 
@@ -190,6 +202,25 @@ export default function PatientCareScreen(): React.JSX.Element {
     { id: 'me', point: location, kind: 'me', label: t('map.you') },
     ...hospitals.map((h): MapMarker => ({ id: h.id, point: h, kind: h.label === 'available' ? 'ok' : h.label === 'notAvailable' ? 'no' : 'limited', label: pick(h.name, lang) })),
   ];
+
+  if (consented === false) {
+    return (
+      <Page title={t('patient.care.title')} width="readable">
+        <Reveal>
+          <Card padding="lg">
+            <Text accessibilityRole="header" style={[styles.consentTitle, { color: theme.text }]}>{t('consent.title')}</Text>
+            {(['consent.point1', 'consent.point2', 'consent.point3'] as const).map((key, i) => (
+              <View key={key} style={styles.consentPoint}>
+                <Icon name={(['sparkles-outline', 'call-outline', 'location-outline'] as const)[i]} size={20} color={theme.primary} />
+                <Text style={[styles.consentText, { color: theme.text }]}>{t(key)}</Text>
+              </View>
+            ))}
+            <Button size="lg" icon="checkmark" label={t('consent.agree')} onPress={() => void giveConsent().then(() => setConsented(true))} />
+          </Card>
+        </Reveal>
+      </Page>
+    );
+  }
 
   if (phase !== 'results') {
     return (
@@ -390,6 +421,9 @@ export default function PatientCareScreen(): React.JSX.Element {
 }
 
 const styles = StyleSheet.create({
+  consentTitle: { fontFamily: fonts.bold, fontSize: fontSizes.lg },
+  consentPoint: { flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start' },
+  consentText: { flex: 1, fontFamily: fonts.regular, fontSize: fontSizes.md, lineHeight: 22 },
   deptGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   deptCell: { flexBasis: '47%', flexGrow: 1 },
   flex: { flex: 1 },

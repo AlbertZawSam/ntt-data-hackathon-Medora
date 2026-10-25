@@ -1,6 +1,6 @@
 import fc from 'fast-check';
 import { UNITS, type Caller } from '../logic/access';
-import { applyStatusChange, controlsForUnit, itemId, ownerUnitOf, type StatusChange } from '../logic/statusUpdate';
+import { allControls, applyStatusChange, controlsForAdmin, controlsForUnit, itemId, ownerOfItem, ownerUnitOf, type StatusChange } from '../logic/statusUpdate';
 import type { HospitalStatus } from '../logic/types';
 
 const H1 = 'hosp-a';
@@ -55,9 +55,9 @@ describe('applyStatusChange', () => {
     expect(result.ok && result.status.equip.ct).toBe(false);
   });
 
-  it('refuses doctors, admins and patients', () => {
+  it('refuses doctors and patients', () => {
     const change: StatusChange = { kind: 'count', item: 'beds', value: 1 };
-    for (const groups of [['doctors'], ['admins'], ['patients'], []]) {
+    for (const groups of [['doctors'], ['patients'], []]) {
       expect(apply(change, { groups, hospitalId: H1, unit: 'ward' })).toEqual({ ok: false, reason: 'not-staff' });
     }
   });
@@ -168,5 +168,56 @@ describe('department staff', () => {
     expect(apply({ kind: 'equip', key: 'lab', value: false }, nurse('er')).ok).toBe(true);
     expect(controlsForUnit('surgery').map((c) => c.item)).toEqual(['xray', 'theatre']);
     expect(apply({ kind: 'confirm' }, nurse('ward')).ok).toBe(true);
+  });
+});
+
+describe('hospital admin', () => {
+  const admin = (hospitalId = H1): Caller => ({ groups: ['admins'], hospitalId });
+  it('sets up beds, ICU, NICU and departments at their own hospital only', () => {
+    expect(apply({ kind: 'count', item: 'beds', value: 12 }, admin()).ok).toBe(true);
+    expect(apply({ kind: 'count', item: 'nicu', value: 3 }, admin()).ok).toBe(true);
+    expect(apply({ kind: 'dept', key: 'cardio', value: 'diverting' }, admin()).ok).toBe(true);
+    expect(apply({ kind: 'count', item: 'beds', value: 12 }, admin('hosp-b')).ok).toBe(false);
+    expect(apply({ kind: 'count', item: 'beds', value: -1 }, admin()).ok).toBe(false);
+  });
+  it("doesn't switch equipment or on-duty doctors: those stay with the owning unit", () => {
+    expect(apply({ kind: 'equip', key: 'ct', value: false }, admin()).ok).toBe(false);
+    expect(apply({ kind: 'oncall', key: 'cardiologist', value: false }, admin()).ok).toBe(false);
+  });
+  it('assigns each item to a real unit, and the new owner is enforced', () => {
+    const moved = applyStatusChange(base(), { kind: 'owner', item: 'equip:ct', unit: 'er' }, admin(), H1, NOW);
+    expect(moved.ok).toBe(true);
+    if (!moved.ok) return;
+    expect(ownerOfItem(moved.status, 'equip:ct')).toBe('er');
+    expect(applyStatusChange(moved.status, { kind: 'equip', key: 'ct', value: false }, nurse('er'), H1, NOW).ok).toBe(true);
+    expect(applyStatusChange(moved.status, { kind: 'equip', key: 'ct', value: false }, nurse('radiology'), H1, NOW)).toEqual({ ok: false, reason: 'other-unit' });
+    expect(controlsForUnit('er', moved.status).some((c) => c.item === 'ct')).toBe(true);
+    expect(controlsForUnit('radiology', moved.status).some((c) => c.item === 'ct')).toBe(false);
+  });
+  it('refuses unknown items, the all fallback as an owner, other hospitals and non-admins', () => {
+    expect(apply({ kind: 'owner', item: 'equip:laser', unit: 'er' }, admin()).ok).toBe(false);
+    expect(apply({ kind: 'owner', item: 'beds', unit: 'all' }, admin()).ok).toBe(false);
+    expect(apply({ kind: 'owner', item: 'beds', unit: 'er' }, admin('hosp-b')).ok).toBe(false);
+    expect(apply({ kind: 'owner', item: 'beds', unit: 'er' }, nurse('ward'))).toEqual({ ok: false, reason: 'not-staff' });
+    expect(apply({ kind: 'owner', item: 'beds', unit: 'er' }, nurse('all'))).toEqual({ ok: false, reason: 'not-staff' });
+  });
+  it('gives departments only equipment, never confirms for the units, keeps freshness on an owner change', () => {
+    expect(apply({ kind: 'owner', item: 'equip:ecg', unit: 'surgery' }, admin()).ok).toBe(true);
+    expect(apply({ kind: 'owner', item: 'beds', unit: 'cardiology' }, admin()).ok).toBe(false);
+    expect(apply({ kind: 'owner', item: 'dept:ed', unit: 'surgery' }, admin()).ok).toBe(false);
+    expect(apply({ kind: 'confirm' }, admin()).ok).toBe(false);
+    const moved = applyStatusChange(base(), { kind: 'owner', item: 'beds', unit: 'er' }, admin(), H1, NOW);
+    expect(moved.ok && moved.status.updatedAt).toBe(base().updatedAt);
+  });
+  it('ignores prototype keys as items and as stored owners', () => {
+    expect(apply({ kind: 'owner', item: '__proto__', unit: 'er' }, admin()).ok).toBe(false);
+    expect(apply({ kind: 'owner', item: 'constructor', unit: 'er' }, admin()).ok).toBe(false);
+    const tricked = { ...base(), owners: JSON.parse('{"__proto__":"er","constructor":"er"}') } as HospitalStatus;
+    expect(ownerOfItem(tricked, 'beds')).toBe('ward');
+    expect(applyStatusChange(tricked, { kind: 'count', item: 'beds', value: 3 }, nurse('ward'), H1, NOW).ok).toBe(true);
+  });
+  it('lists set-up controls for the admin and every control for the ownership screen', () => {
+    expect(controlsForAdmin().every((c) => c.kind === 'count' || c.kind === 'dept')).toBe(true);
+    expect(allControls().length).toBeGreaterThan(controlsForAdmin().length);
   });
 });

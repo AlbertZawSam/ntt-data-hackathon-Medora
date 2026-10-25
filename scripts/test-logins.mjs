@@ -88,8 +88,8 @@ if (departmentsOnly) {
     { email: `doctor.${h.key}@medora.demo`, group: 'doctors', role: 'Doctor: refer patients, accept incoming referrals', hospitalId: seedId(h.key), section: h.name.en },
     // General / emergency requests (no department) go to the emergency unit.
     { email: `general.${h.key}@medora.demo`, group: 'hospital_staff', unit: 'er', role: 'General (emergency): requests without a department', hospitalId: seedId(h.key), section: h.name.en },
-    // The ward nurse adds or removes free beds (for example to show a hospital filling up).
-    { email: `ward.${h.key}@medora.demo`, group: 'hospital_staff', unit: 'ward', role: 'Ward: free beds (+ and −)', hospitalId: seedId(h.key), section: h.name.en },
+    // The hospital admin: beds and departments, who owns each item, auto-accept rules, specialists, staff invitations.
+    { email: `admin.${h.key}@medora.demo`, group: 'admins', role: 'Hospital admin: beds, departments, units, rules, staff', hospitalId: seedId(h.key), section: h.name.en },
     ...DEPARTMENTS.map((d) => ({
       role: `${DEPARTMENT_NAMES[d.unit]}: requests and equipment`,
       email: `${d.unit}.${h.key}@medora.demo`,
