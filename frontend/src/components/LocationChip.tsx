@@ -22,7 +22,9 @@ export function LocationChip(): React.JSX.Element {
         : t('patient.home.locationGps')
       : location.source === 'map'
         ? t('patient.home.locationMap')
-        : t('patient.home.locationPlace', { place: location.place ? pick(location.place.name, lang) : '' });
+        : location.source === 'default'
+          ? t('patient.home.locationDefault', { place: location.place ? pick(location.place.name, lang) : '' })
+          : t('patient.home.locationPlace', { place: location.place ? pick(location.place.name, lang) : '' });
   return (
     <View style={[styles.chip, { backgroundColor: theme.primarySoft }]}>
       <Icon name={location.source === 'gps' ? 'locate' : 'pin'} size={18} color={theme.primary} />

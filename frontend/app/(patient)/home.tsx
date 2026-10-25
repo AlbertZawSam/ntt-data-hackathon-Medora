@@ -10,6 +10,7 @@ import { PLACE_QUERY_MIN, type FoundPlace } from '@medora/shared/logic/placeSear
 import { MapView } from '../../src/components/MapView';
 import { call1669 } from '../../src/services/emergency';
 import { searchPlacesRemote } from '../../src/services/data';
+import { recall, remember } from '../../src/services/tabMemory';
 import { chooseFoundPlace, choosePlace, choosePoint, locateMe, useChosenLocation, type GpsOutcome } from '../../src/services/location';
 import { pick } from '../../src/i18n/t';
 import { useApp, useT } from '../../src/state/AppProvider';
@@ -103,6 +104,18 @@ export default function PatientHomeScreen(): React.JSX.Element {
   // A found place right beside a built-in suggestion is the same place; show it once.
   const extra = found.filter((place) => !matches.some((known) => distanceKm(known, place) < 0.3));
 
+  // Nothing chosen yet: ask the browser for the position once per tab, so the app starts where the person is.
+  // If they decline, nothing is shown as an error; search and "Pick on the map" still work.
+  React.useEffect(() => {
+    if (location.source !== 'default' || recall<boolean>('autoLocated')) return;
+    remember('autoLocated', true);
+    void locateMe().then((outcome) => {
+      if (outcome === 'outsideBangkok') setNotice(outcome);
+    });
+    // Only when the screen opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const onUseMyLocation = async (): Promise<void> => {
     setLocating(true);
     const outcome = await locateMe();
@@ -135,7 +148,9 @@ export default function PatientHomeScreen(): React.JSX.Element {
         : t('patient.home.locationGps')
       : location.source === 'map'
         ? t('patient.home.locationMap')
-        : t('patient.home.locationPlace', { place: location.place ? pick(location.place.name, lang) : '' });
+        : location.source === 'default'
+          ? t('patient.home.locationDefault', { place: location.place ? pick(location.place.name, lang) : '' })
+          : t('patient.home.locationPlace', { place: location.place ? pick(location.place.name, lang) : '' });
 
   const searching = query.trim().length > 0;
 

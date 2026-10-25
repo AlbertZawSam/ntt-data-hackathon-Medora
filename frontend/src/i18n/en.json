@@ -639,5 +639,6 @@
   "consent.agree": "I agree",
   "patient.specialists.unclearTitle": "We couldn't tell which specialist you need",
   "patient.specialists.unclearBody": "Try a word like heart, bone, children or pregnancy, or pick a specialty above.",
-  "patient.specialists.noMatch": "No exact match, so here are all specialists nearby."
+  "patient.specialists.noMatch": "No exact match, so here are all specialists nearby.",
+  "patient.home.locationDefault": "Location not set · showing the {{place}} area"
 }
