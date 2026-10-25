@@ -85,6 +85,10 @@ Without AWS access, `npm start` still works: the app opens and says it isn't con
 
 Never commit `amplify_outputs.json`, `.env`, `google-services.json` or AWS keys.
 
+### Live demo link (no setup)
+
+**https://main.d167bekzanqsos.amplifyapp.com**: the web app on Amplify Hosting (us-east-1), connected to the shared demo backend. Open it in any browser; accounts are the same as below. After a code change, `npm run use-demo` then `npm run deploy-web` uploads a new build (about 3 minutes). Delete the hosting app after the competition: `aws amplify delete-app --app-id d167bekzanqsos --region us-east-1` (a person runs this, not an agent).
+
 ### Use the team's shared demo backend (recommended for testing)
 
 One backend, `demo`, is shared by the whole team, with the same hospitals and the same 15 accounts for everyone (Siam Central, Rama Nine and Chao Phraya: a doctor, General, Cardiology, Surgery and Obstetrics each). No `npm run sandbox` needed:

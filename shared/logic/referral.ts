@@ -126,3 +126,13 @@ export const SET_ASIDE_TEXT: Record<SetAsideReason, Bi> = {
 };
 
 export const isSetAsideReason = (value: unknown): value is SetAsideReason => SET_ASIDE_REASONS.some((reason) => reason === value);
+
+/**
+ * A doctor's AI referral runs since midnight UTC. The cap is on model calls, so a direct referral to a
+ * hospital the doctor chose (mode 'direct') doesn't count.
+ */
+export function aiRunsToday(referrals: ReadonlyArray<{ startedAtMs: number; mode?: unknown }>, nowMs: number): number {
+  const startOfDay = new Date(nowMs);
+  startOfDay.setUTCHours(0, 0, 0, 0);
+  return referrals.filter((entry) => entry.startedAtMs >= startOfDay.getTime() && entry.mode !== 'direct').length;
+}
