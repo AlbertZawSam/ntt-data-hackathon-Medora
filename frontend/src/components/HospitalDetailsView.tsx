@@ -11,6 +11,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { HospitalDetails } from '@medora/shared/logic/hospitalDetails';
 import { NEED_KEYS } from '@medora/shared/logic/publicDirectory';
 import type { NeedKey } from '@medora/shared/logic/types';
+import { agoText } from '../i18n/ago';
 import type { StringKey } from '../i18n/t';
 import { useT } from '../state/AppProvider';
 import { fonts, fontSizes, radii, spacing, useTheme } from '../ui/theme';
@@ -98,7 +99,7 @@ export function HospitalDetailsView({ details, nowMs, need, showBooking = true }
       ) : null}
 
       <Text style={[styles.footer, { color: stale ? theme.warning : theme.textMuted }]}>
-        {t('details.waitShort', { min: details.typicalWaitMin })} · {stale ? t('fresh.outdated') : t('fresh.updatedAgo', { min: ageMin })}
+        {t('details.waitShort', { min: details.typicalWaitMin })} · {stale ? t('fresh.outdated') : t('fresh.updatedAgo', { ago: agoText(t, Date.parse(details.updatedAt), nowMs) })}
       </Text>
     </View>
   );

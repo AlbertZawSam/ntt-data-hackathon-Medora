@@ -2,6 +2,7 @@
  * My unit: a nurse or technologist sees and changes only the items their unit owns, and answers
  * "Still correct?". The server checks the unit again on every change. Requirements: 9.1 to 9.4, 19.8
  */
+import { agoText } from '../../src/i18n/ago';
 import React from 'react';
 import { StyleSheet, Switch, Text, View } from 'react-native';
 import { dataAgeMin, isStale } from '@medora/shared/logic/ranking';
@@ -86,7 +87,8 @@ export default function StaffStatusScreen(): React.JSX.Element {
   const never = !status || Date.parse(status.updatedAt) <= 0;
   const stale = !status || never || isStale(status, now);
   const age = status && !never ? Math.floor(dataAgeMin(status, now)) : 0;
-  const freshText = never ? t('staff.status.neverUpdated') : stale ? `${t('staff.status.outdated')} · ${t('staff.status.updatedAgo', { min: age })}` : t('staff.status.updatedAgo', { min: age });
+  const updatedText = t('staff.status.updatedAgo', { ago: agoText(t, now - age * 60_000, now) });
+  const freshText = never ? t('staff.status.neverUpdated') : stale ? `${t('staff.status.outdated')} · ${updatedText}` : updatedText;
 
   return (
     <Page
