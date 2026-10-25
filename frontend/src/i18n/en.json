@@ -597,5 +597,6 @@
   "time.daysAgo": "{{n}} days ago",
   "staff.inbox.status.waiting": "New",
   "details.er.open": "ER",
-  "details.er.closed": "ER closed"
+  "details.er.closed": "ER closed",
+  "doctor.refer.track": "Track"
 }

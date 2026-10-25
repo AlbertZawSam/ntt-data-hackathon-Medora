@@ -597,5 +597,6 @@
   "time.daysAgo": "{{n}} วันที่แล้ว",
   "staff.inbox.status.waiting": "ใหม่",
   "details.er.open": "ฉุกเฉิน",
-  "details.er.closed": "ฉุกเฉินปิด"
+  "details.er.closed": "ฉุกเฉินปิด",
+  "doctor.refer.track": "ติดตาม"
 }
