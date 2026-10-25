@@ -82,6 +82,11 @@ describe('requests, referrals and settings', () => {
     expect(canAnswerRequest(cardio, referral)).toBe(true);
     expect(canAnswerRequest(nurse('er'), referral)).toBe(true);
     expect(canAnswerRequest(nurse('surgery' as never), referral)).toBe(false);
+    // The receiving hospital's doctors accept referrals themselves, but not patients' own requests.
+    expect(canAnswerRequest(doctor, referral)).toBe(true);
+    expect(canAnswerRequest(doctor, { hospitalId: H1, department: 'cardiology' })).toBe(false);
+    expect(canAnswerRequest({ ...doctor, hospitalId: H2 }, referral)).toBe(false);
+    expect(canAnswerRequest(doctor, { ...referral, fromHospitalId: H1 })).toBe(false);
   });
 
   it('lets a doctor start and confirm their own referral only', () => {

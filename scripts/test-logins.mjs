@@ -85,7 +85,9 @@ if (departmentsOnly) {
   // One account per department, readable emails: cardiology.rama9@medora.demo and so on.
   ACCOUNTS = DEMO.filter((h) => DEPARTMENTS.every((d) => h.departments.includes(d.dept))).flatMap((h) => [
     // The hospital's referring doctor: runs the AI referral (for example a heart attack from Chao Phraya to Rama Nine).
-    { email: `doctor.${h.key}@medora.demo`, group: 'doctors', role: 'Doctor: AI referral to another hospital', hospitalId: seedId(h.key), section: h.name.en },
+    { email: `doctor.${h.key}@medora.demo`, group: 'doctors', role: 'Doctor: refer patients, accept incoming referrals', hospitalId: seedId(h.key), section: h.name.en },
+    // General / emergency requests (no department) go to the emergency unit.
+    { email: `general.${h.key}@medora.demo`, group: 'hospital_staff', unit: 'er', role: 'General (emergency): requests without a department', hospitalId: seedId(h.key), section: h.name.en },
     ...DEPARTMENTS.map((d) => ({
       email: `${d.unit}.${h.key}@medora.demo`,
       group: 'hospital_staff',

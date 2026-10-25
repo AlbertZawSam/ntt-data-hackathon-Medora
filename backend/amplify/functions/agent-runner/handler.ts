@@ -523,6 +523,8 @@ export const handler = async (event: StartReferralEvent): Promise<void> => {
   const referralResult = await client.models.Referral.get({ id: referralId });
   dataError(referralResult.errors, 'get referral');
   if (!referralResult.data || referralResult.data.status !== 'running') return;
+  // The agent runs only AI referrals: a direct referral is the doctor's choice of hospital.
+  if ((referralResult.data as { mode?: string }).mode === 'direct') return;
   // Only the doctor who owns the referral can start its agent run.
   if (event.identity?.sub && event.identity.sub !== referralResult.data.ownerId) return;
   const referral = referralRun(referralResult.data);

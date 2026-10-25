@@ -8,6 +8,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { NO_REPLY_MS } from '@medora/shared/logic/care';
 import type { CareRequest } from '@medora/shared/logic/types';
 import { MessageThread } from '../../src/components/MessageThread';
+import { agoText } from '../../src/i18n/ago';
 import { pick, type StringKey } from '../../src/i18n/t';
 import { cancelRequest } from '../../src/services/data';
 import { useApp, useT } from '../../src/state/AppProvider';
@@ -67,8 +68,7 @@ export default function PatientRequestsScreen(): React.JSX.Element {
   };
 
   const minutesAgo = (ms: number): string => {
-    const min = Math.floor((now - ms) / 60_000);
-    return min < 1 ? t('patient.requests.justNow') : t('patient.requests.sentAgo', { min });
+    return t('patient.requests.sentAgo', { ago: agoText(t, ms, now) });
   };
 
   return (

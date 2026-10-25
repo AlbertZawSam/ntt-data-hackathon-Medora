@@ -168,6 +168,8 @@ const schema = a.schema({
       pathway: a.string(),
       status: a.string().required(),
       mode: a.string().required(),
+      /** Direct referrals: the patient's request this referral was made from (one open referral per patient). */
+      sourceRequestId: a.string(),
       chosenId: a.string(),
       chosenName: a.json(),
       etaMin: a.integer(),
@@ -340,7 +342,8 @@ const schema = a.schema({
     .mutation()
     .arguments({ requestId: a.id().required(), action: a.string().required(), reason: a.string(), note: a.string() })
     .returns(a.string())
-    .authorization((allow) => [allow.group('hospital_staff')])
+    // Doctors may answer only doctor referrals to their hospital (care-actions checks canAnswerRequest).
+    .authorization((allow) => [allow.group('hospital_staff'), allow.group('doctors')])
     .handler(a.handler.function(careActions)),
 
   /** The patient or the request's hospital staff send a quick reply (key) or short text. */
@@ -350,6 +353,21 @@ const schema = a.schema({
     .returns(a.string())
     .authorization((allow) => [allow.group('patients'), allow.group('hospital_staff')])
     .handler(a.handler.function(careActions)),
+
+  /** Doctors: the other hospitals they can refer to, nearest first, with the public details only. */
+  referralTargets: a
+    .query()
+    .returns(a.string())
+    .authorization((allow) => [allow.group('doctors')])
+    .handler(a.handler.function(referralActions)),
+
+  /** Doctors: refer a patient of their hospital to a hospital and department they choose. */
+  referPatient: a
+    .mutation()
+    .arguments({ requestId: a.string().required(), toHospitalId: a.string().required(), department: a.string() })
+    .returns(a.string())
+    .authorization((allow) => [allow.group('doctors')])
+    .handler(a.handler.function(referralActions)),
 
   /** A doctor starts a referral for their own hospital; the agent is started separately by `startReferral`. */
   openReferral: a

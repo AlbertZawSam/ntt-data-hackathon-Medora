@@ -4,8 +4,11 @@ import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import { callerFromClaims, canStartReferral } from '@medora/shared/logic/access';
 import { SET_ASIDE_TEXT, checkReferralDecision, isSetAsideReason, type ReferralDecision } from '@medora/shared/logic/referral';
-import { kindForNeed, occupyOne } from '@medora/shared/logic/reservations';
-import type { HospitalStatus } from '@medora/shared/logic/types';
+import { checkDirectReferral, referralTargets } from '@medora/shared/logic/directReferral';
+import { activeHolds, kindForNeed, occupyOne, withHolds, type Reservation } from '@medora/shared/logic/reservations';
+import { driveEstimate, haversineKm } from '@medora/shared/logic/ranking';
+import type { SpecialistRecord } from '@medora/shared/logic/specialists';
+import type { Bi, HospitalStatus } from '@medora/shared/logic/types';
 
 type Rec = Record<string, unknown>;
 type Result<T> = { data: T | null; errors?: unknown[] };
@@ -20,16 +23,19 @@ interface ReferralRow {
   ownerId: string;
   fromHospitalId: string;
   status: string;
+  sourceRequestId?: string | null;
   chosenId?: string | null;
   etaMin?: number | null;
 }
 interface Client {
   models: {
     Referral: Model<ReferralRow>;
-    CareRequest: Model<{ id: string; hospitalId: string; status: string; needKey: string; referralId?: string | null }>;
+    CareRequest: Model<{ id: string; hospitalId: string; status: string; needKey: string; type?: string; referralId?: string | null; patient?: unknown }>;
     Transfer: Model<{ id: string; ownerId: string; status: string; referralId: string; toHospitalId: string }>;
-    Reservation: Model<{ id: string; requestId: string; state: string }>;
-    HospitalStatus: Model<{ id: string; status: unknown }>;
+    Reservation: Model<Reservation & { requestId: string; state: string }>;
+    HospitalStatus: Model<{ id: string; hospitalId: string; status: unknown }>;
+    HospitalProfile: Model<{ id: string; hospitalId: string; name: unknown; lat: number; lng: number; typicalWaitMin: number }>;
+    Specialist: Model<Omit<SpecialistRecord, 'slots'> & { slots: unknown }>;
     Activity: Model<{ id: string }>;
   };
 }
@@ -185,11 +191,116 @@ async function arrive(client: Client, event: AppSyncResolverEvent<Rec>): Promise
   return 'arrived';
 }
 
+const parseJson = <T>(v: unknown): T => (typeof v === 'string' ? (JSON.parse(v) as T) : (v as T));
+
+/** Every hospital's public profile and live status (held beds counted as taken), for direct referrals. */
+async function loadHospitals(client: Client) {
+  const [profiles, statuses, holds, specialists] = await Promise.all([
+    client.models.HospitalProfile.list({ limit: 1000 }),
+    client.models.HospitalStatus.list({ limit: 1000 }),
+    client.models.Reservation.list({ limit: 1000 }),
+    client.models.Specialist.list({ limit: 1000 }),
+  ]);
+  if (profiles.errors?.length || statuses.errors?.length || holds.errors?.length) throw new Error('data-unavailable');
+  const statusById = new Map(statuses.data.map((s) => [s.hospitalId, parseJson<HospitalStatus>(s.status)]));
+  const now = Date.now();
+  const hospitals = profiles.data.flatMap((p) => {
+    const status = statusById.get(p.hospitalId);
+    const profile = { hospitalId: p.hospitalId, name: parseJson<Bi>(p.name), lat: p.lat, lng: p.lng, typicalWaitMin: p.typicalWaitMin };
+    return status ? [{ profile, status: withHolds(status, activeHolds(holds.data, p.hospitalId, now)) }] : [];
+  });
+  const records: SpecialistRecord[] = specialists.errors?.length ? [] : specialists.data.map((r) => ({ ...r, slots: parseJson<SpecialistRecord['slots']>(r.slots) ?? [] }));
+  return { hospitals, specialists: records };
+}
+
+/** Doctors: the other hospitals they can refer to, nearest first, with the public details only. */
+async function targets(client: Client, event: AppSyncResolverEvent<Rec>): Promise<string> {
+  const me = doctor(event);
+  const { hospitals, specialists } = await loadHospitals(client);
+  const origin = hospitals.find((h) => h.profile.hospitalId === me.hospitalId);
+  if (!origin) throw new Error('no-hospital');
+  return JSON.stringify(referralTargets(origin.profile, hospitals, specialists, Date.now()));
+}
+
+/**
+ * Doctors: refer a patient of their hospital to a hospital and department they chose. Creates the referral
+ * (mode `direct`) and the request at the receiving hospital, routed to that department; the department
+ * accepts or declines (care-actions), then the doctor confirms the transfer as usual.
+ */
+async function referPatient(client: Client, event: AppSyncResolverEvent<Rec>): Promise<string> {
+  const me = doctor(event);
+  const { requestId, toHospitalId, department } = event.arguments;
+  const source = must(await client.models.CareRequest.get({ id: String(requestId) }), 'no-request');
+  const { hospitals } = await loadHospitals(client);
+  const to = hospitals.find((h) => h.profile.hospitalId === toHospitalId);
+  const from = hospitals.find((h) => h.profile.hospitalId === me.hospitalId);
+  const check = checkDirectReferral(me.hospitalId, source, String(toHospitalId), to?.status, department);
+  if (!check.ok || !to || !from) {
+    console.warn(`referral-actions refused: ${check.ok ? 'no-hospital' : check.reason}`);
+    throw new Error(check.ok ? 'no-hospital' : check.reason);
+  }
+  // One open referral per patient: a second tap, or sending the same patient elsewhere, waits for the first to end.
+  const open = await client.models.Referral.list({ filter: { fromHospitalId: { eq: me.hospitalId }, sourceRequestId: { eq: source.id } }, limit: 100 });
+  if (open.errors?.length) throw new Error('data-unavailable');
+  if (open.data.some((r) => r.status === 'running' || r.status === 'awaiting')) {
+    console.warn('referral-actions refused: already-referred');
+    throw new Error('already-referred');
+  }
+  const patient = parseJson<{ name?: string; phone?: string; description?: string }>(source.patient) ?? {};
+  const description = (patient.description ?? '').trim().slice(0, 2000) || 'Referred patient';
+  const etaMin = Math.max(1, Math.round(driveEstimate(haversineKm(from.profile, to.profile), new Date())));
+  const now = Date.now();
+  const referral = must(
+    await client.models.Referral.create({
+      fromHospitalId: me.hospitalId,
+      ownerId: me.userId,
+      text: description,
+      lang: 'en',
+      status: 'running',
+      mode: 'direct',
+      sourceRequestId: source.id,
+      chosenId: to.profile.hospitalId,
+      chosenName: JSON.stringify(to.profile.name),
+      etaMin,
+      requestIds: [],
+      startedAtMs: now,
+    }),
+    'create-failed',
+  );
+  const dept = typeof department === 'string' && department ? department : undefined;
+  const created = must(
+    await client.models.CareRequest.create({
+      type: 'referral',
+      hospitalId: to.profile.hospitalId,
+      ownerId: me.userId,
+      needKey: source.needKey || 'general',
+      etaMin,
+      status: 'waiting',
+      auto: false,
+      hospitalName: JSON.stringify(to.profile.name),
+      patient: JSON.stringify({ name: patient.name, phone: patient.phone, mode: 'ambulance', description, referredFrom: from.profile.name }),
+      fromHospitalId: me.hospitalId,
+      referralId: referral.id,
+      ...(dept ? { department: dept } : {}),
+      createdAtMs: now,
+    }),
+    'create-failed',
+  );
+  must(await client.models.Referral.update({ id: referral.id, requestIds: [created.id] }), 'save-failed');
+  await log(client, me.hospitalId, me.userId, `Referral ${referral.id}: sent to ${to.profile.hospitalId}${dept ? ` (${dept})` : ''}`, `การส่งต่อ ${referral.id}: ส่งไปยัง ${to.profile.hospitalId}`);
+  console.info(`referral-actions refer ok: department=${dept ?? '-'}`);
+  return referral.id;
+}
+
 export const handler = async (event: AppSyncResolverEvent<Rec>): Promise<string> => {
   const client = await dataClient();
   // Amplify Gen 2 function resolvers pass the field at the top level (event.fieldName); AppSync's
   // direct Lambda resolvers use event.info.fieldName. Accept both.
   switch ((event as { fieldName?: string }).fieldName ?? event.info?.fieldName) {
+    case 'referralTargets':
+      return targets(client, event);
+    case 'referPatient':
+      return referPatient(client, event);
     case 'openReferral':
       return openReferral(client, event);
     case 'decideReferral':

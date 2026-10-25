@@ -4,6 +4,7 @@
  * request raises an alert banner with a vibration. The server checks hospital and role again.
  * Requirements: 6.3, 6.4, 10.2, 10.3, 10.5
  */
+import { useRouter, type Href } from 'expo-router';
 import React from 'react';
 import { Platform, StyleSheet, Text, Vibration, View } from 'react-native';
 import { canAnswerRequest } from '@medora/shared/logic/access';
@@ -36,6 +37,7 @@ export default function StaffInboxScreen(): React.JSX.Element {
   const t = useT();
   const theme = useTheme();
   const { data, session, lang } = useApp();
+  const router = useRouter();
   const [now, setNow] = React.useState(Date.now());
   const [busy, setBusy] = React.useState<string | null>(null);
   const [failed, setFailed] = React.useState(false);
@@ -160,6 +162,9 @@ export default function StaffInboxScreen(): React.JSX.Element {
                 </View>
               ) : null}
               {r.status === 'accepted' ? <Button size="lg" icon="walk" label={t('staff.inbox.arrived')} busy={busy === r.id} onPress={() => void act(r.id, 'arrived')} /> : null}
+              {r.referralId ? (
+                <Button variant="ghost" icon="document-text-outline" label={t('staff.inbox.openReferral')} onPress={() => router.push({ pathname: '/(staff)/referral', params: { id: r.id } } as unknown as Href)} />
+              ) : null}
               {r.status === 'accepted' ? (
                 <>
                   <Button variant={chatOpen === r.id ? 'ghost' : 'secondary'} icon={chatOpen === r.id ? 'chevron-up' : 'chatbubbles'} label={t('staff.inbox.messages')} onPress={() => setChatOpen(chatOpen === r.id ? null : r.id)} />

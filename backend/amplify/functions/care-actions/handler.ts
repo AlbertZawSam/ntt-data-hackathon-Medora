@@ -36,6 +36,7 @@ interface Client {
     Message: Model<{ id: string }>;
     Reservation: Model<Reservation> & { list(input: Record_): Promise<{ data: Reservation[]; errors?: unknown[] }> };
     Activity: Model<{ id: string }>;
+    Referral: Model<{ id: string; status: string; mode: string; chosenId?: string | null }>;
     Transfer: Model<{ id: string; status: string }> & {
       list(input: Record_): Promise<{ data: Array<{ id: string; status: string; toHospitalId: string }>; errors?: unknown[] }>;
     };
@@ -118,7 +119,8 @@ function patientId(event: AppSyncResolverEvent<Record_>): string {
 function staffCaller(event: AppSyncResolverEvent<Record_>) {
   const identity = event.identity as AppSyncIdentityCognito | null | undefined;
   const caller = callerFromClaims(identity?.claims as Record_ | undefined, process.env.STAFF_USER_POOL_ID);
-  if (!caller?.hospitalId || !caller.groups.includes(GROUPS.staff)) throw new Error('not-staff');
+  // Unit staff, or doctors (who may answer only doctor referrals; canAnswerRequest decides per request).
+  if (!caller?.hospitalId || !(caller.groups.includes(GROUPS.staff) || caller.groups.includes(GROUPS.doctors))) throw new Error('not-staff');
   return { caller, sub: String(identity?.sub ?? '') };
 }
 
@@ -188,6 +190,9 @@ async function answerRequest(client: Client, event: AppSyncResolverEvent<Record_
   const request = must(await client.models.CareRequest.get({ id: String(event.arguments.requestId) }), 'no-request');
   // Staff answer only their own hospital's requests (docs/roles.md).
   if (!canAnswerRequest(caller, request)) throw new Error('not-staff');
+  // Doctors only accept or decline referrals: arrival (which changes bed counts) and undo stay with unit staff.
+  const staffMember = caller.groups.includes(GROUPS.staff);
+  if (!staffMember && action !== 'accept' && action !== 'decline') throw new Error('not-staff');
   const move = transition(request, action as RequestAction, Date.now());
   if (!move.ok) throw new Error(move.reason);
 
@@ -205,6 +210,7 @@ async function answerRequest(client: Client, event: AppSyncResolverEvent<Record_
     'save-failed',
   );
   if (action === 'accept') await hold(client, request);
+  if ((action === 'accept' || action === 'decline') && request.referralId) await answerDirectReferral(client, request.referralId, request.hospitalId, action);
   if (action === 'decline' || action === 'undo') await settle(client, request.id, 'released');
   if (action === 'arrived') {
     // The patient now occupies the bed: the hold becomes a used bed, so the count goes down by one.
@@ -214,9 +220,32 @@ async function answerRequest(client: Client, event: AppSyncResolverEvent<Record_
     if (kind) await occupy(client, request.hospitalId, kind);
     if (request.referralId) await arriveTransfer(client, request.referralId, request.hospitalId);
   }
-  await log(client, request.hospitalId, sub, `Unit: ${caller.unit ?? '-'}`, `หน่วย: ${caller.unit ?? '-'}`, `Request ${request.id}: ${action}`, `คำขอ ${request.id}: ${action}`);
+  await log(client, request.hospitalId, sub, staffMember ? `Unit: ${caller.unit ?? '-'}` : 'Doctor', staffMember ? `หน่วย: ${caller.unit ?? '-'}` : 'แพทย์', `Request ${request.id}: ${action}`, `คำขอ ${request.id}: ${action}`);
   console.info(`care-actions answer ok: action=${action}`);
   return 'ok';
+}
+
+/**
+ * A doctor's direct referral waits for the receiving department: accepting makes it ready for the doctor
+ * to confirm the transfer; declining closes it so the doctor can choose another hospital. AI referrals are
+ * driven by the agent and left alone.
+ */
+async function answerDirectReferral(client: Client, referralId: string, hospitalId: string, action: 'accept' | 'decline'): Promise<void> {
+  const referral = await client.models.Referral.get({ id: referralId });
+  // Only the hospital the doctor chose answers a direct referral.
+  if (!referral.data || referral.data.mode !== 'direct' || referral.data.status !== 'running' || referral.data.chosenId !== hospitalId) return;
+  const accepted = action === 'accept';
+  const r = await client.models.Referral.update({
+    id: referralId,
+    status: accepted ? 'awaiting' : 'failed',
+    recommendedAtMs: Date.now(),
+    why: JSON.stringify(
+      accepted
+        ? { en: 'The receiving department accepted the patient. Confirm to start the transfer.', th: 'แผนกปลายทางตอบรับผู้ป่วยแล้ว ยืนยันเพื่อเริ่มการส่งต่อ' }
+        : { en: 'The receiving hospital declined. Choose another hospital.', th: 'โรงพยาบาลปลายทางปฏิเสธ โปรดเลือกโรงพยาบาลอื่น' },
+    ),
+  });
+  if (r.errors?.length) console.error('care-actions: referral update failed');
 }
 
 /** Whether the hospital could treat this request's need at the moment staff accept it (success metric). */

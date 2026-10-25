@@ -211,3 +211,84 @@ describe('a doctor referral sent to Cardiology', () => {
     expect(fake.tables('CareRequest').find((r) => r.id === 'ref-q')?.status).toBe('accepted');
   });
 });
+
+describe('the receiving department answers a direct referral', () => {
+  const cardio = { groups: ['hospital_staff'], hospitalId: 'H1', unit: 'cardiology' };
+  beforeEach(() => {
+    fake.tables('Referral').push({ id: 'dr1', mode: 'direct', status: 'running', chosenId: 'H1' } as never);
+    fake.tables('CareRequest').push({ id: 'dq', type: 'referral', hospitalId: 'H1', ownerId: 'd1', needKey: 'general', status: 'waiting', auto: false, referralId: 'dr1', department: 'cardiology', createdAtMs: Date.now() } as never);
+  });
+  it('accepting makes the referral ready for the doctor to confirm', async () => {
+    await call(staffEvent('answerRequest', { requestId: 'dq', action: 'accept' }, cardio));
+    expect(fake.tables('Referral').find((r) => r.id === 'dr1')?.status).toBe('awaiting');
+  });
+  it('declining closes it so the doctor can choose another hospital', async () => {
+    await call(staffEvent('answerRequest', { requestId: 'dq', action: 'decline', reason: 'busy' }, cardio));
+    expect(fake.tables('Referral').find((r) => r.id === 'dr1')?.status).toBe('failed');
+  });
+});
+
+describe('direct referral answers, hardening', () => {
+  it('ignores answers to an AI referral, and answers from a hospital the doctor did not choose', async () => {
+    const er = { groups: ['hospital_staff'], hospitalId: 'H1', unit: 'er' };
+    fake.tables('Referral').push({ id: 'ai1', mode: 'ai', status: 'running' } as never, { id: 'dr2', mode: 'direct', status: 'running', chosenId: 'H9' } as never);
+    fake.tables('CareRequest').push(
+      { id: 'qa', type: 'referral', hospitalId: 'H1', ownerId: 'd1', needKey: 'general', status: 'waiting', auto: false, referralId: 'ai1', createdAtMs: Date.now() } as never,
+      { id: 'qb', type: 'referral', hospitalId: 'H1', ownerId: 'd1', needKey: 'general', status: 'waiting', auto: false, referralId: 'dr2', createdAtMs: Date.now() } as never,
+    );
+    await call(staffEvent('answerRequest', { requestId: 'qa', action: 'accept' }, er));
+    await call(staffEvent('answerRequest', { requestId: 'qb', action: 'accept' }, er));
+    expect(fake.tables('Referral').find((r) => r.id === 'ai1')?.status).toBe('running');
+    expect(fake.tables('Referral').find((r) => r.id === 'dr2')?.status).toBe('running');
+  });
+  it("refuses staff of another hospital on a direct referral's request", async () => {
+    fake.tables('CareRequest').push({ id: 'qc', type: 'referral', hospitalId: 'H1', ownerId: 'd1', needKey: 'general', status: 'waiting', auto: false, referralId: 'dr3', createdAtMs: Date.now() } as never);
+    await expect(call(staffEvent('answerRequest', { requestId: 'qc', action: 'accept' }, { groups: ['hospital_staff'], hospitalId: 'H2', unit: 'er' }))).rejects.toThrow('not-staff');
+  });
+});
+
+describe("the receiving hospital's doctor", () => {
+  const doc = { groups: ['doctors'], hospitalId: 'H1' };
+  it('accepts a direct referral manually, which makes it ready for the referring doctor to confirm', async () => {
+    fake.tables('Referral').push({ id: 'dr9', mode: 'direct', status: 'running', chosenId: 'H1' } as never);
+    fake.tables('CareRequest').push({ id: 'q9', type: 'referral', hospitalId: 'H1', ownerId: 'd-other', needKey: 'general', status: 'waiting', auto: false, referralId: 'dr9', department: 'surgery', createdAtMs: Date.now() } as never);
+    await call(staffEvent('answerRequest', { requestId: 'q9', action: 'accept' }, doc));
+    expect(fake.tables('CareRequest').find((r) => r.id === 'q9')?.status).toBe('accepted');
+    expect(fake.tables('Referral').find((r) => r.id === 'dr9')?.status).toBe('awaiting');
+  });
+  it("can't answer a patient's own request, or another hospital's referral", async () => {
+    fake.tables('CareRequest').push(
+      { id: 'v9', type: 'visit', hospitalId: 'H1', ownerId: 'p1', needKey: 'general', status: 'waiting', auto: false, createdAtMs: Date.now() } as never,
+      { id: 'r9', type: 'referral', hospitalId: 'H2', ownerId: 'd-other', needKey: 'general', status: 'waiting', auto: false, referralId: 'x', createdAtMs: Date.now() } as never,
+    );
+    await expect(call(staffEvent('answerRequest', { requestId: 'v9', action: 'accept' }, doc))).rejects.toThrow('not-staff');
+    await expect(call(staffEvent('answerRequest', { requestId: 'r9', action: 'accept' }, doc))).rejects.toThrow('not-staff');
+  });
+});
+
+describe('doctors only accept or decline referrals', () => {
+  const doc = { groups: ['doctors'], hospitalId: 'H1' };
+  beforeEach(() => {
+    fake.tables('CareRequest').push(
+      { id: 'qa1', type: 'referral', hospitalId: 'H1', ownerId: 'd-other', needKey: 'stemi', status: 'accepted', auto: true, overrideUntil: Date.now() + 60_000, referralId: 'rf1', fromHospitalId: 'H2', createdAtMs: Date.now() } as never,
+      { id: 'qa2', type: 'referral', hospitalId: 'H1', ownerId: 'd-me', needKey: 'stemi', status: 'waiting', auto: false, referralId: 'rf2', fromHospitalId: 'H1', createdAtMs: Date.now() } as never,
+    );
+  });
+  it("can't mark arrival (bed counts) or undo, which stay with unit staff", async () => {
+    await expect(call(staffEvent('answerRequest', { requestId: 'qa1', action: 'arrived' }, doc))).rejects.toThrow('not-staff');
+    await expect(call(staffEvent('answerRequest', { requestId: 'qa1', action: 'undo' }, doc))).rejects.toThrow('not-staff');
+    expect(JSON.parse(String(fake.tables('HospitalStatus')[0].status)).beds).toBe(5);
+  });
+  it('never accepts a referral sent from their own hospital', async () => {
+    await expect(call(staffEvent('answerRequest', { requestId: 'qa2', action: 'accept' }, doc))).rejects.toThrow('not-staff');
+  });
+  it('refuses a public-pool account placed in the doctors group', async () => {
+    const event = {
+      typeName: 'Mutation',
+      fieldName: 'answerRequest',
+      arguments: { requestId: 'qa1', action: 'accept' },
+      identity: { sub: 'x1', claims: { iss: `https://cognito-idp.us-east-1.amazonaws.com/${POOLS.PUBLIC}`, 'cognito:groups': ['doctors'], 'custom:hospitalId': 'H1' } },
+    };
+    await expect(call(event)).rejects.toThrow('not-staff');
+  });
+});

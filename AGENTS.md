@@ -81,7 +81,7 @@ Run every command from the repository root (npm workspaces).
 Medora for Hospitals has three roles, each a Cognito group in the staff pool, every account tied to one hospital (`custom:hospitalId`):
 - **Hospital admin** (`admins`): settings, specialists and clinic slots, auto-accept rules, which unit owns each status item, staff invitations; doesn't update live status or answer requests.
 - **Unit staff** (`hospital_staff`): nurses and technologists, each owning **exactly one unit** (`custom:unit`: `ward`, `icu`, `nicu`, `er`, `radiology`, `cathlab`, or a department: `cardiology`, `surgery`, `obstetrics`); update only their unit's beds and equipment (departments own none); answer requests and messages (a request sent to a department only by that department's staff).
-- **Doctor** (`doctors`): start referrals with the AI agent; confirm or set aside only their own referrals.
+- **Doctor** (`doctors`): start referrals with the AI agent or to a hospital and department they choose; confirm or set aside only their own referrals; accept or decline doctor referrals sent to their hospital (not patients' requests, not arrival or undo, which stay with unit staff).
 
 Enforce every right on the server (AppSync rules and Lambda checks), never only by hiding screens. `custom:hospitalId` and `custom:unit` are writable only by admins.
 
