@@ -34,7 +34,7 @@ import { SectionHeader } from '../../src/ui/SectionHeader';
 import { SkeletonCard } from '../../src/ui/Skeleton';
 import { fonts, fontSizes, spacing, useBreakpoint, useTheme } from '../../src/ui/theme';
 
-type Phase = 'describe' | 'searching' | 'results';
+type Phase = 'describe' | 'searching' | 'unclear' | 'results';
 
 const LABEL_KEY: Record<PublicHospital['label'], StringKey> = {
   available: 'availability.available',
@@ -113,6 +113,11 @@ export default function PatientCareScreen(): React.JSX.Element {
       setSummary(result.summary);
       setHospitals(result.hospitals);
       setLastResults(result.hospitals);
+      // Not a health problem ("how is the weather?"): ask again, with hospitals one tap away, never blocked.
+      if (result.unclear) {
+        setPhase('unclear');
+        return;
+      }
       setPhase('results');
       remember('care', { text: input.trim(), atMs: Date.now() } satisfies SavedSearch);
     } catch {
@@ -178,6 +183,19 @@ export default function PatientCareScreen(): React.JSX.Element {
                     <Chip key={key} label={t(key)} icon="chatbubble-ellipses-outline" selected={false} onPress={() => setText(t(key))} />
                   ))}
                 </View>
+              </View>
+            ) : null}
+            {phase === 'unclear' ? (
+              <View style={styles.stack}>
+                <Notice tone="warning" title={t('patient.care.unclearTitle')}>
+                  {t('patient.care.unclearBody')}
+                </Notice>
+                <View style={styles.chips}>
+                  {EXAMPLES.map((key) => (
+                    <Chip key={key} label={t(key)} icon="chatbubble-ellipses-outline" selected={false} onPress={() => { setText(t(key)); setPhase('describe'); }} />
+                  ))}
+                </View>
+                <Button variant="ghost" icon="list" label={t('patient.care.showAnyway')} onPress={() => setPhase('results')} />
               </View>
             ) : null}
             {error ? <Notice tone="danger">{t(error)}</Notice> : null}

@@ -50,6 +50,12 @@ describe('findCare', () => {
     expect(out.emergency).toBeDefined();
     expect(out.hospitals).toBeUndefined();
   });
+  it('marks text that is not a description as unclear, and still returns hospitals', async () => {
+    const out = JSON.parse(await run(findCare, patientEvent('findCare', { ...args, description: 'asdfgh' })));
+    expect(out.unclear).toBe(true);
+    expect(out.hospitals.length).toBeGreaterThan(0);
+    expect(JSON.parse(await run(findCare, patientEvent('findCare', args))).unclear).toBe(false);
+  });
   it('returns hospitals as simple labels only, with the keyword fallback when no guardrail is set', async () => {
     const out = JSON.parse(await run(findCare, patientEvent('findCare', args)));
     expect(out).toMatchObject({ need: 'child', aiUsed: false });

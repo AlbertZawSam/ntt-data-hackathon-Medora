@@ -390,7 +390,7 @@ export async function writeActivity(input: Omit<Activity, 'id' | 'createdAt'>): 
 /** What `find-care` returns: an emergency (fixed rules, layer 2) or hospitals as simple labels. */
 export type FindCareResult =
   | { emergency: { key: string; label: Bi } }
-  | { need: NeedKey; aiUsed: boolean; summary?: Bi; hospitals: PublicHospital[] };
+  | { need: NeedKey; aiUsed: boolean; summary?: Bi; hospitals: PublicHospital[]; unclear?: boolean };
 
 /** Layer 2 of the emergency check, the intake agent and the ranking, all on the server. */
 export async function findCare(input: { description: string; lat: number; lng: number }): Promise<FindCareResult> {
