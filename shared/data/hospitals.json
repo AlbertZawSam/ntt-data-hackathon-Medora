@@ -30,15 +30,15 @@
       "totalBeds": 160,
       "nicuTotal": 0,
       "typicalWaitMin": 40,
-      "departments": ["ed", "neuro", "pediatrics", "ortho"],
+      "departments": ["ed", "neuro", "pediatrics", "ortho", "cardio", "obstetrics"],
       "equipment": ["ct", "mri"],
-      "demo": "Nearest to the default location (Siam) but its children's ward is diverting and the CT is down, so Find care skips it for children and a stroke referral skips it.",
+      "demo": "Nearest to the default location (Siam) but its children's ward is diverting and the CT is down, so Find care skips it for children and a stroke referral skips it. Demo departments: Cardiology, Surgery and Obstetrics (no cath lab, so serious heart patients are referred to Rama Nine).",
       "status": {
         "beds": 3, "icu": 1, "nicu": 0,
-        "depts": { "ed": "open", "neuro": "open", "pediatrics": "diverting", "ortho": "open" },
+        "depts": { "ed": "open", "neuro": "open", "pediatrics": "diverting", "ortho": "open", "cardio": "open", "obstetrics": "open" },
         "equip": { "ct": false, "mri": true },
-        "oncall": { "er": true, "neurologist": true, "pediatrician": false, "orthopedist": true },
-        "rules": { "minBeds": 1, "visit": true },
+        "oncall": { "er": true, "neurologist": true, "pediatrician": false, "orthopedist": true, "cardiologist": true, "obstetrician": true },
+        "rules": { "minBeds": 1, "visit": false },
         "conflict": false,
         "updatedMinAgo": 8
       }

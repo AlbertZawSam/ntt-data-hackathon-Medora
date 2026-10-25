@@ -78,7 +78,7 @@ describe('ask_hospitals waiting', () => {
 
   it('keeps waiting while a hospital has not answered, and stops at the policy limit', async () => {
     const result = await ask(null);
-    expect(result.settledAfterMs).toBe(60_000);
+    expect(result.settledAfterMs).toBe(20_000); // capped at MAX_WAIT_SECONDS, even though it asked for 60
   });
 });
 

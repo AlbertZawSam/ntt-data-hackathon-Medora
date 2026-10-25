@@ -22,9 +22,15 @@ export interface AskPolicy {
   waitSeconds: number;
 }
 
-/** Non-urgent: 1 at a time, wait 60 s; urgent under 90 minutes left: 3, 30 s; other urgent: 2, 45 s. */
+/**
+ * Non-urgent: 1 at a time; urgent under 90 minutes left: 3 at once; other urgent: 2. Hospitals reply in
+ * seconds (staff on the inbox, rules, demo replies) and the agent stops as soon as all have replied, so it
+ * waits at most 15 s for the most urgent cases and 20 s otherwise (MAX_WAIT_SECONDS).
+ */
+export const MAX_WAIT_SECONDS = 20;
+
 export function askPolicy(pathway: Pathway, remainingMin: number): AskPolicy {
-  if (!pathway.urgent) return { count: 1, waitSeconds: 60 };
-  if (remainingMin < 90) return { count: 3, waitSeconds: 30 };
-  return { count: 2, waitSeconds: 45 };
+  if (!pathway.urgent) return { count: 1, waitSeconds: MAX_WAIT_SECONDS };
+  if (remainingMin < 90) return { count: 3, waitSeconds: 15 };
+  return { count: 2, waitSeconds: MAX_WAIT_SECONDS };
 }

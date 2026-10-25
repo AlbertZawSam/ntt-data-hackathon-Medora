@@ -7,7 +7,8 @@
     "sandbox": "bash ../scripts/with-aws.sh ampx sandbox --outputs-out-dir ../frontend",
     "sandbox:delete": "bash ../scripts/with-aws.sh ampx sandbox delete",
     "typecheck": "tsc --noEmit -p amplify",
-    "test": "jest"
+    "test": "jest",
+    "use-demo": "bash ../scripts/with-aws.sh ampx generate outputs --stack amplify-medorabackend-demo-sandbox-3466453881 --out-dir ../frontend"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-agent": "^3.1156.0",

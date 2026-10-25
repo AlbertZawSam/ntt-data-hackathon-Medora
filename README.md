@@ -85,6 +85,18 @@ Without AWS access, `npm start` still works: the app opens and says it isn't con
 
 Never commit `amplify_outputs.json`, `.env`, `google-services.json` or AWS keys.
 
+### Use the team's shared demo backend (recommended for testing)
+
+One backend, `demo`, is shared by the whole team, with the same hospitals and the same 15 accounts for everyone (Siam Central, Rama Nine and Chao Phraya: a doctor, General, Cardiology, Surgery and Obstetrics each). No `npm run sandbox` needed:
+
+```bash
+npm run login          # AWS SSO, once a day
+npm run use-demo       # writes frontend/amplify_outputs.json for the shared backend
+npm run web
+```
+
+Ask the team for the **department logins page** (passwords and live 6-digit codes; shared privately, never in Git). Patients sign up in the app with their own email. Don't run `npm run sandbox` while using the demo: it would point your app back to your own sandbox (run `npm run use-demo` again to return). Only the person who deployed it deletes it after the submission.
+
 ### Test the hospital and doctor screens
 
 Each teammate does this against their own sandbox (accounts are per sandbox):
