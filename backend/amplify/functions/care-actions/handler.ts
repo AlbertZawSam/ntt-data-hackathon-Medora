@@ -36,7 +36,7 @@ interface Client {
     Message: Model<{ id: string }>;
     Reservation: Model<Reservation> & { list(input: Record_): Promise<{ data: Reservation[]; errors?: unknown[] }> };
     Activity: Model<{ id: string }>;
-    Referral: Model<{ id: string; status: string; mode: string }>;
+    Referral: Model<{ id: string; status: string; mode: string; chosenId?: string | null }>;
     Transfer: Model<{ id: string; status: string }> & {
       list(input: Record_): Promise<{ data: Array<{ id: string; status: string; toHospitalId: string }>; errors?: unknown[] }>;
     };
@@ -206,7 +206,7 @@ async function answerRequest(client: Client, event: AppSyncResolverEvent<Record_
     'save-failed',
   );
   if (action === 'accept') await hold(client, request);
-  if ((action === 'accept' || action === 'decline') && request.referralId) await answerDirectReferral(client, request.referralId, action);
+  if ((action === 'accept' || action === 'decline') && request.referralId) await answerDirectReferral(client, request.referralId, request.hospitalId, action);
   if (action === 'decline' || action === 'undo') await settle(client, request.id, 'released');
   if (action === 'arrived') {
     // The patient now occupies the bed: the hold becomes a used bed, so the count goes down by one.
@@ -226,9 +226,10 @@ async function answerRequest(client: Client, event: AppSyncResolverEvent<Record_
  * to confirm the transfer; declining closes it so the doctor can choose another hospital. AI referrals are
  * driven by the agent and left alone.
  */
-async function answerDirectReferral(client: Client, referralId: string, action: 'accept' | 'decline'): Promise<void> {
+async function answerDirectReferral(client: Client, referralId: string, hospitalId: string, action: 'accept' | 'decline'): Promise<void> {
   const referral = await client.models.Referral.get({ id: referralId });
-  if (!referral.data || referral.data.mode !== 'direct' || referral.data.status !== 'running') return;
+  // Only the hospital the doctor chose answers a direct referral.
+  if (!referral.data || referral.data.mode !== 'direct' || referral.data.status !== 'running' || referral.data.chosenId !== hospitalId) return;
   const accepted = action === 'accept';
   const r = await client.models.Referral.update({
     id: referralId,

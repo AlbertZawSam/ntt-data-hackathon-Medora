@@ -23,13 +23,14 @@ interface ReferralRow {
   ownerId: string;
   fromHospitalId: string;
   status: string;
+  sourceRequestId?: string | null;
   chosenId?: string | null;
   etaMin?: number | null;
 }
 interface Client {
   models: {
     Referral: Model<ReferralRow>;
-    CareRequest: Model<{ id: string; hospitalId: string; status: string; needKey: string; referralId?: string | null; patient?: unknown }>;
+    CareRequest: Model<{ id: string; hospitalId: string; status: string; needKey: string; type?: string; referralId?: string | null; patient?: unknown }>;
     Transfer: Model<{ id: string; ownerId: string; status: string; referralId: string; toHospitalId: string }>;
     Reservation: Model<Reservation & { requestId: string; state: string }>;
     HospitalStatus: Model<{ id: string; hospitalId: string; status: unknown }>;
@@ -238,6 +239,13 @@ async function referPatient(client: Client, event: AppSyncResolverEvent<Rec>): P
     console.warn(`referral-actions refused: ${check.ok ? 'no-hospital' : check.reason}`);
     throw new Error(check.ok ? 'no-hospital' : check.reason);
   }
+  // One open referral per patient: a second tap, or sending the same patient elsewhere, waits for the first to end.
+  const open = await client.models.Referral.list({ filter: { fromHospitalId: { eq: me.hospitalId }, sourceRequestId: { eq: source.id } }, limit: 100 });
+  if (open.errors?.length) throw new Error('data-unavailable');
+  if (open.data.some((r) => r.status === 'running' || r.status === 'awaiting')) {
+    console.warn('referral-actions refused: already-referred');
+    throw new Error('already-referred');
+  }
   const patient = parseJson<{ name?: string; phone?: string; description?: string }>(source.patient) ?? {};
   const description = (patient.description ?? '').trim().slice(0, 2000) || 'Referred patient';
   const etaMin = Math.max(1, Math.round(driveEstimate(haversineKm(from.profile, to.profile), new Date())));
@@ -250,6 +258,7 @@ async function referPatient(client: Client, event: AppSyncResolverEvent<Rec>): P
       lang: 'en',
       status: 'running',
       mode: 'direct',
+      sourceRequestId: source.id,
       chosenId: to.profile.hospitalId,
       chosenName: JSON.stringify(to.profile.name),
       etaMin,

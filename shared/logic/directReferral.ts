@@ -43,7 +43,10 @@ export function referralTargets(
     .sort((a, b) => a.driveMin - b.driveMin);
 }
 
-export type DirectReferralCheck = { ok: true } | { ok: false; reason: 'not-your-patient' | 'same-hospital' | 'no-hospital' | 'bad-department' };
+export type DirectReferralCheck = { ok: true } | { ok: false; reason: 'not-your-patient' | 'bad-state' | 'same-hospital' | 'no-hospital' | 'bad-department' };
+
+/** Patients a doctor can refer: a visit or referral still open or arrived, never a booking or a withdrawn request. */
+const REFERABLE_STATUSES = ['waiting', 'accepted', 'completed'];
 
 /**
  * The doctor may refer only a patient whose request is at their own hospital, to another hospital that
@@ -51,12 +54,13 @@ export type DirectReferralCheck = { ok: true } | { ok: false; reason: 'not-your-
  */
 export function checkDirectReferral(
   doctorHospitalId: string,
-  source: { hospitalId: string },
+  source: { hospitalId: string; type?: string; status?: string },
   toHospitalId: string,
   toStatus: HospitalStatus | undefined,
   department: unknown,
 ): DirectReferralCheck {
   if (source.hospitalId !== doctorHospitalId) return { ok: false, reason: 'not-your-patient' };
+  if (source.type === 'booking' || !REFERABLE_STATUSES.includes(source.status ?? '')) return { ok: false, reason: 'bad-state' };
   if (toHospitalId === doctorHospitalId) return { ok: false, reason: 'same-hospital' };
   if (!toStatus) return { ok: false, reason: 'no-hospital' };
   if (department !== undefined && department !== null && department !== '' && !(isDepartment(department) && openDepartments(toStatus).includes(department))) {

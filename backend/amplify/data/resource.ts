@@ -167,6 +167,8 @@ const schema = a.schema({
       pathway: a.string(),
       status: a.string().required(),
       mode: a.string().required(),
+      /** Direct referrals: the patient's request this referral was made from (one open referral per patient). */
+      sourceRequestId: a.string(),
       chosenId: a.string(),
       chosenName: a.json(),
       etaMin: a.integer(),

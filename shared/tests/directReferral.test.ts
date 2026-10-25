@@ -26,14 +26,19 @@ describe('referralTargets', () => {
 describe('checkDirectReferral', () => {
   const open = openStatus({ depts: { ed: 'open', cardio: 'open', ortho: 'diverting' } });
   it('allows a patient of my hospital to another hospital and an open department', () => {
-    expect(checkDirectReferral('A', { hospitalId: 'A' }, 'B', open, 'cardiology')).toEqual({ ok: true });
-    expect(checkDirectReferral('A', { hospitalId: 'A' }, 'B', open, undefined)).toEqual({ ok: true });
+    expect(checkDirectReferral('A', { hospitalId: 'A', type: 'visit', status: 'accepted' }, 'B', open, 'cardiology')).toEqual({ ok: true });
+    expect(checkDirectReferral('A', { hospitalId: 'A', type: 'visit', status: 'accepted' }, 'B', open, undefined)).toEqual({ ok: true });
   });
   it("refuses another hospital's patient, my own hospital, an unknown hospital and a closed department", () => {
-    expect(checkDirectReferral('A', { hospitalId: 'C' }, 'B', open, undefined)).toEqual({ ok: false, reason: 'not-your-patient' });
-    expect(checkDirectReferral('A', { hospitalId: 'A' }, 'A', open, undefined)).toEqual({ ok: false, reason: 'same-hospital' });
-    expect(checkDirectReferral('A', { hospitalId: 'A' }, 'B', undefined, undefined)).toEqual({ ok: false, reason: 'no-hospital' });
-    expect(checkDirectReferral('A', { hospitalId: 'A' }, 'B', open, 'surgery')).toEqual({ ok: false, reason: 'bad-department' });
-    expect(checkDirectReferral('A', { hospitalId: 'A' }, 'B', open, 'ward')).toEqual({ ok: false, reason: 'bad-department' });
+    expect(checkDirectReferral('A', { hospitalId: 'C', type: 'visit', status: 'accepted' }, 'B', open, undefined)).toEqual({ ok: false, reason: 'not-your-patient' });
+    expect(checkDirectReferral('A', { hospitalId: 'A', type: 'visit', status: 'accepted' }, 'A', open, undefined)).toEqual({ ok: false, reason: 'same-hospital' });
+    expect(checkDirectReferral('A', { hospitalId: 'A', type: 'visit', status: 'accepted' }, 'B', undefined, undefined)).toEqual({ ok: false, reason: 'no-hospital' });
+    expect(checkDirectReferral('A', { hospitalId: 'A', type: 'visit', status: 'accepted' }, 'B', open, 'surgery')).toEqual({ ok: false, reason: 'bad-department' });
+    expect(checkDirectReferral('A', { hospitalId: 'A', type: 'visit', status: 'accepted' }, 'B', open, 'ward')).toEqual({ ok: false, reason: 'bad-department' });
+  });
+  it('refuses bookings and requests the patient cancelled or the hospital declined', () => {
+    for (const source of [{ type: 'booking', status: 'accepted' }, { type: 'visit', status: 'cancelled' }, { type: 'visit', status: 'declined' }, { type: 'visit', status: 'no_reply' }]) {
+      expect(checkDirectReferral('A', { hospitalId: 'A', ...source }, 'B', open, undefined)).toEqual({ ok: false, reason: 'bad-state' });
+    }
   });
 });

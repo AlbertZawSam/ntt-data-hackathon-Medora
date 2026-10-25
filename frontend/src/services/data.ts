@@ -273,6 +273,8 @@ export async function referralTargets(): Promise<ReferralTarget[]> {
 /** Doctors: refer a patient of their hospital to a hospital and department they chose; returns the referral id. */
 export async function referPatient(input: { requestId: string; toHospitalId: string; department?: string }): Promise<string> {
   const result = await client.mutations.referPatient({ requestId: input.requestId, toHospitalId: input.toHospitalId, ...(input.department ? { department: input.department } : {}) });
+  // The server refuses a second referral of a patient whose first is still open: say so plainly.
+  if (JSON.stringify(result.errors ?? []).includes('already-referred')) throw new DataServiceError('already-referred');
   ensureData(result, 'Refer patient');
   if (!result.data) throw new DataServiceError('Refer patient failed.');
   return result.data;

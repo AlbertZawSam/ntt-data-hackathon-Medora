@@ -39,7 +39,7 @@ export function ReferPanel({ patientName, onSend, onUseAi, onClose }: Props): Re
   const [chosen, setChosen] = React.useState<ReferralTarget | null>(null);
   const [department, setDepartment] = React.useState<Department | undefined>(undefined);
   const [busy, setBusy] = React.useState<'send' | 'ai' | null>(null);
-  const [sendError, setSendError] = React.useState(false);
+  const [sendError, setSendError] = React.useState<StringKey | null>(null);
 
   React.useEffect(() => {
     let live = true;
@@ -53,11 +53,11 @@ export function ReferPanel({ patientName, onSend, onUseAi, onClose }: Props): Re
 
   const run = async (kind: 'send' | 'ai', action: () => Promise<void>): Promise<void> => {
     setBusy(kind);
-    setSendError(false);
+    setSendError(null);
     try {
       await action();
-    } catch {
-      setSendError(true);
+    } catch (error) {
+      setSendError(error instanceof Error && error.message === 'already-referred' ? 'doctor.referPanel.alreadyReferred' : 'doctor.referPanel.sendError');
     } finally {
       setBusy(null);
     }
@@ -89,7 +89,7 @@ export function ReferPanel({ patientName, onSend, onUseAi, onClose }: Props): Re
             </View>
           </>
         ) : null}
-        {sendError ? <Notice tone="danger">{t('doctor.referPanel.sendError')}</Notice> : null}
+        {sendError ? <Notice tone="danger">{t(sendError)}</Notice> : null}
         <Button size="lg" icon="send" label={t('doctor.referPanel.send', { hospital: pick(chosen.name, lang) })} busy={busy === 'send'} onPress={() => void run('send', () => onSend(chosen, department))} />
         <Button variant="ghost" icon="chevron-back" label={t('doctor.referPanel.otherHospital')} onPress={() => setChosen(null)} />
       </Card>
@@ -137,7 +137,7 @@ export function ReferPanel({ patientName, onSend, onUseAi, onClose }: Props): Re
           </View>
         </Pressable>
       ))}
-      {sendError ? <Notice tone="danger">{t('doctor.referPanel.sendError')}</Notice> : null}
+      {sendError ? <Notice tone="danger">{t(sendError)}</Notice> : null}
       <Button variant="secondary" icon="sparkles" label={t('doctor.referPanel.ai')} busy={busy === 'ai'} onPress={() => void run('ai', onUseAi)} />
       <Button variant="ghost" icon="close" label={t('common.back')} onPress={onClose} />
     </Card>
