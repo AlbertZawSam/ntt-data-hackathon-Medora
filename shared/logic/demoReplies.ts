@@ -32,8 +32,8 @@ export function demoReply(hospitalKey: string, pathway: PathwayKey): DemoReply {
 }
 
 /**
- * Demo hospitals with department staff accounts (all three departments): their department referrals wait
- * for that department to accept, so the demo shows the cardiology team taking the patient.
+ * Demo hospitals with real staff accounts (all three departments): no automatic demo replies there, so every
+ * referral waits for that hospital's doctor, department or emergency unit to accept it by hand.
  */
 export function hasDepartmentStaff(hospitalKey: string): boolean {
   const hospital = DEMO_HOSPITALS.find((h) => h.key === hospitalKey);

@@ -391,3 +391,38 @@ describe('a heart attack referred from Chao Phraya', () => {
     }
   });
 });
+
+describe('demo replies never answer for hospitals with real staff accounts', () => {
+  it('leaves a referral without a department to Rama Nine waiting for a person', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(NOW);
+    try {
+      const { store } = makeStore(null);
+      store.demoHospitalKey = (id) => id;
+      const updated: string[] = [];
+      store.updateRequest = async (id) => {
+        updated.push(id);
+      };
+      const created: CareRequest[] = [];
+      const create = store.createRequest;
+      store.createRequest = async (request) => {
+        const row = await create(request);
+        created.push(row);
+        return row;
+      };
+      const tools = new ReferralTools({ id: 'ref1', ownerId: 'd1', fromHospitalId: 'chaophraya', text: 'case', lang: 'en', requestIds: [], startedAtMs: Date.now() }, store);
+      // A stroke has no department, so before this fix Rama Nine would have been answered automatically.
+      const assessed = (await tools.execute('assess_case', { pathway: 'stroke' })) as { suggested_parallel_requests: number; hospitals: Array<{ hospital_id: string; can_help: boolean }> };
+      const ids = assessed.hospitals.filter((h) => h.can_help).map((h) => h.hospital_id).slice(0, assessed.suggested_parallel_requests);
+      expect(ids).toContain('rama9');
+      const asking = tools.execute('ask_hospitals', { hospital_ids: ids, wait_seconds: 20 });
+      await jest.advanceTimersByTimeAsync(21_000);
+      await asking;
+      const rama9 = created.find((r) => r.hospitalId === 'rama9')!;
+      expect(rama9.department).toBeUndefined();
+      expect(updated).not.toContain(rama9.id);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+});

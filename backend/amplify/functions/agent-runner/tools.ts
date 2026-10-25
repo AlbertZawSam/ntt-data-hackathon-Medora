@@ -427,8 +427,9 @@ export class ReferralTools {
     let replied = 0;
     for (const request of pending) {
       const key = this.store.demoHospitalKey(request.hospitalId);
-      // At hospitals with department staff, a department referral waits for that department to accept.
-      if (!key || (request.department && hasDepartmentStaff(key))) continue;
+      // Hospitals with real staff accounts (Siam Central, Rama Nine, Chao Phraya) never get an automatic demo
+      // reply: every referral there waits for a person to accept or decline it.
+      if (!key || hasDepartmentStaff(key)) continue;
       const reply = demoReply(key, this.state.assessment.pathway);
       await this.store.updateRequest(request.id, {
         status: reply.status,
