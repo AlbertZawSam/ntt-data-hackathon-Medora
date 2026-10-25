@@ -44,9 +44,26 @@ export function looksLikeNonsense(text: string): boolean {
   return /^[a-z]{4,}$/.test(letters) && KEYBOARD_ROWS.some((row) => [...letters].every((c) => row.includes(c)) && row.includes(letters.slice(0, 4)));
 }
 
+/**
+ * Text that tries to instruct the AI instead of describing a problem ("ignore your instructions", "you are now",
+ * "show your system prompt"), in English and Thai. Caught by fixed rules, before any model call; the Bedrock
+ * guardrail's prompt-attack filter is the second layer.
+ */
+const INJECTION = [
+  /\b(ignore|disregard|forget|override)\b.{0,40}\b(instruction|instructions|rules|prompt|system)\b/i,
+  /\b(system|developer)\s+(prompt|message|instructions)\b/i,
+  /\byou\s+are\s+now\b|\bact\s+as\b|\bpretend\s+(to\s+be|you)\b|\bjailbreak\b|\bdo anything now\b/i,
+  /<\/?\s*(patient_description|system|instructions?)\s*>/i,
+  /(ลืม|เพิกเฉย|ไม่ต้องสนใจ).{0,20}(คำสั่ง|กฎ)/,
+];
+
+export function looksLikeInjection(text: string): boolean {
+  return INJECTION.some((pattern) => pattern.test(text));
+}
+
 /** The keyword fallback when the model is unavailable, refused or answered badly. */
 export function understandByRules(text: string): UnderstandResult {
-  return { emergency: false, need: classifyNeed(text), source: 'rules', ...(looksLikeNonsense(text) ? { unclear: true } : {}) };
+  return { emergency: false, need: classifyNeed(text), source: 'rules', ...(looksLikeNonsense(text) || looksLikeInjection(text) ? { unclear: true } : {}) };
 }
 
 const isNeed = (value: unknown): value is NeedKey => typeof value === 'string' && (NEED_KEYS as readonly string[]).includes(value);

@@ -11,7 +11,7 @@ import type { SpecialistRecord } from '@medora/shared/logic/specialists';
 import { isInBangkok } from '@medora/shared/logic/places';
 import { classifyNeed, evaluate } from '@medora/shared/logic/ranking';
 import { activeHolds, withHolds, type Reservation } from '@medora/shared/logic/reservations';
-import { looksLikeNonsense } from '@medora/shared/logic/understand';
+import { looksLikeInjection, looksLikeNonsense } from '@medora/shared/logic/understand';
 import { redFlag } from '@medora/shared/logic/redFlags';
 import { GROUPS } from '@medora/shared/logic/session';
 import { PATHWAYS } from '@medora/shared/logic/pathways';
@@ -65,6 +65,8 @@ async function understand(description: string): Promise<{ need: NeedKey; summary
         guardrailConfig: { guardrailIdentifier: process.env.GUARDRAIL_ID, guardrailVersion: process.env.GUARDRAIL_VERSION ?? 'DRAFT', trace: 'disabled' },
       }),
     );
+    // The guardrail's prompt-attack filter blocked it: treat it like text that isn't a health problem.
+    if (response.stopReason === 'guardrail_intervened') return { need: 'general', unclear: true };
     const text = response.output?.message?.content?.map((b) => ('text' in b ? b.text : '')).join('') ?? '';
     const json = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1)) as Rec;
     // Not a health problem: general care marked unclear, so the app asks again (hospitals still come back).
@@ -97,9 +99,10 @@ export const handler = async (event: AppSyncResolverEvent<Args>): Promise<string
     return JSON.stringify({ emergency: { key: flag.key, label: flag.label } });
   }
 
-  // Text that can't be a description ("asdfgh", "???") needs no model call, nor does a refresh of known results.
+  // Text that can't be a description ("asdfgh", "???") or tries to instruct the AI needs no model call, nor does a
+  // refresh of known results.
   const known = NEED_KEYS.includes(event.arguments.need as NeedKey) ? (event.arguments.need as NeedKey) : undefined;
-  const nonsense = !known && looksLikeNonsense(description);
+  const nonsense = !known && (looksLikeNonsense(description) || looksLikeInjection(description));
   const ai = nonsense || known ? null : await understand(description.trim());
   const need: NeedKey = known ?? ai?.need ?? classifyNeed(description);
   const unclear = nonsense || ai?.unclear === true;

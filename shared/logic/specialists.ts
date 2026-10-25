@@ -156,24 +156,33 @@ export function specialtyForNeed(need: string): Specialty {
 
 /** Words people use for each specialty, in English and Thai, so a typed search finds it without the exact name. */
 export const SPECIALTY_KEYWORDS: Record<(typeof SPECIALTIES)[number], readonly string[]> = {
-  cardiology: ['cardiology', 'cardiologist', 'heart', 'cardiac', 'chest', 'หัวใจ', 'อายุรกรรมหัวใจ'],
-  neurology: ['neurology', 'neurologist', 'brain', 'stroke', 'nerve', 'headache', 'สมอง', 'ระบบประสาท', 'อัมพาต'],
-  obstetrics: ['obstetrics', 'obstetrician', 'gynecology', 'pregnancy', 'pregnant', 'maternity', 'ob-gyn', 'สูติ', 'ตั้งครรภ์', 'สตรี'],
-  pediatrics: ['pediatrics', 'paediatrics', 'pediatrician', 'child', 'children', 'baby', 'kids', 'กุมาร', 'เด็ก', 'ทารก'],
-  orthopedics: ['orthopedics', 'orthopaedics', 'bone', 'fracture', 'joint', 'spine', 'กระดูก', 'ข้อ', 'เส้นเอ็น'],
-  general: ['general', 'family', 'doctor', 'physician', 'internal', 'ทั่วไป', 'อายุรกรรม', 'หมอ', 'แพทย์'],
+  cardiology: ['cardiology', 'cardiologist', 'heart', 'cardiac', 'chest', 'palpitation', 'blood pressure', 'hypertension', 'หัวใจ', 'อายุรกรรมหัวใจ', 'เจ็บหน้าอก', 'ความดัน', 'ใจสั่น'],
+  neurology: ['neurology', 'neurologist', 'brain', 'stroke', 'nerve', 'headache', 'migraine', 'dizzy', 'dizziness', 'seizure', 'numb', 'สมอง', 'ระบบประสาท', 'อัมพาต', 'ปวดหัว', 'ปวดศีรษะ', 'เวียนหัว', 'ไมเกรน', 'ชา'],
+  obstetrics: ['obstetrics', 'obstetrician', 'gynecology', 'gynaecology', 'pregnancy', 'pregnant', 'maternity', 'ob-gyn', 'birth', 'labour', 'labor', 'period', 'women', 'สูติ', 'ตั้งครรภ์', 'สตรี', 'ท้อง', 'คลอด', 'นรีเวช', 'ประจำเดือน'],
+  pediatrics: ['pediatrics', 'paediatrics', 'pediatrician', 'child', 'children', 'baby', 'babies', 'kid', 'kids', 'infant', 'toddler', 'son', 'daughter', 'กุมาร', 'เด็ก', 'ทารก', 'ลูก'],
+  orthopedics: ['orthopedics', 'orthopaedics', 'orthopedic', 'bone', 'fracture', 'broken', 'joint', 'spine', 'back pain', 'surgery', 'surgeon', 'surgical', 'injury', 'sprain', 'ankle', 'knee', 'wrist', 'shoulder', 'hip', 'muscle', 'sport', 'กระดูก', 'ข้อ', 'เส้นเอ็น', 'ผ่าตัด', 'ศัลย', 'หัก', 'ข้อเท้า', 'เข่า', 'ปวดหลัง', 'บาดเจ็บ'],
+  general: ['general', 'family', 'physician', 'internal', 'medicine', 'fever', 'cough', 'cold', 'flu', 'sore throat', 'stomach', 'diarrhea', 'vomit', 'tired', 'check-up', 'checkup', 'ทั่วไป', 'อายุรกรรม', 'ไข้', 'ไอ', 'หวัด', 'เจ็บคอ', 'ปวดท้อง', 'ท้องเสีย', 'อาเจียน', 'ตรวจสุขภาพ'],
 };
 
 const norm = (text: string): string => text.toLowerCase().normalize('NFKC').replace(/\s+/g, ' ').trim();
 
+/** Words that say nothing about which specialist: "I need a doctor for my son's ..." keeps only "son's ...". */
+const FILLER = new Set(['i', 'im', "i'm", 'my', 'me', 'a', 'an', 'the', 'for', 'with', 'and', 'or', 'of', 'in', 'on', 'to', 'is', 'am', 'are', 'have', 'has', 'had', 'need', 'want', 'find', 'see', 'looking', 'doctor', 'doctors', 'specialist', 'specialists', 'hospital', 'clinic', 'pain', 'please', 'help', 'หมอ', 'แพทย์', 'ผู้เชี่ยวชาญ', 'ปวด', 'เจ็บ', 'อยาก', 'หา', 'ช่วย']);
+
+const meaningfulWords = (query: string): string[] => norm(query).replace(/[^\p{L}\p{M}\p{N}\s'-]/gu, ' ').split(' ').filter((w) => w && !FILLER.has(w));
+
+/** A typed word matches a keyword when either contains the other ("surgeon" ~ "surgery" share 5 letters). */
+const wordMatches = (word: string, haystack: string): boolean => haystack.includes(word) || (word.length >= 5 && haystack.includes(word.slice(0, 5)));
+
 /**
- * Whether a specialist matches what the person typed: every word they typed must appear in the specialty's name or
- * keywords, the doctor's name (only when it is shown), the hospital's name, or a language. Empty text matches all.
+ * Whether a specialist matches what the person typed: any meaningful word they typed (filler such as "my",
+ * "doctor" or "need" is ignored) appears in the specialty's name or everyday words, the doctor's name (only when
+ * shown), the hospital's name, or a language. Empty text, or only filler, matches all.
  */
 export function matchesSpecialistQuery(specialist: Pick<PublicSpecialist, 'specialty' | 'name' | 'hospitalName' | 'languages'>, query: string, specialtyLabels: readonly string[] = []): boolean {
-  const words = norm(query).split(' ').filter(Boolean);
+  const words = meaningfulWords(query);
   if (words.length === 0) return true;
   const keywords = SPECIALTY_KEYWORDS[specialist.specialty as (typeof SPECIALTIES)[number]] ?? [specialist.specialty];
   const haystack = norm([specialist.specialty, ...keywords, ...specialtyLabels, specialist.name ?? '', specialist.hospitalName.en, specialist.hospitalName.th, ...specialist.languages].join(' | '));
-  return words.every((word) => haystack.includes(word));
+  return words.some((word) => wordMatches(word, haystack));
 }

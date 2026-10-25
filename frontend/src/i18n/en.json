@@ -636,5 +636,8 @@
   "consent.point1": "What you describe is read by AI to find the right care, and sent only to the hospital you choose.",
   "consent.point2": "Medora doesn't give medical advice. In an emergency, call 1669.",
   "consent.point3": "Your location is used only to find nearby hospitals.",
-  "consent.agree": "I agree"
+  "consent.agree": "I agree",
+  "patient.specialists.unclearTitle": "We couldn't tell which specialist you need",
+  "patient.specialists.unclearBody": "Try a word like heart, bone, children or pregnancy, or pick a specialty above.",
+  "patient.specialists.noMatch": "No exact match, so here are all specialists nearby."
 }
