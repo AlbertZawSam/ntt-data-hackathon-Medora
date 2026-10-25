@@ -118,7 +118,8 @@ export default function PatientCareScreen(): React.JSX.Element {
       setSent(true);
       setSelected(null);
     } catch (e) {
-      setError(e instanceof Error && e.message === 'already-open' ? 'patient.care.alreadyOpen' : 'patient.care.requestError');
+      const code = e instanceof Error ? e.message : '';
+      setError(code === 'already-open' ? 'patient.care.alreadyOpen' : code === 'bad-phone' ? 'patient.care.badPhone' : 'patient.care.requestError');
     } finally {
       setSending(false);
     }

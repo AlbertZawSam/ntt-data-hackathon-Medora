@@ -464,8 +464,9 @@ export interface NewRequest {
 /** Sends a request to one hospital; the admin's auto-accept rule may accept it at once. */
 export async function submitRequest(input: NewRequest): Promise<string> {
   const result = await client.mutations.submitRequest(input);
-  // One open request per patient: say so plainly instead of a generic error.
-  if (JSON.stringify(result.errors ?? []).includes('already-open')) throw new DataServiceError('already-open');
+  // Say plainly why the server refused: one open request per patient, or a phone number it can't use.
+  const errors = JSON.stringify(result.errors ?? []);
+  for (const code of ['already-open', 'bad-phone', 'bad-name', 'bad-description']) if (errors.includes(code)) throw new DataServiceError(code);
   ensureData(result, 'Submit request');
   if (!result.data) throw new DataServiceError('Submit request failed.');
   return result.data;

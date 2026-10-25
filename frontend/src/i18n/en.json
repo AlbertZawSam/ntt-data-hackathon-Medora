@@ -620,5 +620,6 @@
   "referralProgress.confirmed": "Transfer confirmed · ambulance on its way",
   "referralProgress.set_aside": "Your doctor is choosing another hospital",
   "referralProgress.arrived": "Arrived",
-  "patient.care.alreadyOpen": "You already have an open request. Cancel it in My requests to send a new one."
+  "patient.care.alreadyOpen": "You already have an open request. Cancel it in My requests to send a new one.",
+  "patient.care.badPhone": "Check the phone number: digits only, for example 081 234 5678."
 }
