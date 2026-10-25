@@ -8,6 +8,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { ARRIVAL_MODES, type ArrivalMode, type PublicHospital } from '@medora/shared/logic/care';
 import type { Bi, NeedKey } from '@medora/shared/logic/types';
+import { bedsText, bedsTone } from '../../src/i18n/beds';
 import { pick, type StringKey } from '../../src/i18n/t';
 import { suggestedDepartment, type Department } from '@medora/shared/logic/departments';
 import { HospitalDetailsView } from '../../src/components/HospitalDetailsView';
@@ -116,8 +117,8 @@ export default function PatientCareScreen(): React.JSX.Element {
       });
       setSent(true);
       setSelected(null);
-    } catch {
-      setError('patient.care.requestError');
+    } catch (e) {
+      setError(e instanceof Error && e.message === 'already-open' ? 'patient.care.alreadyOpen' : 'patient.care.requestError');
     } finally {
       setSending(false);
     }
@@ -195,12 +196,12 @@ export default function PatientCareScreen(): React.JSX.Element {
               <View style={styles.row}>
                 {isBest ? <Badge tone="primary" icon="star" label={t('patient.care.bestMatch')} /> : null}
                 <Badge tone={look.tone} icon={look.icon} label={t(LABEL_KEY[h.label])} />
-                {/* Free beds as a range, never the exact number (AGENTS.md rule 6). */}
+                {/* The exact number of free beds; held beds count as taken (AGENTS.md rule 6). */}
                 {h.details ? (
                   <Badge
-                    tone={h.details.bedsFree === 'none' ? 'danger' : h.details.bedsFree === '1-2' ? 'warning' : 'success'}
+                    tone={bedsTone(h.details.freeBeds)}
                     icon="bed"
-                    label={t(`details.bedsFree.${h.details.bedsFree}` as StringKey)}
+                    label={bedsText(t, h.details.freeBeds)}
                   />
                 ) : null}
               </View>

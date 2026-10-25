@@ -143,7 +143,7 @@ type SnapshotKey = Exclude<keyof DataSnapshot, 'isSynced'>;
 const JSON_FIELDS: Partial<Record<SnapshotKey, string[]>> = {
   hospitalProfiles: ['name'],
   hospitalStatuses: ['status'],
-  careRequests: ['patient', 'slot', 'hospitalName'],
+  careRequests: ['patient', 'slot', 'hospitalName', 'referredTo'],
   referrals: ['chosenName', 'why', 'rows'],
   traceSteps: ['title', 'detail'],
   activities: ['actor', 'text'],
@@ -464,6 +464,8 @@ export interface NewRequest {
 /** Sends a request to one hospital; the admin's auto-accept rule may accept it at once. */
 export async function submitRequest(input: NewRequest): Promise<string> {
   const result = await client.mutations.submitRequest(input);
+  // One open request per patient: say so plainly instead of a generic error.
+  if (JSON.stringify(result.errors ?? []).includes('already-open')) throw new DataServiceError('already-open');
   ensureData(result, 'Submit request');
   if (!result.data) throw new DataServiceError('Submit request failed.');
   return result.data;

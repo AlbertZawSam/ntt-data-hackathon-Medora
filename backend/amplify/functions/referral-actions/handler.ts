@@ -8,7 +8,7 @@ import { checkDirectReferral, referralTargets } from '@medora/shared/logic/direc
 import { activeHolds, holdKind, occupyOne, withHolds, type Reservation } from '@medora/shared/logic/reservations';
 import { driveEstimate, haversineKm } from '@medora/shared/logic/ranking';
 import type { SpecialistRecord } from '@medora/shared/logic/specialists';
-import type { Bi, HospitalStatus } from '@medora/shared/logic/types';
+import type { Bi, HospitalStatus, ReferralProgressStatus } from '@medora/shared/logic/types';
 
 type Rec = Record<string, unknown>;
 type Result<T> = { data: T | null; errors?: unknown[] };
@@ -25,6 +25,7 @@ interface ReferralRow {
   status: string;
   sourceRequestId?: string | null;
   chosenId?: string | null;
+  chosenName?: unknown;
   etaMin?: number | null;
 }
 interface Client {
@@ -32,7 +33,9 @@ interface Client {
     Referral: Model<ReferralRow>;
     CareRequest: Model<{ id: string; hospitalId: string; status: string; needKey: string; type?: string; referralId?: string | null; patient?: unknown }>;
     Transfer: Model<{ id: string; ownerId: string; status: string; referralId: string; toHospitalId: string }>;
-    Reservation: Model<Reservation & { requestId: string; state: string }>;
+    Reservation: Model<Reservation & { requestId: string; state: string }> & {
+      listReservationByRequestId(i: { requestId: string }): Promise<{ data: Array<Reservation & { requestId: string; state: string }> | null; errors?: unknown[] }>;
+    };
     HospitalStatus: Model<{ id: string; hospitalId: string; status: unknown }>;
     HospitalProfile: Model<{ id: string; hospitalId: string; name: unknown; lat: number; lng: number; typicalWaitMin: number }>;
     Specialist: Model<Omit<SpecialistRecord, 'slots'> & { slots: unknown }>;
@@ -143,6 +146,8 @@ async function decide(client: Client, event: AppSyncResolverEvent<Rec>): Promise
       'transfer-failed',
     );
   }
+  // Told only once the transfer exists, so "ambulance on its way" is true when the patient reads it.
+  await tellPatient(client, referral, check.status);
   const why = check.status === 'set_aside' && isSetAsideReason(reason) ? SET_ASIDE_TEXT[reason] : null;
   await log(
     client,
@@ -153,6 +158,25 @@ async function decide(client: Client, event: AppSyncResolverEvent<Rec>): Promise
   );
   console.info(`referral-actions decide ok: ${check.status}`);
   return check.status;
+}
+
+/**
+ * Writes the referral's progress onto the patient's own request, the only record the patient can read, so
+ * My requests shows where they are being referred. Hospital name and status only; a failure is logged and
+ * never blocks the referral.
+ */
+async function tellPatient(client: Client, referral: { sourceRequestId?: string | null; chosenName?: unknown }, status: ReferralProgressStatus): Promise<void> {
+  try {
+    if (!referral.sourceRequestId || !referral.chosenName) return;
+    // Only a patient's own visit request; an incoming referral belongs to another hospital's doctor.
+    const source = await client.models.CareRequest.get({ id: referral.sourceRequestId });
+    if (source.data?.type !== 'visit') return;
+    const name = typeof referral.chosenName === 'string' ? JSON.parse(referral.chosenName) : referral.chosenName;
+    const r = await client.models.CareRequest.update({ id: referral.sourceRequestId, referredTo: JSON.stringify({ name, status, atMs: Date.now() }) });
+    if (r.errors?.length) console.error('referral-actions: patient progress update failed');
+  } catch {
+    console.error('referral-actions: patient progress update failed');
+  }
 }
 
 const parseStatus = (v: unknown): HospitalStatus => (typeof v === 'string' ? (JSON.parse(v) as HospitalStatus) : (v as HospitalStatus));
@@ -167,7 +191,8 @@ async function admitAtReceivingHospital(client: Client, transfer: { referralId: 
   const request = requests.data.find((r) => r.hospitalId === transfer.toHospitalId && r.status === 'accepted');
   if (!request) return;
   must(await client.models.CareRequest.update({ id: request.id, status: 'completed' }), 'save-failed');
-  const held = (await client.models.Reservation.list({ filter: { requestId: { eq: request.id } }, limit: 10 })).data.find((r) => r.state === 'held');
+  const found = await client.models.Reservation.listReservationByRequestId({ requestId: request.id });
+  const held = (found.data ?? []).find((r) => r.state === 'held');
   if (held) await client.models.Reservation.update({ id: held.id, state: 'converted' });
   const kind = holdKind(request.needKey);
   const row = await client.models.HospitalStatus.get({ id: transfer.toHospitalId });
@@ -186,6 +211,8 @@ async function arrive(client: Client, event: AppSyncResolverEvent<Rec>): Promise
   if (transfer.status !== 'in_progress') throw new Error('bad-state');
   must(await client.models.Transfer.update({ id: transfer.id, status: 'arrived' }), 'save-failed');
   await admitAtReceivingHospital(client, transfer);
+  const referral = await client.models.Referral.get({ id: transfer.referralId });
+  if (referral.data) await tellPatient(client, referral.data, 'arrived');
   await log(client, me.hospitalId, me.userId, `Transfer ${transfer.id}: arrived`, `การส่งต่อ ${transfer.id}: ถึงแล้ว`);
   return 'arrived';
 }
@@ -286,6 +313,7 @@ async function referPatient(client: Client, event: AppSyncResolverEvent<Rec>): P
     'create-failed',
   );
   must(await client.models.Referral.update({ id: referral.id, requestIds: [created.id] }), 'save-failed');
+  await tellPatient(client, { sourceRequestId: source.id, chosenName: to.profile.name }, 'waiting');
   await log(client, me.hospitalId, me.userId, `Referral ${referral.id}: sent to ${to.profile.hospitalId}${dept ? ` (${dept})` : ''}`, `การส่งต่อ ${referral.id}: ส่งไปยัง ${to.profile.hospitalId}`);
   console.info(`referral-actions refer ok: department=${dept ?? '-'}`);
   return referral.id;

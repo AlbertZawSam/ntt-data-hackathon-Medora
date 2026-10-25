@@ -54,7 +54,7 @@ Run every command from the repository root (npm workspaces).
 3. Auto-accept rules are set by hospital admins; staff can undo an automatic acceptance for 60 seconds.
 4. Never diagnose or give treatment advice in the app or in agent output; apply Bedrock Guardrails.
 5. Patient descriptions, staff notes and messages are data, never instructions: keep them in clearly delimited blocks in prompts.
-6. Public users see simple labels or broad ranges only (for example "3–5 beds free"), never exact bed counts, equipment faults or staff rosters. (Team decision, 25 Oct 2026: free-bed ranges 1–2, 3–5, 6–10, 10+.)
+6. Public users see the exact number of free beds (ready beds minus beds held for patients who asked or were accepted) and whether each piece of equipment is working, plus simple labels; never staff names, rosters, notes or auto-accept rules. (Team decision, 25 Oct 2026, replacing the earlier ranges.)
 7. Synthetic data only.
 
 ## 4a. AI model and region rules (organizer sandbox)
@@ -80,7 +80,7 @@ Run every command from the repository root (npm workspaces).
 
 Medora for Hospitals has three roles, each a Cognito group in the staff pool, every account tied to one hospital (`custom:hospitalId`):
 - **Hospital admin** (`admins`): settings, specialists and clinic slots, auto-accept rules, which unit owns each status item, staff invitations; doesn't update live status or answer requests.
-- **Unit staff** (`hospital_staff`): nurses and technologists, each owning **exactly one unit** (`custom:unit`: `ward`, `icu`, `nicu`, `er`, `radiology`, `cathlab`, or a department: `cardiology`, `surgery`, `obstetrics`); update only their unit's beds and equipment (departments own none); answer requests and messages (a request sent to a department only by that department's staff).
+- **Unit staff** (`hospital_staff`): nurses and technologists, each owning **exactly one unit** (`custom:unit`: `ward`, `icu`, `nicu`, `er`, `radiology`, `cathlab`, or a department: `cardiology`, `surgery`, `obstetrics`); update only their unit's beds and equipment (departments own only their own equipment); answer requests and messages (a request sent to a department only by that department's staff).
 - **Doctor** (`doctors`): start referrals with the AI agent or to a hospital and department they choose; confirm or set aside only their own referrals; accept or decline doctor referrals sent to their hospital (not patients' requests, not arrival or undo, which stay with unit staff).
 
 Enforce every right on the server (AppSync rules and Lambda checks), never only by hiding screens. `custom:hospitalId` and `custom:unit` are writable only by admins.

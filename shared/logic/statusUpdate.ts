@@ -6,10 +6,11 @@
  */
 import { isDepartment } from './departments';
 import { ALL_UNITS, DEFAULT_OWNER_UNIT, DEFAULT_SPECIALIST_UNIT, canUpdateStatusItem, isUnit, type Caller, type Unit } from './access';
+import { EQUIPMENT, EQUIPMENT_KEYS, equipmentOwner } from './equipment';
 import type { DeptState, HospitalStatus } from './types';
 
 export const DEPT_KEYS = ['ed', 'neuro', 'cardio', 'obstetrics', 'pediatrics', 'ortho'] as const;
-export const EQUIP_KEYS = ['ct', 'mri', 'cathlab'] as const;
+export const EQUIP_KEYS = EQUIPMENT_KEYS;
 export const ONCALL_KEYS = ['er', 'neurologist', 'cardiologist', 'obstetrician', 'pediatrician', 'orthopedist'] as const;
 export const COUNT_ITEMS = ['beds', 'icu', 'nicu'] as const;
 
@@ -57,8 +58,7 @@ export function ownerUnitOf(change: StatusChange): Unit | undefined {
       if (!includes(DEPT_KEYS, change.key)) return undefined;
       return change.key === 'ed' ? DEFAULT_OWNER_UNIT.ed : DEFAULT_SPECIALIST_UNIT;
     case 'equip':
-      if (!includes(EQUIP_KEYS, change.key)) return undefined;
-      return DEFAULT_OWNER_UNIT[change.key as 'ct' | 'mri' | 'cathlab'];
+      return equipmentOwner(change.key);
     case 'oncall':
       return includes(ONCALL_KEYS, change.key) ? DEFAULT_SPECIALIST_UNIT : undefined;
     case 'cathlabBusy':
@@ -97,7 +97,7 @@ export function applyStatusChange(
   if (!confirming && owner === undefined) return { ok: false, reason: 'bad-change' };
 
   // "Still correct?" needs no particular unit, only an account of this hospital's unit staff. Department
-  // staff own no status items, so they can't confirm the hospital's status either.
+  // staff own only their equipment, so they can't confirm the hospital's whole status.
   const allowed = confirming
     ? !isDepartment(caller.unit) && canUpdateStatusItem(caller, { hospitalId, ownerUnit: isUnit(caller.unit) ? caller.unit : DEFAULT_OWNER_UNIT.beds }) ||
       canUpdateStatusItem(caller, { hospitalId, ownerUnit: ALL_UNITS })
@@ -179,9 +179,9 @@ const ALL_CONTROLS: Array<{ unit: Unit; control: UnitControl }> = [
   { unit: 'er', control: control('dept', 'ed', 'item.ed') },
   ...DEPT_KEYS.filter((k) => k !== 'ed').map((k) => ({ unit: 'er' as Unit, control: control('dept', k, `item.${k}`) })),
   ...ONCALL_KEYS.map((k) => ({ unit: 'er' as Unit, control: control('oncall', k, `item.${k === 'er' ? 'er' : k}`) })),
-  { unit: 'radiology', control: control('equip', 'ct', 'item.ct') },
-  { unit: 'radiology', control: control('equip', 'mri', 'item.mri') },
   { unit: 'cathlab', control: control('cathlab', 'cathlab', 'item.cathlab') },
+  // Every other piece of equipment is a working/down switch for the unit that owns it.
+  ...EQUIPMENT.filter((e) => e.key !== 'cathlab').map((e) => ({ unit: e.owner as Unit, control: control('equip', e.key, `equip.${e.key}`) })),
 ];
 
 /** The controls a staff member sees: only their own unit's (or everything for the `all` fallback). */

@@ -103,7 +103,7 @@ export default function StaffStatusScreen(): React.JSX.Element {
         </Card>
       ) : controls.length === 0 ? (
         <Card padding="lg">
-          {/* Department staff own no status items: they answer patient requests in the Inbox. */}
+          {/* A unit without status items: department staff with no equipment answer requests in the Inbox. */}
           {isDepartment(unit) ? (
             <EmptyState icon="file-tray-full-outline" title={t('staff.status.departmentUnit')} />
           ) : (
@@ -112,6 +112,8 @@ export default function StaffStatusScreen(): React.JSX.Element {
         </Card>
       ) : (
         <>
+          {/* Department staff switch only their own equipment; confirming the whole status stays with the units. */}
+          {!isDepartment(unit) ? (
           <Reveal>
             <Card padding="lg" tone={stale ? 'warning' : 'success'}>
               <View style={styles.confirmRow}>
@@ -126,6 +128,7 @@ export default function StaffStatusScreen(): React.JSX.Element {
               <Button icon="checkmark-done" label={t('staff.status.yesCorrect')} busy={busy} onPress={() => void send({ kind: 'confirm' })} />
             </Card>
           </Reveal>
+          ) : null}
 
           {conflict.beds || conflict.nicu ? <Notice tone="warning">{t('staff.status.holdConflict')}</Notice> : null}
 

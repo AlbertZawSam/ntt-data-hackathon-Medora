@@ -304,3 +304,23 @@ describe('every accepted request holds one bed', () => {
     expect(JSON.parse(String(fake.tables('HospitalStatus')[0].status)).beds).toBe(4);
   });
 });
+
+describe('a bed is held from the moment a patient sends a request', () => {
+  const ward = { groups: ['hospital_staff'], hospitalId: 'H1', unit: 'ward' };
+  it('holds on send, keeps one hold on accept, releases on decline', async () => {
+    const id = await call(patientEvent('submitRequest', req));
+    expect(fake.tables('Reservation').filter((r) => r.requestId === id && r.state === 'held')).toHaveLength(1);
+    await call(staffEvent('answerRequest', { requestId: id, action: 'accept' }, ward));
+    expect(fake.tables('Reservation').filter((r) => r.requestId === id)).toHaveLength(1);
+    const second = await call(patientEvent('submitRequest', req, 'p2'));
+    await call(staffEvent('answerRequest', { requestId: second, action: 'decline', reason: 'nobed' }, ward));
+    expect(fake.tables('Reservation').find((r) => r.requestId === second)?.state).toBe('released');
+  });
+  it('allows one open request per patient, and cancelling releases the bed', async () => {
+    const id = await call(patientEvent('submitRequest', req));
+    await expect(call(patientEvent('submitRequest', req))).rejects.toThrow('already-open');
+    await call(patientEvent('cancelRequest', { requestId: id }));
+    expect(fake.tables('Reservation').find((r) => r.requestId === id)?.state).toBe('released');
+    await expect(call(patientEvent('submitRequest', req))).resolves.toEqual(expect.any(String));
+  });
+});

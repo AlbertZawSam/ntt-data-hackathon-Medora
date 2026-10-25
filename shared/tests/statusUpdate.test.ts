@@ -31,8 +31,8 @@ describe('ownership', () => {
   });
 
   it('refuses unknown items', () => {
-    expect(ownerUnitOf({ kind: 'equip', key: 'xray', value: true })).toBeUndefined();
-    expect(apply({ kind: 'equip', key: 'xray', value: true }, nurse('all'))).toEqual({ ok: false, reason: 'bad-change' });
+    expect(ownerUnitOf({ kind: 'equip', key: 'laser', value: true })).toBeUndefined();
+    expect(apply({ kind: 'equip', key: 'laser', value: true }, nurse('all'))).toEqual({ ok: false, reason: 'bad-change' });
   });
 });
 
@@ -146,7 +146,7 @@ describe('controlsForUnit', () => {
 });
 
 describe('department staff', () => {
-  it('own no status items and cannot confirm the hospital status', () => {
+  it('own only their own equipment and cannot confirm the hospital status', () => {
     const changes: StatusChange[] = [
       { kind: 'count', item: 'beds', value: 3 },
       { kind: 'count', item: 'icu', value: 1 },
@@ -158,8 +158,15 @@ describe('department staff', () => {
     ];
     for (const unit of ['cardiology', 'surgery', 'obstetrics']) {
       for (const change of changes) expect(apply(change, nurse(unit)).ok).toBe(false);
-      expect(controlsForUnit(unit)).toEqual([]);
+      expect(controlsForUnit(unit).every((c) => c.kind === 'equip')).toBe(true);
     }
+    // Cardiology switches its ECG, never Surgery's X-ray; the emergency unit owns the lab.
+    expect(apply({ kind: 'equip', key: 'ecg', value: false }, nurse('cardiology')).ok).toBe(true);
+    expect(apply({ kind: 'equip', key: 'xray', value: false }, nurse('cardiology'))).toEqual({ ok: false, reason: 'other-unit' });
+    expect(apply({ kind: 'equip', key: 'xray', value: false }, nurse('surgery')).ok).toBe(true);
+    expect(apply({ kind: 'equip', key: 'delivery', value: false }, nurse('obstetrics')).ok).toBe(true);
+    expect(apply({ kind: 'equip', key: 'lab', value: false }, nurse('er')).ok).toBe(true);
+    expect(controlsForUnit('surgery').map((c) => c.item)).toEqual(['xray', 'theatre']);
     expect(apply({ kind: 'confirm' }, nurse('ward')).ok).toBe(true);
   });
 });

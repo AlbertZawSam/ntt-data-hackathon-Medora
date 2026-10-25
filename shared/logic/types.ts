@@ -148,6 +148,8 @@ export interface CareRequest {
   };
   fromHospitalId?: string;
   referralId?: string;
+  /** On a patient's own request: the hospital their doctor referred them to, and how far it got. */
+  referredTo?: ReferralProgress;
   /** Cardiology, surgery or obstetrics when the patient chose a department. */
   department?: string;
   slot?: { day: string; time: string };
@@ -293,4 +295,12 @@ export interface Slot {
   day: string;
   time: string;
   booked: boolean;
+}
+
+/** A doctor's referral as the patient sees it on their own request. */
+export type ReferralProgressStatus = 'waiting' | 'accepted' | 'declined' | 'confirmed' | 'set_aside' | 'arrived';
+export interface ReferralProgress {
+  name: Bi;
+  status: ReferralProgressStatus;
+  atMs: number;
 }

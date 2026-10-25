@@ -48,17 +48,20 @@ describe('hospitalDetails', () => {
     ]);
   });
 
-  it('never exposes bed counts, equipment, rosters or notes', () => {
+  it('shows the free-bed count and equipment, never rosters, notes or rules', () => {
     fc.assert(
       fc.property(arbStatus, (status) => {
         const details = hospitalDetails(profile, status, [], NOW_MS);
         const text = JSON.stringify(details);
-        for (const leak of ['"nicu"', '"equip"', '"oncall"', '"notes"', '"meta"', '"rules"', '"reserved', '"icu"', 'ct', 'mri', 'cathlab']) {
+        for (const leak of ['"nicu"', '"equip"', '"oncall"', '"notes"', '"meta"', '"rules"', '"reserved', '"icu"']) {
           expect(text).not.toContain(leak);
         }
         expect(typeof details.beds).toBe('string');
         const numbers = Object.entries(details).filter(([, v]) => typeof v === 'number').map(([k]) => k);
-        expect(numbers).toEqual(['typicalWaitMin']);
+        expect(numbers.sort()).toEqual(['freeBeds', 'typicalWaitMin']);
+        // Held beds count as taken, so the free count is never above the ready beds.
+        expect(details.freeBeds).toBe(Math.max(0, status.beds - (status.reservedBeds ?? 0)));
+        for (const e of details.equipment) expect(e.working).toBe(status.equip[e.key] === true);
       }),
     );
   });

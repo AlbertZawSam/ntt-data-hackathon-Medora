@@ -3,168 +3,420 @@
   "hospitals": [
     {
       "key": "rama9",
-      "name": { "en": "Rama Nine General Hospital", "th": "โรงพยาบาลพระรามเก้าเจเนอรัล" },
+      "name": {
+        "en": "Rama Nine General Hospital",
+        "th": "โรงพยาบาลพระรามเก้าเจเนอรัล"
+      },
       "lat": 13.7575,
       "lng": 100.5672,
       "totalBeds": 220,
       "nicuTotal": 6,
       "typicalWaitMin": 25,
-      "departments": ["ed", "neuro", "cardio", "pediatrics", "ortho", "obstetrics"],
-      "equipment": ["ct", "mri", "cathlab"],
+      "departments": [
+        "ed",
+        "neuro",
+        "cardio",
+        "pediatrics",
+        "ortho",
+        "obstetrics"
+      ],
+      "equipment": [
+        "ct",
+        "mri",
+        "cathlab"
+      ],
       "demo": "Full stroke and heart care; the demo-replies note says its neurologist is free in about 40 minutes. Demo departments: Cardiology, Surgery and Obstetrics, each with its own staff inbox; requests wait for that department to accept.",
       "status": {
-        "beds": 6, "icu": 2, "nicu": 2,
-        "depts": { "ed": "open", "neuro": "open", "cardio": "open", "pediatrics": "open", "ortho": "open", "obstetrics": "open" },
-        "equip": { "ct": true, "mri": true, "cathlab": true },
-        "oncall": { "er": true, "neurologist": true, "cardiologist": true, "pediatrician": true, "orthopedist": true, "obstetrician": true },
-        "rules": { "minBeds": 2, "visit": false },
+        "beds": 6,
+        "icu": 2,
+        "nicu": 2,
+        "depts": {
+          "ed": "open",
+          "neuro": "open",
+          "cardio": "open",
+          "pediatrics": "open",
+          "ortho": "open",
+          "obstetrics": "open"
+        },
+        "equip": {
+          "ct": true,
+          "mri": true,
+          "cathlab": true,
+          "lab": true,
+          "ecg": true,
+          "echo": true,
+          "xray": true,
+          "theatre": true,
+          "ultrasound": true,
+          "delivery": true
+        },
+        "oncall": {
+          "er": true,
+          "neurologist": true,
+          "cardiologist": true,
+          "pediatrician": true,
+          "orthopedist": true,
+          "obstetrician": true
+        },
+        "rules": {
+          "minBeds": 2,
+          "visit": false,
+          "preterm": true
+        },
         "conflict": false,
         "updatedMinAgo": 4
       }
     },
     {
       "key": "siam",
-      "name": { "en": "Siam Central Hospital", "th": "โรงพยาบาลสยามเซ็นทรัล" },
+      "name": {
+        "en": "Siam Central Hospital",
+        "th": "โรงพยาบาลสยามเซ็นทรัล"
+      },
       "lat": 13.7468,
       "lng": 100.5318,
       "totalBeds": 160,
       "nicuTotal": 0,
       "typicalWaitMin": 40,
-      "departments": ["ed", "neuro", "pediatrics", "ortho", "cardio", "obstetrics"],
-      "equipment": ["ct", "mri"],
+      "departments": [
+        "ed",
+        "neuro",
+        "pediatrics",
+        "ortho",
+        "cardio",
+        "obstetrics"
+      ],
+      "equipment": [
+        "ct",
+        "mri"
+      ],
       "demo": "Nearest to the default location (Siam) but its children's ward is diverting and the CT is down, so Find care skips it for children and a stroke referral skips it. Demo departments: Cardiology, Surgery and Obstetrics (no cath lab, so serious heart patients are referred to Rama Nine).",
       "status": {
-        "beds": 3, "icu": 1, "nicu": 0,
-        "depts": { "ed": "open", "neuro": "open", "pediatrics": "diverting", "ortho": "open", "cardio": "open", "obstetrics": "open" },
-        "equip": { "ct": false, "mri": true },
-        "oncall": { "er": true, "neurologist": true, "pediatrician": false, "orthopedist": true, "cardiologist": true, "obstetrician": true },
-        "rules": { "minBeds": 1, "visit": false },
+        "beds": 10,
+        "icu": 1,
+        "nicu": 0,
+        "depts": {
+          "ed": "open",
+          "neuro": "open",
+          "pediatrics": "diverting",
+          "ortho": "open",
+          "cardio": "open",
+          "obstetrics": "open"
+        },
+        "equip": {
+          "ct": false,
+          "mri": true,
+          "lab": true,
+          "ecg": true,
+          "echo": true,
+          "xray": true,
+          "theatre": true,
+          "ultrasound": true,
+          "delivery": true
+        },
+        "oncall": {
+          "er": true,
+          "neurologist": true,
+          "pediatrician": false,
+          "orthopedist": true,
+          "cardiologist": true,
+          "obstetrician": true
+        },
+        "rules": {
+          "minBeds": 1,
+          "visit": false
+        },
         "conflict": false,
         "updatedMinAgo": 8
       }
     },
     {
       "key": "chaophraya",
-      "name": { "en": "Chao Phraya Riverside Medical Centre", "th": "ศูนย์การแพทย์ริมเจ้าพระยา" },
+      "name": {
+        "en": "Chao Phraya Riverside Medical Centre",
+        "th": "ศูนย์การแพทย์ริมเจ้าพระยา"
+      },
       "lat": 13.7262,
       "lng": 100.5148,
       "totalBeds": 180,
       "nicuTotal": 10,
       "typicalWaitMin": 30,
-      "departments": ["ed", "obstetrics", "pediatrics", "cardio", "ortho"],
-      "equipment": ["ct"],
+      "departments": [
+        "ed",
+        "obstetrics",
+        "pediatrics",
+        "cardio",
+        "ortho"
+      ],
+      "equipment": [
+        "ct"
+      ],
       "demo": "The maternity and newborn (NICU) hospital. Demo departments: Cardiology, Surgery and Obstetrics, each with its own staff inbox; requests wait for that department to accept.",
       "status": {
-        "beds": 5, "icu": 1, "nicu": 3,
-        "depts": { "ed": "open", "obstetrics": "open", "pediatrics": "open", "cardio": "open", "ortho": "open" },
-        "equip": { "ct": true },
-        "oncall": { "er": true, "obstetrician": true, "pediatrician": true, "cardiologist": true, "orthopedist": true },
-        "rules": { "minBeds": 1, "visit": false, "preterm": true },
+        "beds": 5,
+        "icu": 1,
+        "nicu": 3,
+        "depts": {
+          "ed": "open",
+          "obstetrics": "open",
+          "pediatrics": "open",
+          "cardio": "open",
+          "ortho": "open"
+        },
+        "equip": {
+          "ct": true,
+          "lab": true,
+          "ecg": true,
+          "echo": true,
+          "xray": true,
+          "theatre": true,
+          "ultrasound": true,
+          "delivery": true
+        },
+        "oncall": {
+          "er": true,
+          "obstetrician": true,
+          "pediatrician": true,
+          "cardiologist": true,
+          "orthopedist": true
+        },
+        "rules": {
+          "minBeds": 1,
+          "visit": false,
+          "preterm": true
+        },
         "conflict": false,
         "updatedMinAgo": 12
       }
     },
     {
       "key": "thonburi",
-      "name": { "en": "Thonburi Community Hospital", "th": "โรงพยาบาลชุมชนธนบุรี" },
+      "name": {
+        "en": "Thonburi Community Hospital",
+        "th": "โรงพยาบาลชุมชนธนบุรี"
+      },
       "lat": 13.7224,
       "lng": 100.4871,
       "totalBeds": 120,
       "nicuTotal": 0,
       "typicalWaitMin": 20,
-      "departments": ["ed", "ortho"],
-      "equipment": ["ct"],
+      "departments": [
+        "ed",
+        "ortho"
+      ],
+      "equipment": [
+        "ct"
+      ],
       "demo": "Good for injuries, but nobody has confirmed its status for two hours, so it shows \"may be outdated\" and ranks lower.",
       "status": {
-        "beds": 8, "icu": 0, "nicu": 0,
-        "depts": { "ed": "open", "ortho": "open" },
-        "equip": { "ct": true },
-        "oncall": { "er": true, "orthopedist": true },
-        "rules": { "minBeds": 1 },
+        "beds": 8,
+        "icu": 0,
+        "nicu": 0,
+        "depts": {
+          "ed": "open",
+          "ortho": "open"
+        },
+        "equip": {
+          "ct": true,
+          "lab": true,
+          "xray": true,
+          "theatre": false
+        },
+        "oncall": {
+          "er": true,
+          "orthopedist": true
+        },
+        "rules": {
+          "minBeds": 1
+        },
         "conflict": false,
         "updatedMinAgo": 125
       }
     },
     {
       "key": "ladprao",
-      "name": { "en": "Lat Phrao Heart and Medical Centre", "th": "ศูนย์การแพทย์และหัวใจลาดพร้าว" },
+      "name": {
+        "en": "Lat Phrao Heart and Medical Centre",
+        "th": "ศูนย์การแพทย์และหัวใจลาดพร้าว"
+      },
       "lat": 13.8148,
       "lng": 100.5639,
       "totalBeds": 200,
       "nicuTotal": 0,
       "typicalWaitMin": 35,
-      "departments": ["ed", "cardio", "neuro"],
-      "equipment": ["ct", "cathlab"],
+      "departments": [
+        "ed",
+        "cardio",
+        "neuro"
+      ],
+      "equipment": [
+        "ct",
+        "cathlab"
+      ],
       "demo": "The heart-attack (cath lab) hospital; it accepts heart referrals automatically.",
       "status": {
-        "beds": 4, "icu": 2, "nicu": 0,
-        "depts": { "ed": "open", "cardio": "open", "neuro": "open" },
-        "equip": { "ct": true, "cathlab": true },
-        "oncall": { "er": true, "cardiologist": true, "neurologist": false },
-        "rules": { "minBeds": 1, "visit": true, "stemi": true },
+        "beds": 4,
+        "icu": 2,
+        "nicu": 0,
+        "depts": {
+          "ed": "open",
+          "cardio": "open",
+          "neuro": "open"
+        },
+        "equip": {
+          "ct": true,
+          "cathlab": true,
+          "lab": true,
+          "ecg": true,
+          "echo": true
+        },
+        "oncall": {
+          "er": true,
+          "cardiologist": true,
+          "neurologist": false
+        },
+        "rules": {
+          "minBeds": 1,
+          "visit": true,
+          "stemi": true
+        },
         "conflict": false,
         "updatedMinAgo": 6
       }
     },
     {
       "key": "victory",
-      "name": { "en": "Victory Monument Children's Hospital", "th": "โรงพยาบาลเด็กอนุสาวรีย์ชัย" },
+      "name": {
+        "en": "Victory Monument Children's Hospital",
+        "th": "โรงพยาบาลเด็กอนุสาวรีย์ชัย"
+      },
       "lat": 13.7672,
       "lng": 100.5355,
       "totalBeds": 90,
       "nicuTotal": 8,
       "typicalWaitMin": 30,
-      "departments": ["ed", "pediatrics"],
+      "departments": [
+        "ed",
+        "pediatrics"
+      ],
       "equipment": [],
       "demo": "Children's hospital with its last free bed, so it shows \"limited\".",
       "status": {
-        "beds": 1, "icu": 0, "nicu": 1,
-        "depts": { "ed": "open", "pediatrics": "open" },
-        "equip": {},
-        "oncall": { "er": true, "pediatrician": true },
-        "rules": { "minBeds": 1, "peds": true },
+        "beds": 1,
+        "icu": 0,
+        "nicu": 1,
+        "depts": {
+          "ed": "open",
+          "pediatrics": "open"
+        },
+        "equip": {
+          "lab": true
+        },
+        "oncall": {
+          "er": true,
+          "pediatrician": true
+        },
+        "rules": {
+          "minBeds": 1,
+          "peds": true
+        },
         "conflict": false,
         "updatedMinAgo": 3
       }
     },
     {
       "key": "bangna",
-      "name": { "en": "Bang Na Memorial Hospital", "th": "โรงพยาบาลบางนาเมมโมเรียล" },
+      "name": {
+        "en": "Bang Na Memorial Hospital",
+        "th": "โรงพยาบาลบางนาเมมโมเรียล"
+      },
       "lat": 13.6688,
       "lng": 100.6081,
       "totalBeds": 140,
       "nicuTotal": 4,
       "typicalWaitMin": 25,
-      "departments": ["ed", "obstetrics", "ortho"],
-      "equipment": ["ct"],
+      "departments": [
+        "ed",
+        "obstetrics",
+        "ortho"
+      ],
+      "equipment": [
+        "ct"
+      ],
       "demo": "Its emergency department is diverting, so it never appears as the nearest open emergency department.",
       "status": {
-        "beds": 2, "icu": 0, "nicu": 1,
-        "depts": { "ed": "diverting", "obstetrics": "open", "ortho": "open" },
-        "equip": { "ct": true },
-        "oncall": { "er": false, "obstetrician": true, "orthopedist": true },
-        "rules": { "minBeds": 1 },
+        "beds": 2,
+        "icu": 0,
+        "nicu": 0,
+        "depts": {
+          "ed": "diverting",
+          "obstetrics": "open",
+          "ortho": "open"
+        },
+        "equip": {
+          "ct": true,
+          "lab": true,
+          "xray": true,
+          "theatre": true,
+          "ultrasound": false,
+          "delivery": true
+        },
+        "oncall": {
+          "er": false,
+          "obstetrician": true,
+          "orthopedist": true
+        },
+        "rules": {
+          "minBeds": 1
+        },
         "conflict": false,
         "updatedMinAgo": 15
       }
     },
     {
       "key": "chatuchak",
-      "name": { "en": "Chatuchak Family Hospital", "th": "โรงพยาบาลครอบครัวจตุจักร" },
+      "name": {
+        "en": "Chatuchak Family Hospital",
+        "th": "โรงพยาบาลครอบครัวจตุจักร"
+      },
       "lat": 13.8021,
       "lng": 100.5512,
       "totalBeds": 110,
       "nicuTotal": 0,
       "typicalWaitMin": 30,
-      "departments": ["ed", "pediatrics", "ortho"],
-      "equipment": ["ct"],
+      "departments": [
+        "ed",
+        "pediatrics",
+        "ortho"
+      ],
+      "equipment": [
+        "ct"
+      ],
       "demo": "Staff marked its data as unclear, so it shows \"limited\" and ranks lower.",
       "status": {
-        "beds": 5, "icu": 0, "nicu": 0,
-        "depts": { "ed": "open", "pediatrics": "open", "ortho": "open" },
-        "equip": { "ct": true },
-        "oncall": { "er": true, "pediatrician": true, "orthopedist": true },
-        "rules": { "minBeds": 1, "visit": true },
+        "beds": 5,
+        "icu": 0,
+        "nicu": 0,
+        "depts": {
+          "ed": "open",
+          "pediatrics": "open",
+          "ortho": "open"
+        },
+        "equip": {
+          "ct": true,
+          "lab": true,
+          "xray": true,
+          "theatre": true
+        },
+        "oncall": {
+          "er": true,
+          "pediatrician": true,
+          "orthopedist": true
+        },
+        "rules": {
+          "minBeds": 1,
+          "visit": true
+        },
         "conflict": true,
         "updatedMinAgo": 10
       }
