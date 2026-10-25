@@ -147,6 +147,8 @@ export interface CareRequest {
     description: string;
     /** Doctor referrals: the referring hospital's name. */
     referredFrom?: Bi;
+    /** A referring doctor's details for the receiving team (plain text, shown as data). */
+    doctorNote?: string;
   };
   fromHospitalId?: string;
   referralId?: string;
@@ -183,6 +185,8 @@ export type ReferralStatus =
   | 'failed';
 
 export interface Referral {
+  /** For a doctor's direct referral: the patient's own request it came from. */
+  sourceRequestId?: string | null;
   id: string;
   fromHospitalId: string;
   ownerId: string;

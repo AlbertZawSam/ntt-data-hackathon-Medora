@@ -171,6 +171,13 @@ describe('referPatient hardening', () => {
     );
   });
 
+  it("carries the referring doctor's note to the receiving hospital, trimmed and capped", async () => {
+    await call(staffEvent('referPatient', { requestId: 'p1', toHospitalId: 'H2', note: `  BP 150/95, ECG normal. ${'x'.repeat(600)}` }, doctor));
+    const sent = fake.tables('CareRequest').find((r) => r.hospitalId === 'H2' && r.type === 'referral')!;
+    const patient = JSON.parse(String(sent.patient));
+    expect(patient.doctorNote.startsWith('BP 150/95, ECG normal.')).toBe(true);
+    expect(patient.doctorNote.length).toBe(500);
+  });
   it('refuses a second referral of the same patient while the first is open', async () => {
     await call(staffEvent('referPatient', { requestId: 'p1', toHospitalId: 'H2' }, doctor));
     await expect(call(staffEvent('referPatient', { requestId: 'p1', toHospitalId: 'H2' }, doctor))).rejects.toThrow('already-referred');

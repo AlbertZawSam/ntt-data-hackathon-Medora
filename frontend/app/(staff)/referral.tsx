@@ -87,6 +87,14 @@ export default function IncomingReferralScreen(): React.JSX.Element {
         <View style={[styles.quote, { backgroundColor: theme.surfaceAlt, borderLeftColor: theme.primary }]}>
           <Text style={[styles.value, { color: theme.text }]}>{request.patient.description}</Text>
         </View>
+        {request.patient.doctorNote ? (
+          <>
+            <SectionHeader title={t('doctor.incoming.doctorNote')} />
+            <View style={[styles.quote, { backgroundColor: theme.surfaceAlt, borderLeftColor: theme.accent }]}>
+              <Text style={[styles.value, { color: theme.text }]}>{request.patient.doctorNote}</Text>
+            </View>
+          </>
+        ) : null}
         {failed ? <Notice tone="danger">{t('staff.inbox.answerError')}</Notice> : null}
         {request.status === 'waiting' && !declining ? (
           <View style={styles.buttons}>
