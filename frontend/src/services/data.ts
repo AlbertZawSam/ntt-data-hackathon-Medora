@@ -211,6 +211,8 @@ class LiveDataStore {
       this.observe('specialists', client.models.Specialist);
       this.observe('hospitalStatuses', client.models.HospitalStatus);
       this.observe('traceSteps', client.models.TraceStep);
+      // Beds held for patients who asked or were accepted: My unit shows them next to the ready count.
+      this.observe('reservations', client.models.Reservation);
     }
   }
 

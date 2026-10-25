@@ -19,6 +19,7 @@ import { setLastResults } from '../../src/services/lastResults';
 import { setLastNeed } from '../../src/services/lastNeed';
 import { checkEmergency, logEmergencyCheck } from '../../src/services/emergency';
 import { useChosenLocation } from '../../src/services/location';
+import { forget, recall, remember } from '../../src/services/tabMemory';
 import { useApp, useT } from '../../src/state/AppProvider';
 import { Badge, Chip } from '../../src/ui/Badge';
 import { Button } from '../../src/ui/Button';
@@ -53,6 +54,13 @@ const MODE_ICON: Record<ArrivalMode, IconName> = { car: 'car', taxi: 'car-sport'
 const DEPARTMENT_ICON: Record<Department, IconName> = { cardiology: 'heart', surgery: 'bandage', obstetrics: 'woman' };
 const EXAMPLES = ['patient.care.example1', 'patient.care.example2', 'patient.care.example3'] as const;
 
+/** The last search of this browser tab, so a reload brings the results back (tabMemory). */
+interface SavedSearch {
+  text: string;
+  atMs: number;
+}
+const SAVED_SEARCH_MS = 60 * 60_000;
+
 export default function PatientCareScreen(): React.JSX.Element {
   const t = useT();
   const theme = useTheme();
@@ -76,17 +84,28 @@ export default function PatientCareScreen(): React.JSX.Element {
   const [sending, setSending] = React.useState(false);
   const [sent, setSent] = React.useState(false);
 
+  // After a reload of the web app, bring back the last search of this tab (under an hour old) and run it
+  // again, so the results show live bed counts instead of an empty form.
+  React.useEffect(() => {
+    const saved = recall<SavedSearch>('care');
+    if (!saved?.text || Date.now() - saved.atMs > SAVED_SEARCH_MS) return;
+    setText(saved.text);
+    void search(saved.text);
+    // Only once, when the screen opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const emergency = (key: string): void => router.push({ pathname: '/(patient)/emergency', params: { flag: key } } as unknown as Href);
 
-  const search = async (): Promise<void> => {
-    if (!text.trim()) return;
+  const search = async (input: string = text): Promise<void> => {
+    if (!input.trim()) return;
     setError(null);
-    const match = checkEmergency(text); // layer 1: on the phone, offline, before anything is sent
+    const match = checkEmergency(input); // layer 1: on the phone, offline, before anything is sent
     void logEmergencyCheck(session, match);
     if (match) return emergency(match.key);
     setPhase('searching');
     try {
-      const result = await findCare({ description: text.trim(), lat: location.lat, lng: location.lng });
+      const result = await findCare({ description: input.trim(), lat: location.lat, lng: location.lng });
       if ('emergency' in result) return emergency(result.emergency.key); // layer 2
       setNeed(result.need);
       setLastNeed(result.need);
@@ -95,6 +114,7 @@ export default function PatientCareScreen(): React.JSX.Element {
       setHospitals(result.hospitals);
       setLastResults(result.hospitals);
       setPhase('results');
+      remember('care', { text: input.trim(), atMs: Date.now() } satisfies SavedSearch);
     } catch {
       setError('patient.care.findError');
       setPhase('describe');
@@ -286,7 +306,7 @@ export default function PatientCareScreen(): React.JSX.Element {
   );
 
   return (
-    <Page title={t('patient.care.nearbyTitle')} onBack={() => setPhase('describe')} backLabel={t('patient.care.newSearch')}>
+    <Page title={t('patient.care.nearbyTitle')} onBack={() => { forget('care'); setPhase('describe'); }} backLabel={t('patient.care.newSearch')}>
       <Card padding="md">
         <View style={styles.row}>
           <Badge tone="primary" icon="search" label={t('patient.care.lookingFor', { need: t(`need.${need}` as StringKey) })} />

@@ -168,7 +168,8 @@ function ControlCard({ control, status, busy, onSend }: { control: UnitControl; 
           <Text style={[styles.bigNumber, { color: theme.text }]} accessibilityLabel={`${label}: ${value}`}>{value}</Text>
           <IconButton size="lg" variant="filled" icon="add" label={`${label} +`} disabled={busy} onPress={() => onSend(changeFor(control, value + 1))} />
         </View>
-        {reserved > 0 ? <Badge tone="info" icon="lock-closed" label={t('staff.status.reserved', { n: reserved })} /> : null}
+        {/* Patients see ready minus held, so the two numbers always add up. */}
+        {reserved > 0 ? <Badge tone="info" icon="lock-closed" label={t('staff.status.reserved', { n: reserved, free: Math.max(0, value - reserved) })} /> : null}
       </View>
     );
   } else if (control.kind === 'cathlab') {

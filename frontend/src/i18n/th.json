@@ -217,7 +217,7 @@
   "staff.status.noUnit": "บัญชีของคุณยังไม่มีหน่วย โปรดให้ผู้ดูแลโรงพยาบาลกำหนดให้",
   "staff.status.neverUpdated": "ยังไม่ได้ยืนยัน โปรดอัปเดตรายการของคุณ",
   "staff.status.updatedAgo": "อัปเดตเมื่อ{{ago}}",
-  "staff.status.reserved": "กันไว้ให้คำขอที่รับแล้ว {{n}}",
+  "staff.status.reserved": "จองไว้ให้ผู้ป่วย {{n}} · ว่าง {{free}}",
   "staff.status.noteLabel": "หมายเหตุสำหรับการเปลี่ยนครั้งถัดไป (ไม่บังคับ)",
   "staff.status.noteHint": "ไม่เกิน 100 ตัวอักษร ห้ามใส่ชื่อผู้ป่วย",
   "staff.status.open": "เปิด",
