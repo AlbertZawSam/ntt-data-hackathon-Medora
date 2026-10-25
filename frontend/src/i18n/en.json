@@ -584,5 +584,9 @@
   "staff.referral.reason": "Reason for referral",
   "doctor.refer.acceptedReady": "Accepted · ready for you to confirm",
   "doctor.refer.decisionNoteDirect": "Confirming starts the transfer and tells the receiving team the ambulance is on its way.",
-  "doctor.referPanel.alreadyReferred": "This patient already has a referral in progress. Wait for its answer before sending another."
+  "doctor.referPanel.alreadyReferred": "This patient already has a referral in progress. Wait for its answer before sending another.",
+  "doctor.incoming.title": "Incoming referrals",
+  "doctor.incoming.accepted": "You accepted. The referring doctor now confirms the transfer and the ambulance leaves.",
+  "doctor.patients.showAll": "Show all ({{count}})",
+  "doctor.patients.showFewer": "Show fewer"
 }

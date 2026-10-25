@@ -119,7 +119,8 @@ function patientId(event: AppSyncResolverEvent<Record_>): string {
 function staffCaller(event: AppSyncResolverEvent<Record_>) {
   const identity = event.identity as AppSyncIdentityCognito | null | undefined;
   const caller = callerFromClaims(identity?.claims as Record_ | undefined, process.env.STAFF_USER_POOL_ID);
-  if (!caller?.hospitalId || !caller.groups.includes(GROUPS.staff)) throw new Error('not-staff');
+  // Unit staff, or doctors (who may answer only doctor referrals; canAnswerRequest decides per request).
+  if (!caller?.hospitalId || !(caller.groups.includes(GROUPS.staff) || caller.groups.includes(GROUPS.doctors))) throw new Error('not-staff');
   return { caller, sub: String(identity?.sub ?? '') };
 }
 

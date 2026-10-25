@@ -584,5 +584,9 @@
   "staff.referral.reason": "เหตุผลการส่งต่อ",
   "doctor.refer.acceptedReady": "ตอบรับแล้ว · พร้อมให้คุณยืนยัน",
   "doctor.refer.decisionNoteDirect": "การยืนยันจะเริ่มการส่งต่อ และแจ้งทีมปลายทางว่ารถพยาบาลกำลังไป",
-  "doctor.referPanel.alreadyReferred": "ผู้ป่วยรายนี้มีการส่งต่อที่กำลังดำเนินการอยู่ โปรดรอคำตอบก่อนส่งใหม่"
+  "doctor.referPanel.alreadyReferred": "ผู้ป่วยรายนี้มีการส่งต่อที่กำลังดำเนินการอยู่ โปรดรอคำตอบก่อนส่งใหม่",
+  "doctor.incoming.title": "คำขอส่งต่อที่เข้ามา",
+  "doctor.incoming.accepted": "คุณตอบรับแล้ว แพทย์ผู้ส่งต่อจะยืนยันการส่งต่อและรถพยาบาลจะออกเดินทาง",
+  "doctor.patients.showAll": "แสดงทั้งหมด ({{count}})",
+  "doctor.patients.showFewer": "แสดงน้อยลง"
 }

@@ -342,7 +342,8 @@ const schema = a.schema({
     .mutation()
     .arguments({ requestId: a.id().required(), action: a.string().required(), reason: a.string(), note: a.string() })
     .returns(a.string())
-    .authorization((allow) => [allow.group('hospital_staff')])
+    // Doctors may answer only doctor referrals to their hospital (care-actions checks canAnswerRequest).
+    .authorization((allow) => [allow.group('hospital_staff'), allow.group('doctors')])
     .handler(a.handler.function(careActions)),
 
   /** The patient or the request's hospital staff send a quick reply (key) or short text. */

@@ -246,3 +246,22 @@ describe('direct referral answers, hardening', () => {
     await expect(call(staffEvent('answerRequest', { requestId: 'qc', action: 'accept' }, { groups: ['hospital_staff'], hospitalId: 'H2', unit: 'er' }))).rejects.toThrow('not-staff');
   });
 });
+
+describe("the receiving hospital's doctor", () => {
+  const doc = { groups: ['doctors'], hospitalId: 'H1' };
+  it('accepts a direct referral manually, which makes it ready for the referring doctor to confirm', async () => {
+    fake.tables('Referral').push({ id: 'dr9', mode: 'direct', status: 'running', chosenId: 'H1' } as never);
+    fake.tables('CareRequest').push({ id: 'q9', type: 'referral', hospitalId: 'H1', ownerId: 'd-other', needKey: 'general', status: 'waiting', auto: false, referralId: 'dr9', department: 'surgery', createdAtMs: Date.now() } as never);
+    await call(staffEvent('answerRequest', { requestId: 'q9', action: 'accept' }, doc));
+    expect(fake.tables('CareRequest').find((r) => r.id === 'q9')?.status).toBe('accepted');
+    expect(fake.tables('Referral').find((r) => r.id === 'dr9')?.status).toBe('awaiting');
+  });
+  it("can't answer a patient's own request, or another hospital's referral", async () => {
+    fake.tables('CareRequest').push(
+      { id: 'v9', type: 'visit', hospitalId: 'H1', ownerId: 'p1', needKey: 'general', status: 'waiting', auto: false, createdAtMs: Date.now() } as never,
+      { id: 'r9', type: 'referral', hospitalId: 'H2', ownerId: 'd-other', needKey: 'general', status: 'waiting', auto: false, referralId: 'x', createdAtMs: Date.now() } as never,
+    );
+    await expect(call(staffEvent('answerRequest', { requestId: 'v9', action: 'accept' }, doc))).rejects.toThrow('not-staff');
+    await expect(call(staffEvent('answerRequest', { requestId: 'r9', action: 'accept' }, doc))).rejects.toThrow('not-staff');
+  });
+});

@@ -13,6 +13,7 @@ import { MessageThread } from '../../src/components/MessageThread';
 import { ReferPanel } from '../../src/components/ReferPanel';
 import { pick, type StringKey } from '../../src/i18n/t';
 import {
+  answerRequest,
   confirmReferral,
   referPatient,
   SET_ASIDE_REASONS,
@@ -78,14 +79,41 @@ export default function DoctorReferScreen(): React.JSX.Element {
   const [showAi, setShowAi] = React.useState(false);
   const [showOther, setShowOther] = React.useState(false);
 
-  // Patients whose requests reached this hospital: the doctor refers one of them to another hospital.
+  const [showAllPatients, setShowAllPatients] = React.useState(false);
+  const [answering, setAnswering] = React.useState<string | null>(null);
+  const [declining, setDeclining] = React.useState<string | null>(null);
+  const [answerError, setAnswerError] = React.useState(false);
+
+  // Referrals other hospitals' doctors sent to this hospital: this doctor accepts or declines them by hand.
+  const incoming = React.useMemo(
+    () =>
+      data.careRequests
+        .filter((r) => r.hospitalId === session?.hospitalId && r.referralId && r.ownerId !== session?.userId && (r.status === 'waiting' || r.status === 'accepted'))
+        .sort((a, b) => (a.status === b.status ? b.createdAtMs - a.createdAtMs : a.status === 'waiting' ? -1 : 1)),
+    [data.careRequests, session?.hospitalId, session?.userId],
+  );
+  // Patients' own requests that reached this hospital and are still active (last 24 hours): the doctor can refer one.
   const patients = React.useMemo(
     () =>
       data.careRequests
-        .filter((r) => r.hospitalId === session?.hospitalId && r.type !== 'booking' && ['waiting', 'accepted', 'completed'].includes(r.status))
+        .filter((r) => r.hospitalId === session?.hospitalId && !r.referralId && r.type !== 'booking' && (r.status === 'waiting' || r.status === 'accepted') && Date.now() - r.createdAtMs < 24 * 60 * 60_000)
         .sort((a, b) => b.createdAtMs - a.createdAtMs),
     [data.careRequests, session?.hospitalId],
   );
+  const shownPatients = showAllPatients ? patients : patients.slice(0, 6);
+
+  const answer = async (r: CareRequest, action: 'accept' | 'decline' | 'arrived', reason?: string): Promise<void> => {
+    setAnswering(r.id);
+    setAnswerError(false);
+    try {
+      await answerRequest(r.id, action, reason ? { reason } : {});
+      setDeclining(null);
+    } catch {
+      setAnswerError(true);
+    } finally {
+      setAnswering(null);
+    }
+  };
   const patientName = (r: CareRequest): string => r.patient.name || t('doctor.patients.unnamed');
 
   const sendDirect = async (r: CareRequest, toHospitalId: string, department: string | undefined): Promise<void> => {
@@ -343,11 +371,60 @@ export default function DoctorReferScreen(): React.JSX.Element {
     </View>
   ) : null;
 
+  const incomingSection =
+    incoming.length > 0 ? (
+      <Card padding="lg" selected={incoming.some((r) => r.status === 'waiting')}>
+        <SectionHeader title={t('doctor.incoming.title')} />
+        {answerError ? <Notice tone="danger">{t('staff.inbox.answerError')}</Notice> : null}
+        {incoming.map((r) => (
+          <View key={r.id} style={[styles.patient, { borderColor: r.status === 'waiting' ? theme.warning : theme.border }]}>
+            <View style={styles.between}>
+              <Text style={[styles.patientName, { color: theme.text }]}>{patientName(r)}</Text>
+              <Badge tone={r.status === 'waiting' ? 'warning' : 'success'} label={t(`request.status.${r.status}` as StringKey)} />
+            </View>
+            <View style={styles.row}>
+              {r.patient.referredFrom ? <Badge tone="info" icon="git-network" label={t('staff.inbox.referralFrom', { hospital: pick(r.patient.referredFrom, lang) })} /> : null}
+              {r.department ? <Badge tone="primary" icon="medkit" label={t(`department.short.${r.department}` as StringKey)} /> : null}
+              {r.patient.phone ? <Badge tone="neutral" icon="call" label={r.patient.phone} /> : null}
+              <Badge tone="info" icon="car" label={t('staff.inbox.arriving', { min: r.etaMin, mode: t(`mode.${r.patient.mode}` as StringKey) })} />
+            </View>
+            <Text style={[styles.label, { color: theme.textMuted }]}>{t('staff.referral.reason')}</Text>
+            {/* Patient text is data, shown as plain text and never interpreted. */}
+            <Text style={[styles.body, { color: theme.text }]}>{r.patient.description}</Text>
+            {r.status === 'waiting' && declining !== r.id ? (
+              <View style={styles.row}>
+                <View style={styles.flex}>
+                  <Button icon="checkmark" label={t('staff.inbox.accept')} busy={answering === r.id} onPress={() => void answer(r, 'accept')} />
+                </View>
+                <View style={styles.flex}>
+                  <Button variant="secondary" icon="close" label={t('staff.inbox.decline')} onPress={() => setDeclining(r.id)} />
+                </View>
+              </View>
+            ) : null}
+            {r.status === 'waiting' && declining === r.id ? (
+              <View style={styles.stack}>
+                {(['nobed', 'busy', 'equip', 'divert'] as const).map((reason) => (
+                  <Button key={reason} variant="secondary" label={t(`request.reason.${reason}` as StringKey)} busy={answering === r.id} onPress={() => void answer(r, 'decline', reason)} />
+                ))}
+                <Button variant="ghost" icon="chevron-back" label={t('common.back')} onPress={() => setDeclining(null)} />
+              </View>
+            ) : null}
+            {r.status === 'accepted' ? (
+              <>
+                <Notice tone="success">{t('doctor.incoming.accepted')}</Notice>
+                <Button variant="secondary" icon="walk" label={t('staff.inbox.arrived')} busy={answering === r.id} onPress={() => void answer(r, 'arrived')} />
+              </>
+            ) : null}
+          </View>
+        ))}
+      </Card>
+    ) : null;
+
   const patientsSection = (
     <Card padding="lg">
       <SectionHeader title={t('doctor.patients.title')} />
       {patients.length === 0 ? <Text style={[styles.muted, { color: theme.textMuted }]}>{t('doctor.patients.empty')}</Text> : null}
-      {patients.map((r) =>
+      {shownPatients.map((r) =>
         referringId === r.id ? (
           <ReferPanel
             key={r.id}
@@ -373,6 +450,9 @@ export default function DoctorReferScreen(): React.JSX.Element {
           </View>
         ),
       )}
+      {patients.length > 6 ? (
+        <Button variant="ghost" icon={showAllPatients ? 'chevron-up' : 'chevron-down'} label={showAllPatients ? t('doctor.patients.showFewer') : t('doctor.patients.showAll', { count: patients.length })} onPress={() => setShowAllPatients(!showAllPatients)} />
+      ) : null}
     </Card>
   );
 
@@ -417,6 +497,7 @@ export default function DoctorReferScreen(): React.JSX.Element {
       {wide ? (
         <View style={styles.columns}>
           <View style={styles.sideColumn}>
+            {incomingSection}
             {patientsSection}
             {other}
             {recent}
@@ -431,6 +512,7 @@ export default function DoctorReferScreen(): React.JSX.Element {
         </View>
       ) : (
         <View style={styles.stack}>
+          {incomingSection}
           {live}
           {patientsSection}
           {other}

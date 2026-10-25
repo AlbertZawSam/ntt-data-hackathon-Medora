@@ -80,10 +80,14 @@ export function canUpdateStatusItem(
  * Accept, decline, undo and messages on requests: unit staff of the request's hospital. A request
  * sent to a department (Cardiology, Surgery, Obstetrics) belongs to that department's staff only;
  * a request without one (general care) to the other units. A doctor's referral routed to a department is
- * answered by that department and, as a fallback, the other units. `all` answers everything.
+ * answered by that department and, as a fallback, the other units, and by the receiving hospital's
+ * doctors, who accept or decline referrals themselves. `all` answers everything.
  */
 export function canAnswerRequest(caller: Caller, request: { hospitalId: string; department?: string | null; referralId?: string | null }): boolean {
-  if (!inGroup(caller, GROUPS.staff) || !hasHospital(caller) || caller.hospitalId !== request.hospitalId) return false;
+  if (!hasHospital(caller) || caller.hospitalId !== request.hospitalId) return false;
+  // A doctor's referral is accepted or declined by the receiving hospital's doctors themselves.
+  if (request.referralId && inGroup(caller, GROUPS.doctors)) return true;
+  if (!inGroup(caller, GROUPS.staff)) return false;
   if (caller.unit === ALL_UNITS) return true;
   if (!isDepartment(request.department)) return !isDepartment(caller.unit);
   // A doctor's referral to a department can also be taken by the emergency and other units, so an urgent
