@@ -7,6 +7,7 @@ import { useRouter, type Href } from 'expo-router';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { LANGUAGES, SPECIALTIES, matchesSpecialistQuery, specialtyForNeed, type PublicSpecialist } from '@medora/shared/logic/specialists';
+import { looksLikeInjection, looksLikeNonsense } from '@medora/shared/logic/understand';
 import { pick, type StringKey } from '../../src/i18n/t';
 import { LocationChip } from '../../src/components/LocationChip';
 import { MapView } from '../../src/components/MapView';
@@ -51,15 +52,27 @@ export default function PatientSpecialistsScreen(): React.JSX.Element {
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<StringKey | null>(null);
   const [booked, setBooked] = React.useState<string | null>(null);
+  // What the typed words told us: nonsense or an instruction ("unclear"), or real words with no exact match.
+  const [hint, setHint] = React.useState<'unclear' | 'noMatch' | null>(null);
 
   const search = React.useCallback(async (): Promise<void> => {
-    setBusy(true);
     setError(null);
+    const query = typed.trim();
+    if (query && (looksLikeNonsense(query) || looksLikeInjection(query))) {
+      setHint('unclear');
+      setList([]);
+      return;
+    }
+    setBusy(true);
     try {
       const found = await findSpecialists({ lat: location.lat, lng: location.lng, ...(specialty ? { specialty } : {}), ...(language ? { language } : {}) });
       // The typed words are matched here against specialty (and its everyday words, in English and Thai), the doctor's
       // name when shown, the hospital and the language.
-      setList(found.filter((item) => matchesSpecialistQuery(item, typed, [t(`specialty.${item.specialty}` as StringKey)])));
+      const matched = found.filter((item) => matchesSpecialistQuery(item, typed, [t(`specialty.${item.specialty}` as StringKey)]));
+      // Real words that match no specialty: show everyone nearby rather than an empty page, and say so.
+      const noMatch = query.length > 0 && matched.length === 0 && found.length > 0;
+      setHint(noMatch ? 'noMatch' : null);
+      setList(noMatch ? found : matched);
     } catch {
       setError('patient.specialists.searchError');
     } finally {
@@ -100,7 +113,13 @@ export default function PatientSpecialistsScreen(): React.JSX.Element {
           <SkeletonCard lines={3} />
         </>
       ) : null}
-      {list?.length === 0 ? (
+      {hint === 'unclear' ? (
+        <Notice tone="warning" title={t('patient.specialists.unclearTitle')}>
+          {t('patient.specialists.unclearBody')}
+        </Notice>
+      ) : null}
+      {hint === 'noMatch' ? <Notice tone="info">{t('patient.specialists.noMatch')}</Notice> : null}
+      {list?.length === 0 && hint !== 'unclear' ? (
         <Card padding="lg">
           <EmptyState icon="search-outline" title={t('patient.specialists.noResults')} />
         </Card>

@@ -1,3 +1,4 @@
+import { matchesSpecialistQuery as matchQuery } from "../logic/specialists";
 import { LANGUAGES, bookSlot, matchesSpecialistQuery, listSpecialists, openSlots, specialtyForNeed, validateSpecialistInput, type SpecialistRecord } from '../logic/specialists';
 
 const NOW = Date.parse('2026-10-13T04:00:00Z');
@@ -79,11 +80,33 @@ describe('matchesSpecialistQuery', () => {
   it('finds by specialty word, synonym, Thai word, doctor name, hospital or language', () => {
     for (const q of ['cardiology', 'heart', 'หัวใจ', 'kittisak', 'ladprao', 'ลาดพร้าว', 'heart th']) expect(matchesSpecialistQuery(s, q)).toBe(true);
   });
-  it('needs every typed word to match, and treats empty text as everything', () => {
-    expect(matchesSpecialistQuery(s, 'heart neurology')).toBe(false);
+  it('matches when any meaningful typed word matches, and treats empty text as everything', () => {
+    expect(matchesSpecialistQuery(s, 'heart neurology')).toBe(true);
+    expect(matchesSpecialistQuery(s, 'skin rash')).toBe(false);
     expect(matchesSpecialistQuery(s, '   ')).toBe(true);
   });
   it('never matches a hidden doctor name', () => {
     expect(matchesSpecialistQuery({ ...s, name: null }, 'kittisak')).toBe(false);
+  });
+});
+
+describe('specialist search words', () => {
+  const specs = ['cardiology', 'neurology', 'obstetrics', 'pediatrics', 'orthopedics', 'general'];
+  const found = (q: string) => specs.filter((s) => matchQuery({ specialty: s, name: null, hospitalName: { en: 'Siam Central', th: 'สยาม' }, languages: ['en'] }, q));
+  it('finds the right specialty for everyday words in English and Thai', () => {
+    expect(found('surgery')).toEqual(['orthopedics']);
+    expect(found('surgeon')).toEqual(['orthopedics']);
+    expect(found('heart doctor')).toEqual(['cardiology']);
+    expect(found('ankle')).toEqual(['orthopedics']);
+    expect(found('my child has a fever')).toEqual(expect.arrayContaining(['pediatrics', 'general']));
+    expect(found('ปวดหัว')).toEqual(['neurology']);
+    expect(found('ผ่าตัด')).toEqual(['orthopedics']);
+    expect(found('pregnant')).toEqual(['obstetrics']);
+  });
+  it('matches everyone for empty text or only filler words, and the hospital by name', () => {
+    expect(found('')).toHaveLength(6);
+    expect(found('I need a doctor')).toHaveLength(6);
+    expect(found('siam')).toHaveLength(6);
+    expect(found('skin rash zzz')).toEqual([]);
   });
 });
