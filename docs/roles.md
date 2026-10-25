@@ -21,14 +21,14 @@ Every hospital account has `custom:hospitalId` (for example `H02`). A person can
 | `ward` | Ready general beds |
 | `icu` | ICU beds |
 | `nicu` | NICU cots |
-| `er` | Emergency department open or diverting |
+| `er` | Emergency department open or diverting; blood lab |
 | `radiology` | CT, MRI (working or down) |
 | `cathlab` | Cath lab (ready, busy with "free in about X minutes", or down) |
-| `cardiology` | Department staff: patient requests sent to Cardiology (no status items) |
-| `surgery` | Department staff: patient requests sent to Surgery, orthopedics and injuries (no status items) |
-| `obstetrics` | Department staff: patient requests sent to Obstetrics, pregnancy and birth (no status items) |
+| `cardiology` | Department staff: patient requests sent to Cardiology; ECG and echo (working or down) |
+| `surgery` | Department staff: patient requests sent to Surgery, orthopedics and injuries; X-ray and operating theatre |
+| `obstetrics` | Department staff: patient requests sent to Obstetrics, pregnancy and birth; ultrasound and delivery room |
 
-**Department routing:** a patient may send a request to one of the hospital's open departments (`shared/logic/departments.ts`). That request is **answerable only by that department's staff** (and the `all` fallback), and only they see it in the Inbox; the server checks answers and messages in `canAnswerRequest`. Like every request, it stays **readable by all staff accounts of the hospital** through the API (the `hospitalId` read rule); restricting reads to the department is a follow-up. Requests without a department go to the other units (emergency, ward and so on), as before. A **doctor's referral** is sent to the receiving hospital's department for its type (heart attack → Cardiology, injury → Surgery, pregnancy → Obstetrics) when it has that department open; it can be answered by **that department or, as a fallback, the hospital's other non-department units**, so an urgent transfer never waits where no department account exists. Other departments can't answer it. Demo: Siam Central, Rama Nine and Chao Phraya have Cardiology, Surgery and Obstetrics. `npm run department-logins` creates, for each of them, a doctor, a General (emergency) account and one account per department (15 in total).
+**Department routing:** a patient may send a request to one of the hospital's open departments (`shared/logic/departments.ts`). That request is **answerable only by that department's staff** (and the `all` fallback), and only they see it in the Inbox; the server checks answers and messages in `canAnswerRequest`. Like every request, it stays **readable by all staff accounts of the hospital** through the API (the `hospitalId` read rule); restricting reads to the department is a follow-up. Requests without a department go to the other units (emergency, ward and so on), as before. A **doctor's referral** is sent to the receiving hospital's department for its type (heart attack → Cardiology, injury → Surgery, pregnancy → Obstetrics) when it has that department open; it can be answered by **that department or, as a fallback, the hospital's other non-department units**, so an urgent transfer never waits where no department account exists. Other departments can't answer it. Demo: Siam Central, Rama Nine and Chao Phraya have Cardiology, Surgery and Obstetrics. `npm run department-logins` creates, for each of them, a doctor, a General (emergency) account, a Ward account (beds) and one account per department (18 in total). Department staff switch only their own equipment and can't confirm the hospital's whole status.
 
 Specialist on-duty switches belong to the unit the admin assigns them to (usually `er` or the specialist's department, set in settings). Each `StatusItem` has an `ownerUnit`; only unit staff whose `custom:unit` matches can change it.
 

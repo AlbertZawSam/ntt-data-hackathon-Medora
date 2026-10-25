@@ -2,8 +2,8 @@
  * Hospital details a person opens from a Find care result to decide where to go, built to scan in a
  * glance: two status tiles (beds, emergency department), care chips with the person's own need
  * outlined, specialties on duty as pills, bookable clinic specialists, and one line on wait and
- * freshness. Symbols as well as colour, so it reads without colour too. Labels only, never counts or
- * names on duty (AGENTS.md rule 6). Requirements: 5.2, 5.3, 8.1
+ * freshness. Symbols as well as colour, so it reads without colour too. Free beds as the exact count and
+ * equipment as working or down (AGENTS.md rule 6); never staff names. Requirements: 5.2, 5.3, 8.1
  */
 import { useRouter, type Href } from 'expo-router';
 import React from 'react';
@@ -12,6 +12,7 @@ import type { HospitalDetails } from '@medora/shared/logic/hospitalDetails';
 import { NEED_KEYS } from '@medora/shared/logic/publicDirectory';
 import type { NeedKey } from '@medora/shared/logic/types';
 import { agoText } from '../i18n/ago';
+import { bedsText } from '../i18n/beds';
 import type { StringKey } from '../i18n/t';
 import { useT } from '../state/AppProvider';
 import { fonts, fontSizes, radii, spacing, useTheme } from '../ui/theme';
@@ -39,7 +40,7 @@ export function HospitalDetailsView({ details, nowMs, need, showBooking = true }
   return (
     <View style={[styles.box, { borderColor: theme.border, backgroundColor: theme.background }]}>
       <View style={styles.tiles}>
-        <Tile title={t('details.bedsTitle')} value={t(`details.bedsFree.${details.bedsFree}` as StringKey)} symbol={SYMBOL[beds]} color={color[beds]} tint={tint(beds)} />
+        <Tile title={t('details.bedsTitle')} value={bedsText(t, details.freeBeds)} symbol={SYMBOL[beds]} color={color[beds]} tint={tint(beds)} />
         <Tile title={t('details.edTitle')} value={t(details.edOpen ? 'details.edOpen' : 'details.edClosed')} symbol={SYMBOL[ed]} color={color[ed]} tint={tint(ed)} />
       </View>
 
@@ -63,6 +64,29 @@ export function HospitalDetailsView({ details, nowMs, need, showBooking = true }
           );
         })}
       </View>
+
+      {details.equipment.length > 0 ? (
+        <>
+          <Text style={[styles.heading, { color: theme.textMuted }]}>{t('details.equipmentTitle')}</Text>
+          <View style={styles.chips}>
+            {details.equipment.map((e) => {
+              const level: Level = e.working ? 'good' : 'none';
+              return (
+                <View
+                  key={e.key}
+                  accessible
+                  accessibilityLabel={`${t(`equip.${e.key}` as StringKey)}: ${t(e.working ? 'details.working' : 'details.down')}`}
+                  style={[styles.chip, { backgroundColor: tint(level), borderColor: 'transparent' }]}
+                >
+                  <Text style={[styles.chipText, { color: color[level] }]}>
+                    {SYMBOL[level]} {t(`equip.${e.key}` as StringKey)}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        </>
+      ) : null}
 
       {details.onDuty.length > 0 ? (
         <>

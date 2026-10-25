@@ -143,7 +143,7 @@ type SnapshotKey = Exclude<keyof DataSnapshot, 'isSynced'>;
 const JSON_FIELDS: Partial<Record<SnapshotKey, string[]>> = {
   hospitalProfiles: ['name'],
   hospitalStatuses: ['status'],
-  careRequests: ['patient', 'slot', 'hospitalName'],
+  careRequests: ['patient', 'slot', 'hospitalName', 'referredTo'],
   referrals: ['chosenName', 'why', 'rows'],
   traceSteps: ['title', 'detail'],
   activities: ['actor', 'text'],
@@ -211,6 +211,8 @@ class LiveDataStore {
       this.observe('specialists', client.models.Specialist);
       this.observe('hospitalStatuses', client.models.HospitalStatus);
       this.observe('traceSteps', client.models.TraceStep);
+      // Beds held for patients who asked or were accepted: My unit shows them next to the ready count.
+      this.observe('reservations', client.models.Reservation);
     }
   }
 
@@ -464,6 +466,9 @@ export interface NewRequest {
 /** Sends a request to one hospital; the admin's auto-accept rule may accept it at once. */
 export async function submitRequest(input: NewRequest): Promise<string> {
   const result = await client.mutations.submitRequest(input);
+  // Say plainly why the server refused: one open request per patient, or a phone number it can't use.
+  const errors = JSON.stringify(result.errors ?? []);
+  for (const code of ['already-open', 'bad-phone', 'bad-name', 'bad-description']) if (errors.includes(code)) throw new DataServiceError(code);
   ensureData(result, 'Submit request');
   if (!result.data) throw new DataServiceError('Submit request failed.');
   return result.data;

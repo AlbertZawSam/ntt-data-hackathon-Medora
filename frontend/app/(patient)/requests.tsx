@@ -6,7 +6,7 @@ import { useRouter, type Href } from 'expo-router';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { NO_REPLY_MS } from '@medora/shared/logic/care';
-import type { CareRequest } from '@medora/shared/logic/types';
+import type { CareRequest, ReferralProgressStatus } from '@medora/shared/logic/types';
 import { MessageThread } from '../../src/components/MessageThread';
 import { agoText } from '../../src/i18n/ago';
 import { pick, type StringKey } from '../../src/i18n/t';
@@ -29,6 +29,16 @@ const STATUS_LOOK: Record<CareRequest['status'], { tone: Tone; icon: IconName }>
   cancelled: { tone: 'neutral', icon: 'remove-circle' },
   no_reply: { tone: 'warning', icon: 'help-circle' },
   completed: { tone: 'success', icon: 'ribbon' },
+};
+
+/** How a doctor's referral reads on the patient's request: waiting, good news, or a setback. */
+const REFERRAL_TONE: Record<ReferralProgressStatus, Tone> = {
+  waiting: 'info',
+  accepted: 'success',
+  confirmed: 'success',
+  arrived: 'success',
+  declined: 'warning',
+  set_aside: 'warning',
 };
 
 export default function PatientRequestsScreen(): React.JSX.Element {
@@ -68,7 +78,10 @@ export default function PatientRequestsScreen(): React.JSX.Element {
       {mine.map((r, index) => {
         const status = statusOf(r);
         const look = STATUS_LOOK[status];
-        const open = status === 'waiting' || status === 'accepted' || status === 'no_reply';
+        // While a doctor's referral is in progress, the referral is the news: no "no reply" warning, no cancel.
+        // The API returns null (not undefined) for a request that was never referred.
+        const referred = r.referredTo != null && r.referredTo.status !== 'declined' && r.referredTo.status !== 'set_aside';
+        const open = !referred && (status === 'waiting' || status === 'accepted' || status === 'no_reply');
         const chat = status === 'accepted' || status === 'waiting';
         const expanded = openId === r.id;
         return (
@@ -86,11 +99,19 @@ export default function PatientRequestsScreen(): React.JSX.Element {
               </View>
 
 
+              {r.referredTo ? (
+                <Notice
+                  tone={REFERRAL_TONE[r.referredTo.status]}
+                  title={t('patient.requests.referredTo', { hospital: pick(r.referredTo.name, lang) })}
+                >
+                  {t(`referralProgress.${r.referredTo.status}` as StringKey)}
+                </Notice>
+              ) : null}
               {r.auto && status === 'accepted' ? <Notice tone="success">{t('patient.requests.autoAccepted')}</Notice> : null}
               {status === 'declined' && r.reason && ['nobed', 'busy', 'equip', 'divert'].includes(r.reason) ? (
                 <Notice tone="warning">{t(`request.reason.${r.reason}` as StringKey)}</Notice>
               ) : null}
-              {status === 'no_reply' ? <Notice tone="warning">{t('patient.requests.noReply')}</Notice> : null}
+              {status === 'no_reply' && !referred ? <Notice tone="warning">{t('patient.requests.noReply')}</Notice> : null}
 
               <View style={styles.buttons}>
                 {chat ? (

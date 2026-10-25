@@ -8,6 +8,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Department } from '@medora/shared/logic/departments';
 import type { ReferralTarget } from '@medora/shared/logic/directReferral';
+import { bedsText, bedsTone } from '../i18n/beds';
 import { pick, type StringKey } from '../i18n/t';
 import { referralTargets } from '../services/data';
 import { useApp, useT } from '../state/AppProvider';
@@ -126,9 +127,9 @@ export function ReferPanel({ patientName, onSend, onUseAi, onClose }: Props): Re
           </View>
           <View style={styles.row}>
             <Badge
-              tone={target.details.bedsFree === 'none' ? 'danger' : target.details.bedsFree === '1-2' ? 'warning' : 'success'}
+              tone={bedsTone(target.details.freeBeds)}
               icon="bed"
-              label={t(`details.bedsFree.${target.details.bedsFree}` as StringKey)}
+              label={bedsText(t, target.details.freeBeds)}
             />
             <Badge tone={target.details.edOpen ? 'success' : 'danger'} icon="medkit" label={t(target.details.edOpen ? 'details.er.open' : 'details.er.closed')} />
             {target.details.departments.map((d) => (

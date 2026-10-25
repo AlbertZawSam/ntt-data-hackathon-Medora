@@ -1,7 +1,8 @@
 /**
  * Where the patient is: the device's live position (read fresh, then followed while the app is open), or a place picked from
  * the built-in list, the map or a search. A fix outside Bangkok falls back to the default district. The rules are in
- * locationController.ts; this wires them to the screen store and to the app going to the background.
+ * locationController.ts; this wires them to the screen store and to the app going to the background. A place picked
+ * by hand or on the map is remembered for this browser tab (tabMemory), so a reload keeps it; a live position never is.
  * Requirements: 3.1 to 3.6
  */
 import React from 'react';
@@ -10,14 +11,23 @@ import { isInBangkok, type LatLng, type Place } from '@medora/shared/logic/place
 import type { FoundPlace } from '@medora/shared/logic/placeSearch';
 import { DEFAULT_LOCATION, createLocator, type ChosenLocation, type GpsOutcome, type LocationSource } from './locationController';
 import { nativeSource, webSource } from './positionSources';
+import { forget, recall, remember } from './tabMemory';
 
 export type { ChosenLocation, GpsOutcome, LocationSource };
 
-let current: ChosenLocation = DEFAULT_LOCATION;
+/** A place or map point the patient chose earlier in this tab, if it is still inside Bangkok. */
+function remembered(): ChosenLocation | undefined {
+  const saved = recall<ChosenLocation>('location');
+  return saved && (saved.source === 'place' || saved.source === 'map') && isInBangkok(saved) ? saved : undefined;
+}
+
+let current: ChosenLocation = remembered() ?? DEFAULT_LOCATION;
 const listeners = new Set<() => void>();
 
 function set(next: ChosenLocation): void {
   current = next;
+  if (next.source === 'place' || next.source === 'map') remember('location', next);
+  else if (next.source === 'gps') forget('location'); // a live position is never stored
   for (const listener of listeners) listener();
 }
 

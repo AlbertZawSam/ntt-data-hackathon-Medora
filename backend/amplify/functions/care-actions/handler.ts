@@ -30,13 +30,19 @@ type RequestRecord = Omit<CareRequest, 'patient'> & { patient: unknown };
 
 interface Client {
   models: {
-    CareRequest: Model<RequestRecord>;
+    CareRequest: Model<RequestRecord> & {
+      listCareRequestByOwnerIdAndCreatedAtMs(input: { ownerId: string }, options?: Record_): Promise<{ data: RequestRecord[]; errors?: unknown[] }>;
+    };
     HospitalStatus: Model<{ id: string; status: unknown }>;
     HospitalProfile: Model<{ id: string; name: unknown }>;
     Message: Model<{ id: string }>;
-    Reservation: Model<Reservation> & { list(input: Record_): Promise<{ data: Reservation[]; errors?: unknown[] }> };
+    Reservation: Model<Reservation> & {
+      list(input: Record_): Promise<{ data: Reservation[]; errors?: unknown[] }>;
+      // The requestId index: a filtered list scans with the limit applied first, so it misses rows.
+      listReservationByRequestId(input: { requestId: string }): Promise<{ data: Reservation[]; errors?: unknown[] }>;
+    };
     Activity: Model<{ id: string }>;
-    Referral: Model<{ id: string; status: string; mode: string; chosenId?: string | null }>;
+    Referral: Model<{ id: string; status: string; mode: string; chosenId?: string | null; chosenName?: unknown; sourceRequestId?: string | null }>;
     Transfer: Model<{ id: string; status: string }> & {
       list(input: Record_): Promise<{ data: Array<{ id: string; status: string; toHospitalId: string }>; errors?: unknown[] }>;
     };
@@ -57,14 +63,21 @@ async function currentHolds(client: Client, hospitalId: string) {
 }
 
 async function hold(client: Client, request: { id: string; hospitalId: string; needKey: string }): Promise<void> {
-  // One bed (or NICU cot) is held as soon as the request is accepted, so the hospital shows one fewer free.
+  // One bed (or NICU cot) per request, held from the moment the patient sends it, so every viewer sees one
+  // fewer free at once; a second call (staff accepting a request that already holds a bed) adds nothing.
+  if ((await holdsFor(client, request.id)).some((r) => r.state === 'held')) return;
   const r = await client.models.Reservation.create(newReservation(request.id, request.hospitalId, holdKind(request.needKey), Date.now()));
   if (r.errors?.length) console.error(`care-actions: hold failed (${r.errors.map((e) => (e as { errorType?: string }).errorType ?? 'error').join(',')})`);
 }
 
+async function holdsFor(client: Client, requestId: string): Promise<Reservation[]> {
+  const found = await client.models.Reservation.listReservationByRequestId({ requestId });
+  if (found.errors?.length || !found.data) throw new Error('data-unavailable');
+  return found.data;
+}
+
 async function settle(client: Client, requestId: string, state: 'released' | 'converted'): Promise<Reservation | undefined> {
-  const found = await client.models.Reservation.list({ filter: { requestId: { eq: requestId } }, limit: 10 });
-  const open = found.data.find((r) => r.state === 'held');
+  const open = (await holdsFor(client, requestId)).find((r) => r.state === 'held');
   if (open) await client.models.Reservation.update({ id: open.id, state });
   return open;
 }
@@ -139,6 +152,13 @@ async function submitRequest(client: Client, event: AppSyncResolverEvent<Record_
   if (department !== undefined && !(isDepartment(department) && openDepartments(status).includes(department))) throw new Error('bad-department');
   const profile = await client.models.HospitalProfile.get({ id: input.hospitalId });
   const nowMs = Date.now();
+  // One open request per patient: every request holds a bed, so one account can't hold a hospital's beds.
+  const mine = await client.models.CareRequest.listCareRequestByOwnerIdAndCreatedAtMs({ ownerId }, { limit: 100, sortDirection: 'DESC' });
+  if (mine.errors?.length) throw new Error('data-unavailable');
+  if ((mine.data ?? []).some((r) => r.type !== 'booking' && (r.status === 'waiting' || r.status === 'accepted' || r.status === 'no_reply'))) {
+    console.warn('care-actions refused: already-open');
+    throw new Error('already-open');
+  }
   const decision = decideNewRequest(withHolds(status, await currentHolds(client, input.hospitalId)), input.needKey, nowMs);
 
   const created = must(
@@ -160,7 +180,8 @@ async function submitRequest(client: Client, event: AppSyncResolverEvent<Record_
     }),
     'create-failed',
   );
-  if (decision.status === 'accepted') await hold(client, { id: created.id, hospitalId: input.hospitalId, needKey: input.needKey });
+  // Held while the hospital decides; released if it declines or the patient cancels, used when they arrive.
+  await hold(client, { id: created.id, hospitalId: input.hospitalId, needKey: input.needKey });
   await log(client, input.hospitalId, ownerId, 'Patient', 'ผู้ป่วย', `Request ${created.id}: ${decision.status}${decision.auto ? ' (rule)' : ''}`, `คำขอ ${created.id}: ${decision.status}${decision.auto ? ' (ตามกฎ)' : ''}`);
   console.info(`care-actions submit ok: status=${decision.status}`);
   return created.id;
@@ -245,6 +266,18 @@ async function answerDirectReferral(client: Client, referralId: string, hospital
     ),
   });
   if (r.errors?.length) console.error('care-actions: referral update failed');
+  // The patient sees on their own request whether the receiving hospital accepted (hospital and status only).
+  // Never blocks the answer, and only on a patient's own visit request, never another doctor's referral.
+  try {
+    const source = referral.data.sourceRequestId ? await client.models.CareRequest.get({ id: referral.data.sourceRequestId }) : null;
+    if (source?.data?.type === 'visit' && referral.data.chosenName) {
+      const name = typeof referral.data.chosenName === 'string' ? JSON.parse(referral.data.chosenName) : referral.data.chosenName;
+      const p = await client.models.CareRequest.update({ id: source.data.id, referredTo: JSON.stringify({ name, status: accepted ? 'accepted' : 'declined', atMs: Date.now() }) });
+      if (p.errors?.length) console.error('care-actions: patient progress update failed');
+    }
+  } catch {
+    console.error('care-actions: patient progress update failed');
+  }
 }
 
 /** Whether the hospital could treat this request's need at the moment staff accept it (success metric). */
