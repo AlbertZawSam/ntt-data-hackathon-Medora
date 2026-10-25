@@ -102,7 +102,7 @@ export default function DoctorReferScreen(): React.JSX.Element {
   );
   const shownPatients = showAllPatients ? patients : patients.slice(0, 6);
 
-  const answer = async (r: CareRequest, action: 'accept' | 'decline' | 'arrived', reason?: string): Promise<void> => {
+  const answer = async (r: CareRequest, action: 'accept' | 'decline', reason?: string): Promise<void> => {
     setAnswering(r.id);
     setAnswerError(false);
     try {
@@ -410,10 +410,7 @@ export default function DoctorReferScreen(): React.JSX.Element {
               </View>
             ) : null}
             {r.status === 'accepted' ? (
-              <>
-                <Notice tone="success">{t('doctor.incoming.accepted')}</Notice>
-                <Button variant="secondary" icon="walk" label={t('staff.inbox.arrived')} busy={answering === r.id} onPress={() => void answer(r, 'arrived')} />
-              </>
+              <Notice tone="success">{t('doctor.incoming.accepted')}</Notice>
             ) : null}
           </View>
         ))}

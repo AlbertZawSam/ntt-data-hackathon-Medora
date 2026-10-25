@@ -86,6 +86,7 @@ describe('requests, referrals and settings', () => {
     expect(canAnswerRequest(doctor, referral)).toBe(true);
     expect(canAnswerRequest(doctor, { hospitalId: H1, department: 'cardiology' })).toBe(false);
     expect(canAnswerRequest({ ...doctor, hospitalId: H2 }, referral)).toBe(false);
+    expect(canAnswerRequest(doctor, { ...referral, fromHospitalId: H1 })).toBe(false);
   });
 
   it('lets a doctor start and confirm their own referral only', () => {

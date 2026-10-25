@@ -83,10 +83,11 @@ export function canUpdateStatusItem(
  * answered by that department and, as a fallback, the other units, and by the receiving hospital's
  * doctors, who accept or decline referrals themselves. `all` answers everything.
  */
-export function canAnswerRequest(caller: Caller, request: { hospitalId: string; department?: string | null; referralId?: string | null }): boolean {
+export function canAnswerRequest(caller: Caller, request: { hospitalId: string; department?: string | null; referralId?: string | null; fromHospitalId?: string | null }): boolean {
   if (!hasHospital(caller) || caller.hospitalId !== request.hospitalId) return false;
-  // A doctor's referral is accepted or declined by the receiving hospital's doctors themselves.
-  if (request.referralId && inGroup(caller, GROUPS.doctors)) return true;
+  // A doctor's referral is accepted or declined by the receiving hospital's doctors themselves, never by a
+  // doctor of the hospital that sent it (no accepting your own referral).
+  if (request.referralId && inGroup(caller, GROUPS.doctors) && request.fromHospitalId !== caller.hospitalId) return true;
   if (!inGroup(caller, GROUPS.staff)) return false;
   if (caller.unit === ALL_UNITS) return true;
   if (!isDepartment(request.department)) return !isDepartment(caller.unit);

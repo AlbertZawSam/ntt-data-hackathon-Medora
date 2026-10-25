@@ -190,6 +190,9 @@ async function answerRequest(client: Client, event: AppSyncResolverEvent<Record_
   const request = must(await client.models.CareRequest.get({ id: String(event.arguments.requestId) }), 'no-request');
   // Staff answer only their own hospital's requests (docs/roles.md).
   if (!canAnswerRequest(caller, request)) throw new Error('not-staff');
+  // Doctors only accept or decline referrals: arrival (which changes bed counts) and undo stay with unit staff.
+  const staffMember = caller.groups.includes(GROUPS.staff);
+  if (!staffMember && action !== 'accept' && action !== 'decline') throw new Error('not-staff');
   const move = transition(request, action as RequestAction, Date.now());
   if (!move.ok) throw new Error(move.reason);
 
@@ -217,7 +220,7 @@ async function answerRequest(client: Client, event: AppSyncResolverEvent<Record_
     if (kind) await occupy(client, request.hospitalId, kind);
     if (request.referralId) await arriveTransfer(client, request.referralId, request.hospitalId);
   }
-  await log(client, request.hospitalId, sub, `Unit: ${caller.unit ?? '-'}`, `หน่วย: ${caller.unit ?? '-'}`, `Request ${request.id}: ${action}`, `คำขอ ${request.id}: ${action}`);
+  await log(client, request.hospitalId, sub, staffMember ? `Unit: ${caller.unit ?? '-'}` : 'Doctor', staffMember ? `หน่วย: ${caller.unit ?? '-'}` : 'แพทย์', `Request ${request.id}: ${action}`, `คำขอ ${request.id}: ${action}`);
   console.info(`care-actions answer ok: action=${action}`);
   return 'ok';
 }

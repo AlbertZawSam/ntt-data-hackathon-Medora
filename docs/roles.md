@@ -38,7 +38,7 @@ Specialist on-duty switches belong to the unit the admin assigns them to (usuall
 | --- | --- | --- | --- |
 | Main screens | My unit, inbox, messages | Refer, agent trace, transfers | Settings, staff invitations, auto-accept rules |
 | Update beds and equipment | **Yes, only items owned by their unit** | No | No (assigns which unit owns each item) |
-| Answer patient requests and referrals | Yes: accept, decline with note, undo, message | No | No |
+| Answer patient requests and referrals | Yes: accept, decline with note, undo, arrived, message | **Only doctor referrals sent to their hospital: accept or decline** (no patient requests, no undo, no arrived; never a referral from their own hospital) | No |
 | Start referrals with the AI agent | No | **Yes** | No |
 | Confirm or set aside a transfer | No | **Yes, only their own referrals** | No |
 | See their hospital's full status | Yes | Yes | Yes |

@@ -265,3 +265,30 @@ describe("the receiving hospital's doctor", () => {
     await expect(call(staffEvent('answerRequest', { requestId: 'r9', action: 'accept' }, doc))).rejects.toThrow('not-staff');
   });
 });
+
+describe('doctors only accept or decline referrals', () => {
+  const doc = { groups: ['doctors'], hospitalId: 'H1' };
+  beforeEach(() => {
+    fake.tables('CareRequest').push(
+      { id: 'qa1', type: 'referral', hospitalId: 'H1', ownerId: 'd-other', needKey: 'stemi', status: 'accepted', auto: true, overrideUntil: Date.now() + 60_000, referralId: 'rf1', fromHospitalId: 'H2', createdAtMs: Date.now() } as never,
+      { id: 'qa2', type: 'referral', hospitalId: 'H1', ownerId: 'd-me', needKey: 'stemi', status: 'waiting', auto: false, referralId: 'rf2', fromHospitalId: 'H1', createdAtMs: Date.now() } as never,
+    );
+  });
+  it("can't mark arrival (bed counts) or undo, which stay with unit staff", async () => {
+    await expect(call(staffEvent('answerRequest', { requestId: 'qa1', action: 'arrived' }, doc))).rejects.toThrow('not-staff');
+    await expect(call(staffEvent('answerRequest', { requestId: 'qa1', action: 'undo' }, doc))).rejects.toThrow('not-staff');
+    expect(JSON.parse(String(fake.tables('HospitalStatus')[0].status)).beds).toBe(5);
+  });
+  it('never accepts a referral sent from their own hospital', async () => {
+    await expect(call(staffEvent('answerRequest', { requestId: 'qa2', action: 'accept' }, doc))).rejects.toThrow('not-staff');
+  });
+  it('refuses a public-pool account placed in the doctors group', async () => {
+    const event = {
+      typeName: 'Mutation',
+      fieldName: 'answerRequest',
+      arguments: { requestId: 'qa1', action: 'accept' },
+      identity: { sub: 'x1', claims: { iss: `https://cognito-idp.us-east-1.amazonaws.com/${POOLS.PUBLIC}`, 'cognito:groups': ['doctors'], 'custom:hospitalId': 'H1' } },
+    };
+    await expect(call(event)).rejects.toThrow('not-staff');
+  });
+});
