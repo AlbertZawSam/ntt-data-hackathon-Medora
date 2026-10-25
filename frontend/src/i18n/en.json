@@ -622,5 +622,8 @@
   "referralProgress.arrived": "Arrived",
   "patient.care.alreadyOpen": "You already have an open request. Cancel it in My requests to send a new one.",
   "patient.care.badPhone": "Check the phone number: digits only, for example 081 234 5678.",
-  "doctor.refer.track": "Track"
+  "doctor.refer.track": "Track",
+  "patient.care.unclearTitle": "We couldn't tell what's wrong",
+  "patient.care.unclearBody": "Describe your symptoms, for example \"I twisted my ankle\" or \"my child has a fever\".",
+  "patient.care.showAnyway": "Show hospitals anyway"
 }

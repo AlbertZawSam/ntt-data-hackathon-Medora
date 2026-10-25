@@ -622,5 +622,8 @@
   "referralProgress.arrived": "ถึงแล้ว",
   "patient.care.alreadyOpen": "คุณมีคำขอที่ยังเปิดอยู่ ยกเลิกในคำขอของฉันก่อนส่งใหม่",
   "patient.care.badPhone": "ตรวจสอบเบอร์โทรศัพท์: ใช้ตัวเลขเท่านั้น เช่น 081 234 5678",
-  "doctor.refer.track": "ติดตาม"
+  "doctor.refer.track": "ติดตาม",
+  "patient.care.unclearTitle": "เราไม่เข้าใจอาการของคุณ",
+  "patient.care.unclearBody": "โปรดอธิบายอาการ เช่น \"ข้อเท้าพลิก\" หรือ \"ลูกมีไข้\"",
+  "patient.care.showAnyway": "แสดงโรงพยาบาลต่อไป"
 }

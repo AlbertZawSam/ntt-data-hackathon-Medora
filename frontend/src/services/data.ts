@@ -91,7 +91,7 @@ interface Client {
     referralTargets: () => Promise<{ data?: string | null; errors?: unknown[] }>;
     understandNeed: (input: { text: string; lang?: string }) => Promise<{ data?: unknown; errors?: unknown[] }>;
     findSpecialists: (input: { lat: number; lng: number; specialty?: string; language?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
-    findCare: (input: { description: string; lat: number; lng: number }) => Promise<{ data?: string | null; errors?: unknown[] }>;
+    findCare: (input: { description: string; lat: number; lng: number; need?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     searchPlaces: (input: { query: string; lang?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     routePath: (input: { fromLat: number; fromLng: number; toLat: number; toLng: number }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     mapConfig: () => Promise<{ data?: string | null; errors?: unknown[] }>;
@@ -390,10 +390,10 @@ export async function writeActivity(input: Omit<Activity, 'id' | 'createdAt'>): 
 /** What `find-care` returns: an emergency (fixed rules, layer 2) or hospitals as simple labels. */
 export type FindCareResult =
   | { emergency: { key: string; label: Bi } }
-  | { need: NeedKey; aiUsed: boolean; summary?: Bi; hospitals: PublicHospital[] };
+  | { need: NeedKey; aiUsed: boolean; summary?: Bi; hospitals: PublicHospital[]; unclear?: boolean };
 
 /** Layer 2 of the emergency check, the intake agent and the ranking, all on the server. */
-export async function findCare(input: { description: string; lat: number; lng: number }): Promise<FindCareResult> {
+export async function findCare(input: { description: string; lat: number; lng: number; need?: NeedKey }): Promise<FindCareResult> {
   const result = await client.queries.findCare(input);
   ensureData(result, 'Find care');
   if (!result.data) throw new DataServiceError('Find care failed.');

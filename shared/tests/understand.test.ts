@@ -1,5 +1,5 @@
 import data from '../data/red_flags.json';
-import { cleanDescription, MAX_DESCRIPTION, parseUnderstanding, safetyGate, understandByRules } from '../logic/understand';
+import { cleanDescription, looksLikeNonsense, MAX_DESCRIPTION, parseUnderstanding, safetyGate, understandByRules } from '../logic/understand';
 
 describe('safetyGate (layer 2)', () => {
   it('catches every emergency example in English and Thai', () => {
@@ -55,5 +55,21 @@ describe('cleanDescription', () => {
     expect(cleanDescription('  fever  ')).toBe('fever');
     expect(cleanDescription('x'.repeat(5000))).toHaveLength(MAX_DESCRIPTION);
     expect(cleanDescription(42)).toBe('');
+  });
+});
+
+describe('unclear descriptions', () => {
+  it('catches text that cannot be a description, without a model', () => {
+    for (const text of ['?', '123', 'a', 'aaaa', 'asdfgh', 'qwerty', 'zxcvbn', '!!!']) expect(looksLikeNonsense(text)).toBe(true);
+    expect(understandByRules('asdfgh')).toMatchObject({ unclear: true });
+  });
+  it('never catches a real complaint, however short, in English or Thai', () => {
+    for (const text of ['hurt', 'fall', 'flash burns', 'fever', 'I twisted my ankle', 'ปวดหัว', 'ไข้', 'ข้อเท้าพลิก', 'my child has a fever', 'help me please']) {
+      expect(looksLikeNonsense(text)).toBe(false);
+    }
+    expect(understandByRules('I twisted my ankle').emergency === false && understandByRules('I twisted my ankle')).not.toHaveProperty('unclear');
+  });
+  it('reads the model answering "unclear" as general care marked unclear', () => {
+    expect(parseUnderstanding('{"need":"unclear","summary_en":"Weather","summary_th":"อากาศ"}')).toEqual({ emergency: false, need: 'general', source: 'ai', unclear: true });
   });
 });
