@@ -100,7 +100,7 @@ export function checkReferralDecision(
 }
 
 /** Seconds a simulated hospital takes to reply in the demo stage (requirement 17.2). */
-export const DEMO_REPLY_DELAY_SEC = 8;
+export const DEMO_REPLY_DELAY_SEC = 3;
 
 /**
  * Preset reply for the demo stage only, for hospitals that have no auto-accept rule: the best-ranked

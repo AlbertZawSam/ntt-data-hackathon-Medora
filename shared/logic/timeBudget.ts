@@ -27,10 +27,10 @@ export interface AskPolicy {
  * seconds (staff on the inbox, rules, demo replies) and the agent stops as soon as all have replied, so it
  * waits at most 15 s for the most urgent cases and 20 s otherwise (MAX_WAIT_SECONDS).
  */
-export const MAX_WAIT_SECONDS = 20;
+export const MAX_WAIT_SECONDS = 10;
 
 export function askPolicy(pathway: Pathway, remainingMin: number): AskPolicy {
   if (!pathway.urgent) return { count: 1, waitSeconds: MAX_WAIT_SECONDS };
-  if (remainingMin < 90) return { count: 3, waitSeconds: 15 };
+  if (remainingMin < 90) return { count: 3, waitSeconds: 8 };
   return { count: 2, waitSeconds: MAX_WAIT_SECONDS };
 }

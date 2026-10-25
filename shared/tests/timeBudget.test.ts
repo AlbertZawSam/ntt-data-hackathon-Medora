@@ -36,16 +36,16 @@ describe('tooFar', () => {
 
 describe('askPolicy', () => {
   it('asks one hospital for non-urgent pathways', () => {
-    expect(askPolicy(PATHWAYS.peds, Infinity)).toEqual({ count: 1, waitSeconds: 20 });
+    expect(askPolicy(PATHWAYS.peds, Infinity)).toEqual({ count: 1, waitSeconds: 10 });
   });
 
   it('asks three at once when under 90 minutes are left', () => {
-    expect(askPolicy(PATHWAYS.stemi, 89)).toEqual({ count: 3, waitSeconds: 15 });
+    expect(askPolicy(PATHWAYS.stemi, 89)).toEqual({ count: 3, waitSeconds: 8 });
   });
 
   it('asks two at once for other urgent cases', () => {
-    expect(askPolicy(PATHWAYS.stroke, 90)).toEqual({ count: 2, waitSeconds: 20 });
-    expect(askPolicy(PATHWAYS.preterm, Infinity)).toEqual({ count: 2, waitSeconds: 20 });
+    expect(askPolicy(PATHWAYS.stroke, 90)).toEqual({ count: 2, waitSeconds: 10 });
+    expect(askPolicy(PATHWAYS.preterm, Infinity)).toEqual({ count: 2, waitSeconds: 10 });
   });
 });
 
