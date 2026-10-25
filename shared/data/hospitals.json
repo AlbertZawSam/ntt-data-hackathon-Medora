@@ -29,7 +29,7 @@
       "status": {
         "beds": 6,
         "icu": 2,
-        "nicu": 2,
+        "nicu": 4,
         "depts": {
           "ed": "open",
           "neuro": "open",
