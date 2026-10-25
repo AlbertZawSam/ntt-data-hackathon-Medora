@@ -1,6 +1,7 @@
 /**
- * My unit: a nurse or technologist sees and changes only the items their unit owns, and answers
- * "Still correct?". The server checks the unit again on every change. Requirements: 9.1 to 9.4, 19.8
+ * My unit: a nurse or technologist sees and changes only the items their unit owns (as the hospital
+ * admin assigned them), and answers "Still correct?". The server checks the unit again on every change.
+ * Requirements: 9.1 to 9.4, 19.8
  */
 import { agoText } from '../../src/i18n/ago';
 import React from 'react';
@@ -29,9 +30,9 @@ import { fonts, fontSizes, radii, spacing, useBreakpoint, useTheme } from '../..
 
 const STEP_MIN = 5;
 
-type Send = (change: ReturnType<typeof changeFor> | { kind: 'confirm' } | { kind: 'cathlabBusy'; minutes: number | null }) => void;
+export type Send = (change: ReturnType<typeof changeFor> | { kind: 'confirm' } | { kind: 'cathlabBusy'; minutes: number | null }) => void;
 
-const ITEM_ICON: Record<string, IconName> = {
+export const ITEM_ICON: Record<string, IconName> = {
   beds: 'bed',
   icu: 'pulse',
   nicu: 'happy',
@@ -45,6 +46,13 @@ const ITEM_ICON: Record<string, IconName> = {
   ct: 'scan',
   mri: 'scan-circle',
   cathlab: 'heart-circle',
+  lab: 'flask',
+  ecg: 'pulse',
+  echo: 'heart-half',
+  xray: 'scan',
+  theatre: 'cut',
+  ultrasound: 'radio',
+  delivery: 'woman',
 };
 
 export default function StaffStatusScreen(): React.JSX.Element {
@@ -63,8 +71,9 @@ export default function StaffStatusScreen(): React.JSX.Element {
   }, []);
 
   const unit = session?.unit;
-  const controls = controlsForUnit(unit);
   const stored: HospitalStatus | undefined = data.hospitalStatuses.find((s) => s.hospitalId === session?.hospitalId)?.status;
+  // The items this unit owns at this hospital: the admin's choices, or the defaults.
+  const controls = controlsForUnit(unit, stored);
   // Held beds (accepted patients who haven't arrived) are shown separately and count as not free.
   const holds = activeHolds(data.reservations, session?.hospitalId ?? '', now);
   const status: HospitalStatus | undefined = stored ? withHolds(stored, holds) : undefined;
@@ -151,7 +160,7 @@ export default function StaffStatusScreen(): React.JSX.Element {
 }
 
 /** One thing the unit owns: its name and icon, its state in words, and the control to change it. */
-function ControlCard({ control, status, busy, onSend }: { control: UnitControl; status: HospitalStatus; busy: boolean; onSend: Send }): React.JSX.Element {
+export function ControlCard({ control, status, busy, onSend }: { control: UnitControl; status: HospitalStatus; busy: boolean; onSend: Send }): React.JSX.Element {
   const t = useT();
   const theme = useTheme();
   const label = t(control.labelKey as StringKey);

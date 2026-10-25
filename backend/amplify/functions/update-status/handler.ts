@@ -3,6 +3,7 @@ import type { AppSyncIdentityCognito, AppSyncResolverHandler } from 'aws-lambda'
 import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import { callerFromClaims, isUnitClaim } from '@medora/shared/logic/access';
+import { GROUPS } from '@medora/shared/logic/session';
 import { publicEntry } from '@medora/shared/logic/publicDirectory';
 import { applyStatusChange, itemId, type StatusChange } from '@medora/shared/logic/statusUpdate';
 import type { Bi, HospitalStatus } from '@medora/shared/logic/types';
@@ -84,32 +85,45 @@ function parseChange(raw: unknown): StatusChange | undefined {
 export const handler: AppSyncResolverHandler<Args, string> = async (event) => {
   const identity = event.identity as AppSyncIdentityCognito | null | undefined;
   const caller = callerFromClaims(identity?.claims as Record<string, unknown> | undefined, process.env.STAFF_USER_POOL_ID);
-  if (!caller?.hospitalId || !isUnitClaim(caller.unit)) throw new Error('not-staff'); // refuse before any read
+  // Unit staff (with a unit) or the hospital's admin; the hospital always comes from the token. Refuse before any read.
+  const admin = caller?.groups.includes(GROUPS.admins) === true;
+  if (!caller?.hospitalId || (!admin && !isUnitClaim(caller.unit))) throw new Error('not-staff');
 
   const change = parseChange(event.arguments.change);
   if (!change) throw new Error('bad-change');
 
   const client = await dataClient();
-  const current = await client.models.HospitalStatus.get({ id: caller.hospitalId });
-  if (current.errors?.length || !current.data) {
-    console.error('update-status: no status for this hospital');
-    throw new Error('no-status');
+  // Staff and the admin write the same status. Apply the change to what was read, then re-read right before
+  // saving: if someone else saved in between, apply it again on top of their version instead of overwriting it.
+  const read = async (): Promise<{ raw: string; status: HospitalStatus }> => {
+    const current = await client.models.HospitalStatus.get({ id: caller.hospitalId! });
+    if (current.errors?.length || !current.data) {
+      console.error('update-status: no status for this hospital');
+      throw new Error('no-status');
+    }
+    // AWSJSON comes back as a string from AppSync.
+    const raw = typeof current.data.status === 'string' ? current.data.status : JSON.stringify(current.data.status);
+    return { raw, status: JSON.parse(raw) as HospitalStatus };
+  };
+  let result: ReturnType<typeof applyStatusChange> | undefined;
+  let written = false;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const before = await read();
+    result = applyStatusChange(before.status, change, caller, caller.hospitalId, new Date().toISOString(), event.arguments.note ?? undefined);
+    if (!result.ok) {
+      console.warn(`update-status refused: ${result.reason}`);
+      throw new Error(result.reason);
+    }
+    if ((await read()).raw !== before.raw) continue; // changed meanwhile: apply again to the newer version
+    const saved = await client.models.HospitalStatus.update({ id: caller.hospitalId, status: JSON.stringify(result.status) });
+    if (saved.errors?.length) {
+      console.error('update-status: save failed');
+      throw new Error('save-failed');
+    }
+    written = true;
+    break;
   }
-
-  // AWSJSON comes back as a string from AppSync.
-  const raw = current.data.status;
-  const stored = (typeof raw === 'string' ? JSON.parse(raw) : raw) as HospitalStatus;
-  const result = applyStatusChange(stored, change, caller, caller.hospitalId, new Date().toISOString(), event.arguments.note ?? undefined);
-  if (!result.ok) {
-    console.warn(`update-status refused: ${result.reason}`);
-    throw new Error(result.reason);
-  }
-
-  const saved = await client.models.HospitalStatus.update({ id: caller.hospitalId, status: JSON.stringify(result.status) });
-  if (saved.errors?.length) {
-    console.error('update-status: save failed');
-    throw new Error('save-failed');
-  }
+  if (!written || !result?.ok) throw new Error('busy');
   await refreshPublicEntry(client, caller.hospitalId, result.status).catch(() => console.error('update-status: public directory refresh failed'));
   // Every app decision goes to the activity log (AGENTS.md 4b.6): ids and units only, never the note.
   const what = itemId(change);
@@ -117,8 +131,12 @@ export const handler: AppSyncResolverHandler<Args, string> = async (event) => {
     hospitalId: caller.hospitalId,
     ownerId: typeof identity?.sub === 'string' ? identity.sub : undefined,
     at: new Date().toISOString(),
-    actor: JSON.stringify({ en: `Unit: ${caller.unit}`, th: `หน่วย: ${caller.unit}` }),
-    text: JSON.stringify({ en: `Status updated: ${what}`, th: `อัปเดตสถานะ: ${what}` }),
+    actor: JSON.stringify(admin && !isUnitClaim(caller.unit) ? { en: 'Hospital admin', th: 'ผู้ดูแลโรงพยาบาล' } : { en: `Unit: ${caller.unit}`, th: `หน่วย: ${caller.unit}` }),
+    text: JSON.stringify(
+      change.kind === 'owner'
+        ? { en: `Owner of ${change.item} set to ${change.unit}`, th: `กำหนดให้ ${change.unit} ดูแล ${change.item}` }
+        : { en: `Status updated: ${what}`, th: `อัปเดตสถานะ: ${what}` },
+    ),
   });
   if (logged.errors?.length) console.error('update-status: activity log failed');
   console.info(`update-status ok: kind=${change.kind} unit=${caller.unit ?? '-'}`);

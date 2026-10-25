@@ -72,7 +72,7 @@ export function homeRoute(session: Session): string {
   }
   if (inGroup(session, GROUPS.admins) && !session.hospitalId) return '/(admin)/hospital-setup';
   if (inGroup(session, GROUPS.staff)) return '/(staff)/inbox';
-  if (inGroup(session, GROUPS.admins)) return '/(admin)/staff-invite';
+  if (inGroup(session, GROUPS.admins)) return '/(admin)/hospital';
   return '/(patient)/home';
 }
 
