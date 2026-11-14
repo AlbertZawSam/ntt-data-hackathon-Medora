@@ -143,7 +143,8 @@ export interface CareRequest {
   patient: {
     name?: string;
     phone?: string;
-    mode: 'car' | 'taxi' | 'ambulance' | 'walking';
+    /** `taxi` is no longer offered but stays readable on requests sent before 14 Nov 2026. */
+    mode: 'car' | 'taxi' | 'ambulance' | 'bike' | 'walking';
     description: string;
     /** Doctor referrals: the referring hospital's name. */
     referredFrom?: Bi;

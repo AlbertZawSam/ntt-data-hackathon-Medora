@@ -16,7 +16,8 @@ export const UNDO_WINDOW_MS = 60_000;
 export const NO_REPLY_MS = 45_000;
 
 export const NEED_KEYS: readonly NeedKey[] = ['maternity', 'child', 'injury', 'general'];
-export const ARRIVAL_MODES = ['car', 'taxi', 'ambulance', 'walking'] as const;
+/** How a patient says they will arrive. Taxi was dropped (14 Nov 2026); old requests keep showing it through `mode.taxi`. */
+export const ARRIVAL_MODES = ['car', 'ambulance', 'bike', 'walking'] as const;
 export type ArrivalMode = (typeof ARRIVAL_MODES)[number];
 
 export const MAX_DESCRIPTION = 1000;

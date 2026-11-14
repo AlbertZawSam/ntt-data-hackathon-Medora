@@ -28,7 +28,8 @@ import { brand, fonts, fontSizes, radii, spacing, useTheme } from '../../src/ui/
 const DECLINE_REASONS = ['nobed', 'busy', 'equip', 'divert'] as const;
 const DECLINE_ICON: Record<(typeof DECLINE_REASONS)[number], IconName> = { nobed: 'bed-outline', busy: 'person-outline', equip: 'construct-outline', divert: 'swap-horizontal' };
 const CLOSED: ReadonlyArray<CareRequest['status']> = ['declined', 'cancelled', 'completed'];
-const MODE_ICON: Record<string, IconName> = { car: 'car', taxi: 'car-sport', ambulance: 'medkit', walking: 'walk' };
+/** `taxi` stays for requests sent before it was dropped from the patient form. */
+const MODE_ICON: Record<string, IconName> = { car: 'car', taxi: 'car-sport', ambulance: 'medkit', bike: 'bicycle', walking: 'walk' };
 const STATUS_TONE: Record<CareRequest['status'], Tone> = { waiting: 'warning', accepted: 'success', declined: 'danger', cancelled: 'neutral', no_reply: 'warning', completed: 'success' };
 /** The automatic-acceptance undo window, for the countdown bar. */
 const UNDO_WINDOW_S = 60;

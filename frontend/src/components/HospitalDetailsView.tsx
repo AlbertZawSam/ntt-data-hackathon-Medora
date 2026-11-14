@@ -1,20 +1,25 @@
 /**
  * Hospital details a person opens from a Find care result to decide where to go, built to scan in a
- * glance: two status tiles (beds, emergency department), care chips with the person's own need
- * outlined, specialties on duty as pills, bookable clinic specialists, and one line on wait and
- * freshness. Symbols as well as colour, so it reads without colour too. Free beds as the exact count and
- * equipment as working or down (AGENTS.md rule 6); never staff names. Requirements: 5.2, 5.3, 8.1
+ * glance: two status tiles (beds, emergency department), care chips with the person's own category lit in
+ * its availability colour and the others greyed out, only the equipment that category needs, specialties on
+ * duty as pills, one action to the matching specialists, and one line on wait and freshness. Symbols as well
+ * as colour, so it reads without colour too. Free beds as the exact count and equipment as working or down
+ * (AGENTS.md rule 6); never staff names. Without a `need` (a doctor's view) every category and item shows.
+ * Requirements: 5.2, 5.3, 8.1
  */
 import { useRouter, type Href } from 'expo-router';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { equipmentForCase } from '@medora/shared/logic/equipment';
 import type { HospitalDetails } from '@medora/shared/logic/hospitalDetails';
 import { NEED_KEYS } from '@medora/shared/logic/publicDirectory';
+import { specialtyForNeed } from '@medora/shared/logic/specialists';
 import type { NeedKey } from '@medora/shared/logic/types';
 import { agoText } from '../i18n/ago';
 import { bedsText } from '../i18n/beds';
 import type { StringKey } from '../i18n/t';
 import { useT } from '../state/AppProvider';
+import { Button } from '../ui/Button';
 import { fonts, fontSizes, radii, spacing, useTheme } from '../ui/theme';
 
 const STALE_MIN = 30;
@@ -36,6 +41,9 @@ export function HospitalDetailsView({ details, nowMs, need, showBooking = true }
   const specialty = (key: string): string => (key === 'general' ? t('details.erDoctor') : t(`specialty.${key}` as StringKey));
   const ed: Level = details.edOpen ? 'good' : 'none';
   const beds = bedLevel(details.beds);
+  // With the person's category known, only its equipment matters; a doctor comparing hospitals sees everything.
+  const equipment = need ? equipmentForCase(details.equipment, need) : details.equipment;
+  const wanted = need ? specialtyForNeed(need) : undefined;
 
   return (
     <View style={[styles.box, { borderColor: theme.border, backgroundColor: theme.background }]}>
@@ -48,16 +56,31 @@ export function HospitalDetailsView({ details, nowMs, need, showBooking = true }
       <View style={styles.chips}>
         {NEED_KEYS.map((key) => {
           const level = careLevel(details.care[key]);
+          const name = t(`details.needShort.${key}` as StringKey);
+          // The other categories step back (grey, no availability colour, no symbol) so the eye lands on the person's own.
+          if (need && key !== need) {
+            return (
+              <View
+                key={key}
+                accessible
+                accessibilityLabel={`${name}: ${t('details.otherNeed')}`}
+                accessibilityState={{ disabled: true }}
+                style={[styles.chip, styles.chipOff, { backgroundColor: theme.surfaceAlt, borderColor: 'transparent' }]}
+              >
+                <Text style={[styles.chipText, { color: theme.textMuted }]}>{name}</Text>
+              </View>
+            );
+          }
           const mine = key === need;
           return (
             <View
               key={key}
               accessible
-              accessibilityLabel={`${t(`need.${key}` as StringKey)}: ${t(`label.${details.care[key]}` as StringKey)}`}
+              accessibilityLabel={`${name}: ${t(`label.${details.care[key]}` as StringKey)}${mine ? `, ${t('details.yourNeed')}` : ''}`}
               style={[styles.chip, { backgroundColor: tint(level), borderColor: mine ? color[level] : 'transparent' }]}
             >
               <Text style={[styles.chipText, { color: color[level] }]}>
-                {SYMBOL[level]} {t(`details.needShort.${key}` as StringKey)}
+                {SYMBOL[level]} {name}
               </Text>
               {mine ? <Text style={[styles.mine, { color: color[level] }]}>{t('details.yourNeed')}</Text> : null}
             </View>
@@ -65,11 +88,11 @@ export function HospitalDetailsView({ details, nowMs, need, showBooking = true }
         })}
       </View>
 
-      {details.equipment.length > 0 ? (
+      {equipment.length > 0 ? (
         <>
           <Text style={[styles.heading, { color: theme.textMuted }]}>{t('details.equipmentTitle')}</Text>
           <View style={styles.chips}>
-            {details.equipment.map((e) => {
+            {equipment.map((e) => {
               const level: Level = e.working ? 'good' : 'none';
               return (
                 <View
@@ -101,25 +124,16 @@ export function HospitalDetailsView({ details, nowMs, need, showBooking = true }
         </>
       ) : null}
 
-      {showBooking && details.clinic.length > 0 ? (
-        <>
-          <Text style={[styles.heading, { color: theme.textMuted }]}>{t('details.clinicTitle')}</Text>
-          {details.clinic.map((c, i) => (
-            <View key={`${c.specialty}-${i}`} style={[styles.clinicRow, { borderColor: theme.border }]}>
-              <View style={styles.flex}>
-                <Text style={[styles.clinicSpecialty, { color: theme.text }]}>{specialty(c.specialty)}</Text>
-                <Text style={[styles.small, { color: theme.textMuted }]}>{c.name ?? t('details.namePrivate')}</Text>
-              </View>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => router.push('/(patient)/specialists' as Href)}
-                style={({ pressed }) => [styles.book, { backgroundColor: theme.primary, opacity: pressed ? 0.8 : 1 }]}
-              >
-                <Text style={[styles.bookText, { color: theme.onPrimary }]}>{t('details.book')}</Text>
-              </Pressable>
-            </View>
-          ))}
-        </>
+      {/* One way to the specialists that fit the category, pre-filtered; the booking itself happens there. */}
+      {showBooking && wanted ? (
+        <Button
+          variant="secondary"
+          size="sm"
+          icon="people-outline"
+          iconRight="chevron-forward"
+          label={wanted === 'general' ? t('details.seeGeneralDoctors') : t('details.seeSpecialists', { specialty: t(`specialty.${wanted}` as StringKey) })}
+          onPress={() => router.push({ pathname: '/(patient)/specialists', params: { specialty: wanted } } as unknown as Href)}
+        />
       ) : null}
 
       <Text style={[styles.footer, { color: stale ? theme.warning : theme.textMuted }]}>
@@ -150,15 +164,10 @@ const styles = StyleSheet.create({
   heading: { fontSize: fontSizes.xs, fontFamily: fonts.semibold, letterSpacing: 0.6, textTransform: 'uppercase', marginTop: spacing.xs },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: { flexBasis: '47%', flexGrow: 1, borderWidth: 2, borderRadius: radii.md, paddingVertical: spacing.xs, paddingHorizontal: spacing.sm },
+  chipOff: { opacity: 0.6 },
   chipText: { fontSize: fontSizes.md, fontFamily: fonts.semibold },
   mine: { fontSize: fontSizes.xs, fontFamily: fonts.medium },
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   pill: { borderWidth: 1, borderRadius: 999, paddingHorizontal: spacing.sm, paddingVertical: 2, fontSize: fontSizes.sm, fontFamily: fonts.medium, overflow: 'hidden' },
-  clinicRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderRadius: radii.md, padding: spacing.sm },
-  flex: { flex: 1 },
-  clinicSpecialty: { fontSize: fontSizes.md, fontFamily: fonts.semibold },
-  small: { fontSize: fontSizes.sm, fontFamily: fonts.regular },
-  book: { borderRadius: radii.md, paddingHorizontal: spacing.md, minHeight: 40, justifyContent: 'center' },
-  bookText: { fontSize: fontSizes.sm, fontFamily: fonts.semibold },
   footer: { fontSize: fontSizes.sm, fontFamily: fonts.medium, marginTop: spacing.xs },
 });
