@@ -6,8 +6,9 @@
  */
 import { pathwayForNeed } from './pathways';
 import { dataAgeMin, failsFor, freeBeds, freeNicu } from './ranking';
+import { RESERVATION_MS } from './reservations';
 import { ruleAccepts } from './rules';
-import type { CareRequest, CareRequestStatus, HospitalStatus, NeedKey, Pathway, RankedHospital } from './types';
+import type { CareRequest, CareRequestStatus, HospitalStatus, NeedKey, Pathway, RankedHospital, ReferralProgressStatus } from './types';
 import type { HospitalDetails } from './hospitalDetails';
 
 /** Staff can undo an automatic acceptance for this long (AGENTS.md section 4, rule 3). */
@@ -134,6 +135,33 @@ export function transition(
       if (request.status !== 'waiting') return { ok: false, reason: 'bad-state' };
       return nowMs - request.createdAtMs >= NO_REPLY_MS ? { ok: true, status: 'no_reply' } : { ok: false, reason: 'too-early' };
   }
+}
+
+const OPEN_STATUSES: readonly CareRequestStatus[] = ['waiting', 'accepted', 'no_reply'];
+/** Once the doctor confirmed the transfer, the ambulance is arranged: only the hospitals can stop it. */
+const TRANSFER_STARTED: readonly ReferralProgressStatus[] = ['confirmed', 'arrived'];
+
+/**
+ * Whether the patient may cancel their request: while it is open, including while a doctor is referring
+ * them on, until the transfer is confirmed. Before this, a referred request had no cancel at all.
+ */
+export function patientCanCancel(request: Pick<CareRequest, 'status' | 'referredTo'>): boolean {
+  if (!OPEN_STATUSES.includes(request.status)) return false;
+  return !(request.referredTo && TRANSFER_STARTED.includes(request.referredTo.status));
+}
+
+/**
+ * Whether a request still counts as the patient's one open request. One that nothing has happened to for
+ * the reservation time (2 hours, requirement 19.3) has lost its bed and no longer blocks a new request, so
+ * an abandoned request can't lock the account.
+ */
+export function blocksNewRequest(
+  request: Pick<CareRequest, 'type' | 'status' | 'createdAtMs' | 'acceptedAtMs' | 'referredTo'>,
+  nowMs: number,
+): boolean {
+  if (request.type === 'booking' || !OPEN_STATUSES.includes(request.status)) return false;
+  const lastChangeMs = Math.max(request.createdAtMs, request.acceptedAtMs ?? 0, request.referredTo?.atMs ?? 0);
+  return nowMs - lastChangeMs < RESERVATION_MS;
 }
 
 /** Seconds left in the undo window, 0 when over; the inbox shows this as a countdown. */

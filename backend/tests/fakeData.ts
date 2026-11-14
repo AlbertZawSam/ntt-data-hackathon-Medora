@@ -24,6 +24,10 @@ export function makeFakeClient(seed: Record<string, Row[]> = {}) {
     // Secondary-index queries, as the generated client names them.
     listReservationByRequestId: async ({ requestId }: { requestId: string }) => ({ data: table(name).filter((r) => r.requestId === requestId) }),
     listCareRequestByOwnerIdAndCreatedAtMs: async ({ ownerId }: { ownerId: string }) => ({ data: table(name).filter((r) => r.ownerId === ownerId) }),
+    listCareRequestByReferralIdAndCreatedAtMs: async ({ referralId }: { referralId: string }) => ({ data: table(name).filter((r) => r.referralId === referralId) }),
+    listReferralByFromHospitalIdAndStartedAtMs: async ({ fromHospitalId }: { fromHospitalId: string }, options: { filter?: Record<string, { eq: unknown }> } = {}) => ({
+      data: table(name).filter((r) => r.fromHospitalId === fromHospitalId && Object.entries(options.filter ?? {}).every(([k, c]) => r[k] === c.eq)),
+    }),
     delete: async ({ id }: { id: string }) => {
       tables[name] = table(name).filter((r) => r.id !== id);
       return { data: null };

@@ -127,3 +127,43 @@ describe('quickRepliesFor', () => {
     expect(quickRepliesFor({ referralId: null })).toBe(QUICK_REPLY_KEYS);
   });
 });
+
+import { blocksNewRequest, patientCanCancel } from '../logic/care';
+import { RESERVATION_MS } from '../logic/reservations';
+import type { ReferralProgressStatus } from '../logic/types';
+
+const referred = (status: ReferralProgressStatus, atMs = NOW_MS) => ({ name: { en: 'Siam Central', th: 'สยามเซ็นทรัล' }, status, atMs });
+
+describe('patientCanCancel', () => {
+  it('lets the patient cancel an open request, also while a doctor is referring them on', () => {
+    expect(patientCanCancel({ status: 'waiting' })).toBe(true);
+    expect(patientCanCancel({ status: 'no_reply' })).toBe(true);
+    for (const status of ['waiting', 'accepted', 'declined', 'set_aside'] as const) {
+      expect(patientCanCancel({ status: 'accepted', referredTo: referred(status) })).toBe(true);
+    }
+  });
+  it('refuses once the transfer is confirmed or the request is closed', () => {
+    expect(patientCanCancel({ status: 'accepted', referredTo: referred('confirmed') })).toBe(false);
+    expect(patientCanCancel({ status: 'accepted', referredTo: referred('arrived') })).toBe(false);
+    for (const status of ['declined', 'cancelled', 'completed'] as const) expect(patientCanCancel({ status })).toBe(false);
+  });
+});
+
+describe('blocksNewRequest', () => {
+  const open = { type: 'visit', status: 'accepted', createdAtMs: NOW_MS - 60_000 } as const;
+  it('counts a recent open request as the one open request', () => {
+    expect(blocksNewRequest(open, NOW_MS)).toBe(true);
+    expect(blocksNewRequest({ ...open, status: 'waiting' }, NOW_MS)).toBe(true);
+  });
+  it('ignores closed requests and bookings', () => {
+    expect(blocksNewRequest({ ...open, status: 'cancelled' }, NOW_MS)).toBe(false);
+    expect(blocksNewRequest({ ...open, type: 'booking' }, NOW_MS)).toBe(false);
+  });
+  it('stops blocking once nothing happened to it for the reservation time', () => {
+    const old = { ...open, createdAtMs: NOW_MS - RESERVATION_MS };
+    expect(blocksNewRequest(old, NOW_MS)).toBe(false);
+    // A recent referral reply keeps it open.
+    expect(blocksNewRequest({ ...old, referredTo: referred('accepted', NOW_MS - 60_000) }, NOW_MS)).toBe(true);
+    expect(blocksNewRequest({ ...old, acceptedAtMs: NOW_MS - 60_000 }, NOW_MS)).toBe(true);
+  });
+});
