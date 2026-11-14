@@ -654,7 +654,7 @@
   "doctor.referPanel.noteLabel": "Notes for the receiving team (optional)",
   "doctor.referPanel.noteHint": "Findings, vital signs, treatment given, why you're referring. Up to 500 characters.",
   "doctor.incoming.doctorNote": "Referring doctor's note",
-  "mode.bike": "Bike",
+  "mode.bike": "Motorbike",
   "patient.care.categoryTitle": "We understood this as",
   "patient.care.categoryMine": "{{need}}: your category",
   "patient.care.categoryOther": "{{need}}: not your search",
