@@ -3,6 +3,7 @@ import type { AppSyncIdentityCognito, AppSyncResolverEvent } from 'aws-lambda';
 import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import { callerFromClaims, canStartReferral } from '@medora/shared/logic/access';
+import { statusErrorCode, writeHospitalStatus, type StatusModels } from '../../lib/hospitalStatus';
 import { SET_ASIDE_TEXT, checkReferralDecision, isSetAsideReason, type ReferralDecision } from '@medora/shared/logic/referral';
 import { checkDirectReferral, referralTargets } from '@medora/shared/logic/directReferral';
 import { activeHolds, holdKind, occupyOne, withHolds, type Reservation } from '@medora/shared/logic/reservations';
@@ -38,6 +39,7 @@ interface Client {
     };
     HospitalStatus: Model<{ id: string; hospitalId: string; status: unknown }>;
     HospitalProfile: Model<{ id: string; hospitalId: string; name: unknown; lat: number; lng: number; typicalWaitMin: number }>;
+    PublicDirectory: StatusModels['models']['PublicDirectory'];
     Specialist: Model<Omit<SpecialistRecord, 'slots'> & { slots: unknown }>;
     Activity: Model<{ id: string }>;
   };
@@ -195,9 +197,11 @@ async function admitAtReceivingHospital(client: Client, transfer: { referralId: 
   const held = (found.data ?? []).find((r) => r.state === 'held');
   if (held) await client.models.Reservation.update({ id: held.id, state: 'converted' });
   const kind = holdKind(request.needKey);
-  const row = await client.models.HospitalStatus.get({ id: transfer.toHospitalId });
-  if (!row.data) return;
-  await client.models.HospitalStatus.update({ id: transfer.toHospitalId, status: JSON.stringify(occupyOne(parseStatus(row.data.status), kind)) });
+  // Saved without losing a concurrent update, and the public free-bed count follows.
+  // The transfer is already saved as arrived: a failed bed count is logged, never thrown (see care-actions occupy).
+  await writeHospitalStatus(client, transfer.toHospitalId, (current) => ({ ok: true, status: occupyOne(current, kind) }), 'referral-actions').catch((error: unknown) => {
+    console.error(`referral-actions: bed count not saved (${statusErrorCode(error)})`);
+  });
 }
 
 /** The owning doctor marks their simulated transfer as arrived (requirement 13.3). */

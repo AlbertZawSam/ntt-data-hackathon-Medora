@@ -359,6 +359,17 @@ backend.updateStatus.addEnvironment('STAFF_USER_POOL_ID', staffPool.userPoolId);
 backend.careActions.addEnvironment('PUBLIC_USER_POOL_ID', backend.auth.resources.userPool.userPoolId);
 backend.careActions.addEnvironment('STAFF_USER_POOL_ID', staffPool.userPoolId);
 
+// Every handler checks which pool issued the token, not only the group (docs/roles.md: enforce on the server).
+// Pool ids are not secrets; no IAM is added. Patient-only: find-care, search-places. Any account: map-config,
+// route-path. agent-runner: doctors of the staff pool who own the referral.
+const publicPoolId = backend.auth.resources.userPool.userPoolId;
+for (const fn of [backend.findCare, backend.searchPlaces]) fn.addEnvironment('PUBLIC_USER_POOL_ID', publicPoolId);
+for (const fn of [backend.mapConfig, backend.routePath]) {
+  fn.addEnvironment('PUBLIC_USER_POOL_ID', publicPoolId);
+  fn.addEnvironment('STAFF_USER_POOL_ID', staffPool.userPoolId);
+}
+backend.agentRunner.addEnvironment('STAFF_USER_POOL_ID', staffPool.userPoolId);
+
 // find-care reads its model ids from the environment (AGENTS.md 4a); agent-runner's are set with its
 // guardrails above.
 backend.findCare.addEnvironment('MODEL_ID_FAST', MODEL_ID_FAST);

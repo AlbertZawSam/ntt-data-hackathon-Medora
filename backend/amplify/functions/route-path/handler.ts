@@ -1,7 +1,7 @@
 import { CalculateRoutesCommand, GeoRoutesClient } from '@aws-sdk/client-geo-routes';
 import type { AppSyncIdentityCognito, AppSyncResolverEvent } from 'aws-lambda';
 import { pathFromLineString } from '@medora/shared/logic/routePath';
-import { GROUPS } from '@medora/shared/logic/session';
+import { isSignedInToken } from '@medora/shared/logic/access';
 
 interface Args {
   fromLat?: number;
@@ -11,7 +11,6 @@ interface Args {
 }
 
 const routes = new GeoRoutesClient({});
-const SIGNED_IN = [GROUPS.patients, GROUPS.staff, GROUPS.doctors, GROUPS.admins];
 /** Medora works inside greater Bangkok; anything else is refused, which also keeps the request cheap. */
 const AREA = { minLat: 13.3, maxLat: 14.2, minLng: 100.2, maxLng: 100.95 };
 
@@ -25,8 +24,8 @@ const inside = (lat: unknown, lng: unknown): lat is number =>
  */
 export const handler = async (event: AppSyncResolverEvent<Args>): Promise<string> => {
   const identity = event.identity as AppSyncIdentityCognito | null | undefined;
-  const groups = identity?.claims?.['cognito:groups'];
-  if (!Array.isArray(groups) || !groups.some((g) => SIGNED_IN.includes(g))) throw new Error('not-signed-in');
+  // Any Medora account, each group only from its own pool.
+  if (!isSignedInToken(identity?.claims as Record<string, unknown> | undefined, { publicPoolId: process.env.PUBLIC_USER_POOL_ID, staffPoolId: process.env.STAFF_USER_POOL_ID })) throw new Error('not-signed-in');
   const { fromLat, fromLng, toLat, toLng } = event.arguments;
   if (!inside(fromLat, fromLng) || !inside(toLat, toLng)) return JSON.stringify({ path: [] });
   // Positions are rounded to about 11 m here, so what is asked of the service never holds a precise position; the same

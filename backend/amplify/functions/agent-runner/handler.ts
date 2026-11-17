@@ -3,6 +3,7 @@ import { BedrockAgentRuntimeClient, RetrieveCommand } from '@aws-sdk/client-bedr
 import { ApplyGuardrailCommand, BedrockRuntimeClient, ConverseCommand, type Message, type Tool } from '@aws-sdk/client-bedrock-runtime';
 import { GeoRoutesClient } from '@aws-sdk/client-geo-routes';
 import { activeHolds, withHolds, type Reservation } from '@medora/shared/logic/reservations';
+import { mayRunReferralAgent } from '@medora/shared/logic/access';
 import { NUDGE_TEXT, afterTurn, pickModel } from './model';
 import { routeMinutes } from '../../lib/routes';
 import { createHash } from 'node:crypto';
@@ -87,7 +88,7 @@ interface DataClient {
 
 interface StartReferralEvent {
   arguments: { referralId?: string };
-  identity?: { sub?: string } | null;
+  identity?: { sub?: string; claims?: Record<string, unknown> } | null;
   /** Evaluation runs only (scripts/run-evals.ts): 'fast' or 'strong'. Not reachable through AppSync. */
   evalModel?: unknown;
 }
@@ -529,8 +530,13 @@ export const handler = async (event: StartReferralEvent): Promise<void> => {
   if (!referralResult.data || referralResult.data.status !== 'running') return;
   // The agent runs only AI referrals: a direct referral is the doctor's choice of hospital.
   if ((referralResult.data as { mode?: string }).mode === 'direct') return;
-  // Only the doctor who owns the referral can start its agent run.
-  if (event.identity?.sub && event.identity.sub !== referralResult.data.ownerId) return;
+  // Only the doctor who owns the referral starts its agent run (docs/roles.md), checked here and not only by
+  // the AppSync group rule: a doctor of the staff pool, never a public-pool token, and the referral's owner.
+  const direct = event.evalModel !== undefined; // only a direct IAM invoke (scripts/run-evals.ts) carries it
+  if (!mayRunReferralAgent(event.identity, referralResult.data.ownerId, process.env.STAFF_USER_POOL_ID, direct)) {
+    console.warn(`agent-runner refused: referral ${referralId}`);
+    return;
+  }
   const referral = referralRun(referralResult.data);
   const store = new AmplifyReferralStore(client, referral);
   const tools = new ReferralTools(referral, store, { autoFirstRound: true });
