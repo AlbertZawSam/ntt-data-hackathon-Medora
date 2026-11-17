@@ -361,8 +361,6 @@ backend.careActions.addEnvironment('STAFF_USER_POOL_ID', staffPool.userPoolId);
 
 // find-care reads its model ids from the environment (AGENTS.md 4a); agent-runner's are set with its
 // guardrails above.
-// Demo switch (task 21): simulated hospital replies, off unless DEMO_REPLIES=true is set for the demo stage.
-if (process.env.DEMO_REPLIES === 'true') backend.agentRunner.addEnvironment('DEMO_REPLIES', 'true');
 backend.findCare.addEnvironment('MODEL_ID_FAST', MODEL_ID_FAST);
 backend.findCare.addEnvironment('GUARDRAIL_ID', guardrail.attrGuardrailId);
 backend.findCare.addEnvironment('GUARDRAIL_VERSION', 'DRAFT');

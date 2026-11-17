@@ -153,7 +153,7 @@ describe('referPatient (direct referral)', () => {
   it('lists the other hospitals with public details only', async () => {
     const list = JSON.parse(await call(staffEvent('referralTargets', {}, doctor)));
     expect(list.map((t: { hospitalId: string }) => t.hospitalId)).toEqual(['H2']);
-    expect(list[0].details.bedsFree).toBe('6-10');
+    expect(list[0].details.freeBeds).toBe(6);
   });
 });
 

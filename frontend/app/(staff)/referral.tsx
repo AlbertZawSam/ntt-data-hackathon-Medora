@@ -8,7 +8,7 @@ import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { canAnswerRequest } from '@medora/shared/logic/access';
-import { quickRepliesFor } from '@medora/shared/logic/care';
+import { DECLINE_REASONS, quickRepliesFor } from '@medora/shared/logic/care';
 import { MessageThread } from '../../src/components/MessageThread';
 import { pick, type StringKey } from '../../src/i18n/t';
 import { answerRequest } from '../../src/services/data';
@@ -22,7 +22,6 @@ import { Page } from '../../src/ui/Page';
 import { SectionHeader } from '../../src/ui/SectionHeader';
 import { fonts, fontSizes, radii, spacing, useTheme } from '../../src/ui/theme';
 
-const DECLINE_REASONS = ['nobed', 'busy', 'equip', 'divert'] as const;
 
 export default function IncomingReferralScreen(): React.JSX.Element {
   const t = useT();

@@ -5,7 +5,8 @@
  * Requirements: 5.4, 5.5, 6.1 to 6.6, 7.1 to 7.4, 18.6 (public users see simple labels only)
  */
 import { pathwayForNeed } from './pathways';
-import { dataAgeMin, failsFor, freeBeds, freeNicu } from './ranking';
+import { NEED_KEYS } from './publicDirectory';
+import { failsFor, freeBeds, freeNicu } from './ranking';
 import { RESERVATION_MS } from './reservations';
 import { ruleAccepts } from './rules';
 import type { CareRequest, CareRequestStatus, HospitalStatus, NeedKey, Pathway, RankedHospital, ReferralProgressStatus } from './types';
@@ -16,7 +17,14 @@ export const UNDO_WINDOW_MS = 60_000;
 /** A request nobody answers within this time is marked `no_reply` (requirement 6.5). */
 export const NO_REPLY_MS = 45_000;
 
-export const NEED_KEYS: readonly NeedKey[] = ['maternity', 'child', 'injury', 'general'];
+export { NEED_KEYS };
+
+/** Why staff decline a request; the app shows `request.reason.<key>` and the server accepts only these. */
+export const DECLINE_REASONS = ['nobed', 'busy', 'equip', 'divert'] as const;
+export type DeclineReason = (typeof DECLINE_REASONS)[number];
+export function isDeclineReason(value: unknown): value is DeclineReason {
+  return typeof value === 'string' && (DECLINE_REASONS as readonly string[]).includes(value);
+}
 export const ARRIVAL_MODES = ['car', 'taxi', 'ambulance', 'walking'] as const;
 export type ArrivalMode = (typeof ARRIVAL_MODES)[number];
 
@@ -214,10 +222,5 @@ export function toPublicHospital(row: RankedHospital, pathway: Pathway): PublicH
     ...(row.failures.length > 0 ? { skipped: [...new Set(row.failures.map((f) => f.kind))] } : {}),
     ...(first && 'item' in first ? { skippedItem: first.item } : {}),
   };
-}
-
-/** Minutes the data is old, for freshness labels in the hospital app. */
-export function freshnessMin(status: HospitalStatus, nowMs: number): number {
-  return Math.round(dataAgeMin(status, nowMs));
 }
 

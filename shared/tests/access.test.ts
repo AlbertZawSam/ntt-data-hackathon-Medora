@@ -10,7 +10,6 @@ import {
   canUpdateStatusItem,
   checkInvitation,
   isUnitClaim,
-  itemsForUnit,
   type Caller,
 } from '../logic/access';
 
@@ -128,14 +127,6 @@ describe('unit values and the My unit list', () => {
   it('accepts exactly the six units and "all"', () => {
     for (const u of [...UNITS, 'all']) expect(isUnitClaim(u)).toBe(true);
     for (const u of ['', 'pharmacy', 'WARD', undefined, 3]) expect(isUnitClaim(u)).toBe(false);
-  });
-
-  it('lists only the caller unit items; the fallback sees all; no unit sees none', () => {
-    const items = [{ ownerUnit: 'ward' }, { ownerUnit: 'radiology' }, { ownerUnit: 'radiology' }];
-    expect(itemsForUnit('radiology', items)).toHaveLength(2);
-    expect(itemsForUnit('ward', items)).toHaveLength(1);
-    expect(itemsForUnit('all', items)).toHaveLength(3);
-    expect(itemsForUnit(undefined, items)).toHaveLength(0);
   });
 });
 

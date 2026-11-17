@@ -13,6 +13,7 @@ import {
   decideNewRequest,
   transition,
   validateRequestInput,
+  isDeclineReason,
   type RequestAction,
 } from '@medora/shared/logic/care';
 import { activeHolds, holdKind, newReservation, occupyOne, withHolds, type Reservation } from '@medora/shared/logic/reservations';
@@ -252,7 +253,6 @@ async function withdrawReferral(client: Client, request: RequestRecord, referral
 }
 
 const STAFF_ACTIONS: readonly string[] = ['accept', 'decline', 'undo', 'arrived'];
-const DECLINE_REASONS = ['nobed', 'busy', 'equip', 'divert'];
 
 async function answerRequest(client: Client, event: AppSyncResolverEvent<Record_>): Promise<string> {
   const { caller, sub } = staffCaller(event);
@@ -268,7 +268,7 @@ async function answerRequest(client: Client, event: AppSyncResolverEvent<Record_
   if (!move.ok) throw new Error(move.reason);
 
   await stillSame(client, request);
-  const reason = typeof event.arguments.reason === 'string' && DECLINE_REASONS.includes(event.arguments.reason) ? event.arguments.reason : undefined;
+  const reason = isDeclineReason(event.arguments.reason) ? event.arguments.reason : undefined;
   const note = typeof event.arguments.note === 'string' ? event.arguments.note.trim().slice(0, 200) : undefined;
   must(
     await client.models.CareRequest.update({

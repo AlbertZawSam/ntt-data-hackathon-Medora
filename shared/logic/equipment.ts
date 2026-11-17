@@ -24,10 +24,6 @@ export type EquipmentKey = (typeof EQUIPMENT)[number]['key'];
 
 export const EQUIPMENT_KEYS: readonly EquipmentKey[] = EQUIPMENT.map((e) => e.key);
 
-export function isEquipmentKey(value: unknown): value is EquipmentKey {
-  return typeof value === 'string' && (EQUIPMENT_KEYS as readonly string[]).includes(value);
-}
-
 /** The unit whose staff may switch this item, or undefined for an unknown key. */
 export function equipmentOwner(key: string): Unit | undefined {
   return EQUIPMENT.find((e) => e.key === key)?.owner;

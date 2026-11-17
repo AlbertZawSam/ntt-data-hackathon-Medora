@@ -18,7 +18,7 @@ describe('referralTargets', () => {
       { profile: profile('near', 2), status: openStatus({ beds: 4 }) },
     ], [], NOW_MS);
     expect(targets.map((t) => t.hospitalId)).toEqual(['near', 'far']);
-    expect(targets[0].details.bedsFree).toBe('3-5');
+    expect(targets[0].details.freeBeds).toBe(4);
     expect(JSON.stringify(targets)).not.toMatch(/"(nicu|equip|oncall|notes|rules)"/);
   });
 });

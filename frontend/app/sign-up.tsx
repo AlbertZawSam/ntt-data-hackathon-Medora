@@ -11,7 +11,7 @@ import { useApp, useT } from '../src/state/AppProvider';
 import { Button } from '../src/ui/Button';
 import { Field } from '../src/ui/Field';
 import { FormScreen } from '../src/ui/FormScreen';
-import { fonts, fontSizes, radii, spacing, useTheme } from '../src/ui/theme';
+import { fonts, fontSizes, useTheme } from '../src/ui/theme';
 
 /**
  * Patient sign-up with an email verification code.
@@ -134,10 +134,5 @@ export default function SignUpScreen(): React.JSX.Element {
 }
 
 const styles = StyleSheet.create({
-  roles: { gap: spacing.sm },
-  roleLabel: { fontSize: fontSizes.sm, fontFamily: fonts.medium },
-  role: { borderWidth: 1, borderRadius: radii.md, padding: spacing.md, gap: 2 },
-  roleSelected: { borderWidth: 2 },
-  roleName: { fontSize: fontSizes.md, fontFamily: fonts.semibold },
   roleHint: { fontSize: fontSizes.xs, fontFamily: fonts.regular },
 });

@@ -6,6 +6,7 @@
 import { useRouter, type Href } from 'expo-router';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { DECLINE_REASONS } from '@medora/shared/logic/care';
 import { parseDecisionRows, type DecisionRow } from '@medora/shared/logic/decisionTable';
 import type { CareRequest, Referral } from '@medora/shared/logic/types';
 import { MapView, shortLabel, type MapMarker, type MarkerKind } from '../../src/components/MapView';
@@ -409,7 +410,7 @@ export default function DoctorReferScreen(): React.JSX.Element {
       ) : null}
       {r.status === 'waiting' && declining === r.id ? (
         <View style={styles.stack}>
-          {(['nobed', 'busy', 'equip', 'divert'] as const).map((reason) => (
+          {DECLINE_REASONS.map((reason) => (
             <Button key={reason} variant="secondary" label={t(`request.reason.${reason}` as StringKey)} busy={answering === r.id} onPress={() => void answer(r, 'decline', reason)} />
           ))}
           <Button variant="ghost" icon="chevron-back" label={t('common.back')} onPress={() => setDeclining(null)} />

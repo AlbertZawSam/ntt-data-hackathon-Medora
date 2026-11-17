@@ -4,6 +4,7 @@
  * Requirements: 3.1 to 3.6
  */
 import data from '../data/places.json';
+import { haversineKm as distanceKm, type LatLng } from './ranking';
 import type { Bi } from './types';
 
 export interface Place {
@@ -13,10 +14,8 @@ export interface Place {
   lng: number;
 }
 
-export interface LatLng {
-  lat: number;
-  lng: number;
-}
+// One copy of the coordinate type and the straight-line distance formula, owned by ranking.ts.
+export { distanceKm, type LatLng };
 
 export const PLACES: Place[] = data.places;
 
@@ -59,14 +58,6 @@ export function searchPlaces(query: string, places: Place[] = PLACES): Place[] {
     .map((r) => r.place);
 }
 
-/** Straight-line distance in kilometres; enough for choosing the nearest built-in place. */
-export function distanceKm(a: LatLng, b: LatLng): number {
-  const rad = Math.PI / 180;
-  const dLat = (b.lat - a.lat) * rad;
-  const dLng = (b.lng - a.lng) * rad;
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) ** 2;
-  return 2 * 6371 * Math.asin(Math.sqrt(h));
-}
 
 export function nearestPlace(point: LatLng, places: Place[] = PLACES): Place {
   return places.reduce((best, place) => (distanceKm(point, place) < distanceKm(point, best) ? place : best), places[0]);

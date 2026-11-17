@@ -8,7 +8,7 @@ import { useRouter, type Href } from 'expo-router';
 import React from 'react';
 import { Platform, StyleSheet, Text, Vibration, View } from 'react-native';
 import { canAnswerRequest } from '@medora/shared/logic/access';
-import { quickRepliesFor, undoSecondsLeft } from '@medora/shared/logic/care';
+import { DECLINE_REASONS, UNDO_WINDOW_MS, quickRepliesFor, undoSecondsLeft, type DeclineReason } from '@medora/shared/logic/care';
 import type { CareRequest } from '@medora/shared/logic/types';
 import { MessageThread } from '../../src/components/MessageThread';
 import { pick, type StringKey } from '../../src/i18n/t';
@@ -25,13 +25,12 @@ import { Page } from '../../src/ui/Page';
 import { Reveal } from '../../src/ui/Reveal';
 import { brand, fonts, fontSizes, radii, spacing, useTheme } from '../../src/ui/theme';
 
-const DECLINE_REASONS = ['nobed', 'busy', 'equip', 'divert'] as const;
-const DECLINE_ICON: Record<(typeof DECLINE_REASONS)[number], IconName> = { nobed: 'bed-outline', busy: 'person-outline', equip: 'construct-outline', divert: 'swap-horizontal' };
+const DECLINE_ICON: Record<DeclineReason, IconName> = { nobed: 'bed-outline', busy: 'person-outline', equip: 'construct-outline', divert: 'swap-horizontal' };
 const CLOSED: ReadonlyArray<CareRequest['status']> = ['declined', 'cancelled', 'completed'];
 const MODE_ICON: Record<string, IconName> = { car: 'car', taxi: 'car-sport', ambulance: 'medkit', walking: 'walk' };
 const STATUS_TONE: Record<CareRequest['status'], Tone> = { waiting: 'warning', accepted: 'success', declined: 'danger', cancelled: 'neutral', no_reply: 'warning', completed: 'success' };
 /** The automatic-acceptance undo window, for the countdown bar. */
-const UNDO_WINDOW_S = 60;
+const UNDO_WINDOW_S = UNDO_WINDOW_MS / 1000;
 
 export default function StaffInboxScreen(): React.JSX.Element {
   const t = useT();
