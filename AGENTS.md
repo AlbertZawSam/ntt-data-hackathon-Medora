@@ -92,11 +92,11 @@ The whole project must stay under **$350 of AWS spend**. These rules follow the 
 ### DO: preferred patterns
 
 - **Serverless first.** Use Lambda, S3, DynamoDB in on-demand mode, AppSync or API Gateway. Use Fargate only if a task truly needs a long-running container, and scale it to zero when idle. Use Amazon Bedrock for AI instead of hosting models.
-- **Minimal sizing.** Start with the smallest setting: Lambda memory 256 to 512 MB, short timeouts, Nova Lite by default, 7-day log retention, sampled tracing. Scale up only when a measured bottleneck shows it's needed, and record the measurement in the task.
+- **Minimal sizing.** Start with the smallest setting: Lambda memory 256 to 512 MB, short timeouts, Nova Lite by default (Nova Pro only for the doctor's referral agent), 7-day log retention, sampled tracing. Scale up only when a measured bottleneck shows it's needed, and record the measurement in the task.
 - **Shut down resources.** Delete personal Amplify sandboxes at the end of every working day (`npm run sandbox:delete`). Stop or delete anything idle when you're not actively building. Run `bash scripts/cost-check.sh` before ending the day.
 - **Custom alarms below $350.** The team's budget alarms fire at $100, $200, $280 and $320 of actual spend, and at $350 forecast, for an early buffer. Set them up once with `scripts/create-budget-alarms.sh`.
 - **Tag everything** `project=medora` and `stage=dev|demo`, so Cost Explorer shows spend per stage.
-- **Cap AI usage.** At most 8 model turns and a token cap per agent run, a daily run limit per user, and the stronger model only for final evaluation and the demo.
+- **Cap AI usage.** At most 8 model turns and a token cap per agent run, a daily run limit per user, and the stronger model (Nova Pro) only for the doctor's referral agent; patient understanding and find care stay on Nova Lite. A sandbox can drop the agent to Nova Lite with `MEDORA_AGENT_MODEL=fast`.
 
 ### AVOID: anti-patterns
 

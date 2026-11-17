@@ -3,15 +3,21 @@ import { pickModel } from '../amplify/functions/agent-runner/model';
 const env = { GUARDRAIL_ID: 'g', AGENT_GUARDRAIL_ID: 'ag', MODEL_ID_FAST: 'lite', MODEL_ID_STRONG: 'pro' };
 
 describe('pickModel', () => {
-  it('uses the fast model by default and the strong one on the demo stage', () => {
-    expect(pickModel(env)).toBe('lite');
+  it('uses the strong model by default, on every stage', () => {
+    expect(pickModel(env)).toBe('pro');
     expect(pickModel({ ...env, AWS_BRANCH: 'demo' })).toBe('pro');
+    expect(pickModel({ ...env, AGENT_MODEL: 'strong' })).toBe('pro');
+  });
+  it('uses the fast model only when AGENT_MODEL=fast, and ignores other values', () => {
+    expect(pickModel({ ...env, AGENT_MODEL: 'fast' })).toBe('lite');
+    expect(pickModel({ ...env, AGENT_MODEL: 'amazon.nova-premier-v1:0' })).toBe('pro');
+    expect(pickModel({ ...env, AGENT_MODEL: 'FAST' })).toBe('pro');
   });
   it('lets a direct invoke choose either model, and ignores anything else', () => {
-    expect(pickModel(env, 'strong')).toBe('pro');
-    expect(pickModel({ ...env, AWS_BRANCH: 'demo' }, 'fast')).toBe('lite');
-    expect(pickModel(env, 'anthropic.claude-3')).toBe('lite');
-    expect(pickModel(env, { evil: true })).toBe('lite');
+    expect(pickModel({ ...env, AGENT_MODEL: 'fast' }, 'strong')).toBe('pro');
+    expect(pickModel(env, 'fast')).toBe('lite');
+    expect(pickModel(env, 'anthropic.claude-3')).toBe('pro');
+    expect(pickModel({ ...env, AGENT_MODEL: 'fast' }, { evil: true })).toBe('lite');
   });
   it('falls back to the fast model when no strong model is set', () => {
     expect(pickModel({ ...env, MODEL_ID_STRONG: undefined }, 'strong')).toBe('lite');
