@@ -45,8 +45,8 @@ cfnUserPoolClient.writeAttributes = ['email', 'custom:role'];
 cfnUserPoolClient.preventUserExistenceErrors = 'ENABLED';
 
 // Amazon Nova on Bedrock (AGENTS.md 4a): Amazon's own models only, direct in-region model IDs.
-// Nova Lite understands patient descriptions and runs the agent while developing; Nova Pro runs the
-// referral agent on the demo stage. Paid per token only; nothing is billed while idle.
+// Nova Lite understands patient descriptions and finds care (fast, cheap, most of the traffic); Nova Pro runs
+// the doctor's referral agent on every stage. Paid per token only; nothing is billed while idle.
 const MODEL_ID_FAST = 'amazon.nova-lite-v1:0';
 const MODEL_ID_STRONG = 'amazon.nova-pro-v1:0';
 
@@ -118,6 +118,10 @@ backend.agentRunner.addEnvironment('MODEL_ID_STRONG', MODEL_ID_STRONG);
 backend.agentRunner.addEnvironment('GUARDRAIL_ID', guardrail.attrGuardrailId);
 backend.agentRunner.addEnvironment('GUARDRAIL_VERSION', 'DRAFT');
 backend.agentRunner.addEnvironment('AGENT_GUARDRAIL_ID', agentGuardrail.attrGuardrailId);
+// Referral agent model: Nova Pro by default. `MEDORA_AGENT_MODEL=fast npm run sandbox` drops a sandbox to Nova Lite
+// for cheap development runs. Cost: nothing while idle; a few cents per run on Pro, about one cent on Lite.
+// The IAM below already names both models, so this adds no permission.
+backend.agentRunner.addEnvironment('AGENT_MODEL', process.env.MEDORA_AGENT_MODEL === 'fast' ? 'fast' : 'strong');
 // Demo replies (task 21): seeded demo hospitals answer referrals after 8 seconds with preset replies.
 // Only the synthetic hospitals from scripts/seed.ts are affected. Set MEDORA_DEMO_REPLIES=false to switch off.
 backend.agentRunner.addEnvironment('DEMO_REPLIES', process.env.MEDORA_DEMO_REPLIES === 'false' ? 'false' : 'true');

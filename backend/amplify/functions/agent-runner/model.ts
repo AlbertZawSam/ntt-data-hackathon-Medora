@@ -1,6 +1,7 @@
 /**
- * Which Bedrock model the referral agent uses (AGENTS.md 4a): Nova Lite while developing, Nova Pro on the
- * demo stage. The ids come from the environment, never from code. `override` lets the evaluation runner
+ * Which Bedrock model the referral agent uses (AGENTS.md 4a): Nova Pro on every stage, the strongest model we
+ * can call by direct ID; AGENT_MODEL=fast (deployed with MEDORA_AGENT_MODEL=fast) drops a sandbox to Nova Lite
+ * for cheap development runs. The ids come from the environment, never from code. `override` lets the evaluation runner
  * (scripts/run-evals.ts) compare both models; it can only arrive in a direct Lambda invoke, because
  * AppSync forwards just the arguments the schema defines.
  */
@@ -9,7 +10,9 @@ export type ModelChoice = 'fast' | 'strong';
 export function pickModel(env: Record<string, string | undefined>, override?: unknown): string | undefined {
   // No guardrails, no model: the run takes the rule-based backup path.
   if (!env.GUARDRAIL_ID || !env.AGENT_GUARDRAIL_ID) return undefined;
-  const choice: ModelChoice = override === 'fast' || override === 'strong' ? override : env.AWS_BRANCH === 'demo' ? 'strong' : 'fast';
+  // Nova Pro unless the deploy chose Nova Lite with AGENT_MODEL=fast; any other value keeps Pro.
+  const stageDefault: ModelChoice = env.AGENT_MODEL === 'fast' ? 'fast' : 'strong';
+  const choice: ModelChoice = override === 'fast' || override === 'strong' ? override : stageDefault;
   return choice === 'strong' ? (env.MODEL_ID_STRONG ?? env.MODEL_ID_FAST) : env.MODEL_ID_FAST;
 }
 
