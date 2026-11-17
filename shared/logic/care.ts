@@ -5,7 +5,7 @@
  * Requirements: 5.4, 5.5, 6.1 to 6.6, 7.1 to 7.4, 18.6 (public users see simple labels only)
  */
 import { pathwayForNeed } from './pathways';
-import { dataAgeMin, failsFor, freeBeds, freeNicu } from './ranking';
+import { failsFor, freeBeds, freeNicu } from './ranking';
 import { RESERVATION_MS } from './reservations';
 import { ruleAccepts } from './rules';
 import type { CareRequest, CareRequestStatus, HospitalStatus, NeedKey, Pathway, RankedHospital, ReferralProgressStatus } from './types';
@@ -214,10 +214,5 @@ export function toPublicHospital(row: RankedHospital, pathway: Pathway): PublicH
     ...(row.failures.length > 0 ? { skipped: [...new Set(row.failures.map((f) => f.kind))] } : {}),
     ...(first && 'item' in first ? { skippedItem: first.item } : {}),
   };
-}
-
-/** Minutes the data is old, for freshness labels in the hospital app. */
-export function freshnessMin(status: HospitalStatus, nowMs: number): number {
-  return Math.round(dataAgeMin(status, nowMs));
 }
 

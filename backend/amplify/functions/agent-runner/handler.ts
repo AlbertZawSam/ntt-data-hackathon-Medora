@@ -219,7 +219,7 @@ class AmplifyReferralStore implements ReferralStore {
     return Date.now();
   }
 
-  /** Only when the demo switch is on in the environment (set for the demo stage, never by default). */
+  /** Only when the demo switch is on (backend.ts: on by default, MEDORA_DEMO_REPLIES=false turns it off). */
   demoReplies(): boolean {
     return process.env.DEMO_REPLIES === 'true';
   }

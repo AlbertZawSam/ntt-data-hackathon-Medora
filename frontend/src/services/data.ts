@@ -28,7 +28,6 @@ import type {
 import type { ReferralTarget } from '@medora/shared/logic/directReferral';
 import type { HospitalInput } from '@medora/shared/logic/hospital';
 import { parsePublicEntry, type PublicEntry } from '@medora/shared/logic/publicDirectory';
-import type { UnderstandResult } from '@medora/shared/logic/understand';
 import type { StatusChange } from '@medora/shared/logic/statusUpdate';
 import type { Session } from '@medora/shared/logic/session';
 import { backendConfigured } from './amplify';
@@ -89,7 +88,6 @@ interface Client {
   };
   queries: {
     referralTargets: () => Promise<{ data?: string | null; errors?: unknown[] }>;
-    understandNeed: (input: { text: string; lang?: string }) => Promise<{ data?: unknown; errors?: unknown[] }>;
     findSpecialists: (input: { lat: number; lng: number; specialty?: string; language?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     findCare: (input: { description: string; lat: number; lng: number; need?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
     searchPlaces: (input: { query: string; lang?: string }) => Promise<{ data?: string | null; errors?: unknown[] }>;
@@ -355,26 +353,6 @@ export async function updateStatus(change: StatusChange, note?: string): Promise
   const trimmed = note?.trim();
   const result = await client.mutations.updateStatus({ change: JSON.stringify(change), ...(trimmed ? { note: trimmed } : {}) });
   ensureData(result, 'Update status');
-}
-
-/**
- * Safety gate layer 2 and the type of care (Find care). The phone has already run layer 1. Returns
- * null when the backend can't be reached; the caller then uses the on-device keyword rules.
- */
-export async function understandNeed(text: string, lang: 'en' | 'th'): Promise<UnderstandResult | null> {
-  if (!backendConfigured) return null;
-  try {
-    const result = await client.queries.understandNeed({ text, lang });
-    if (result.errors?.length || result.data === undefined || result.data === null) return null;
-    // AWSJSON may arrive as a JSON string (once or, from older handlers, twice encoded) or as an object.
-    let value: unknown = result.data;
-    for (let i = 0; i < 2 && typeof value === 'string'; i += 1) value = JSON.parse(value);
-    return typeof value === 'object' && value !== null && typeof (value as { emergency?: unknown }).emergency === 'boolean'
-      ? (value as UnderstandResult)
-      : null;
-  } catch {
-    return null;
-  }
 }
 
 export async function writeActivity(input: Omit<Activity, 'id' | 'createdAt'>): Promise<void> {

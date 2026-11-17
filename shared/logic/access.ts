@@ -15,20 +15,8 @@ export type Unit = (typeof UNITS)[number];
 export const ALL_UNITS = 'all';
 export type UnitClaim = Unit | typeof ALL_UNITS;
 
-/** The status items of a hospital, and the unit that owns each by default. */
-export const STATUS_ITEM_TYPES = [
-  'beds',
-  'icu',
-  'nicu',
-  'ed',
-  'ct',
-  'mri',
-  'cathlab',
-  'specialist',
-] as const;
-export type StatusItemType = (typeof STATUS_ITEM_TYPES)[number];
-
-export const DEFAULT_OWNER_UNIT: Record<Exclude<StatusItemType, 'specialist'>, Unit> = {
+/** The status items of a hospital and the unit that owns each by default (specialists: DEFAULT_SPECIALIST_UNIT). */
+export const DEFAULT_OWNER_UNIT: Record<'beds' | 'icu' | 'nicu' | 'ed' | 'ct' | 'mri' | 'cathlab', Unit> = {
   beds: 'ward',
   icu: 'icu',
   nicu: 'nicu',
@@ -148,10 +136,4 @@ export function checkInvitation(caller: Caller, invitation: Invitation): Invitat
   if (invitation.group === GROUPS.staff && !isUnitClaim(invitation.unit)) return { ok: false, reason: 'bad-unit' };
   if (invitation.group !== GROUPS.staff && invitation.unit !== undefined) return { ok: false, reason: 'bad-unit' };
   return { ok: true };
-}
-
-/** Items shown on a staff member's "My unit" screen. */
-export function itemsForUnit<T extends { ownerUnit: string }>(unit: string | undefined, items: readonly T[]): T[] {
-  if (unit === ALL_UNITS) return [...items];
-  return isUnit(unit) ? items.filter((i) => i.ownerUnit === unit) : [];
 }
