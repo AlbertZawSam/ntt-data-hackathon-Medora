@@ -1,9 +1,11 @@
 import { PATHWAYS } from '../logic/pathways';
 import { evaluate } from '../logic/ranking';
 import {
+  DECLINE_REASONS,
   NO_REPLY_MS,
   UNDO_WINDOW_MS,
   decideNewRequest,
+  isDeclineReason,
   toPublicHospital,
   transition,
   undoSecondsLeft,
@@ -165,5 +167,13 @@ describe('blocksNewRequest', () => {
     // A recent referral reply keeps it open.
     expect(blocksNewRequest({ ...old, referredTo: referred('accepted', NOW_MS - 60_000) }, NOW_MS)).toBe(true);
     expect(blocksNewRequest({ ...old, acceptedAtMs: NOW_MS - 60_000 }, NOW_MS)).toBe(true);
+  });
+});
+
+describe('decline reasons', () => {
+  it('accepts exactly the four reasons the app offers, and nothing else', () => {
+    expect([...DECLINE_REASONS]).toEqual(['nobed', 'busy', 'equip', 'divert']);
+    for (const r of DECLINE_REASONS) expect(isDeclineReason(r)).toBe(true);
+    for (const r of ['', 'NOBED', 'undone_by_staff', undefined, null, 3, { reason: 'nobed' }]) expect(isDeclineReason(r)).toBe(false);
   });
 });

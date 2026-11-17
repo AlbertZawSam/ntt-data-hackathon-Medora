@@ -5,7 +5,7 @@
 import { useRouter, type Href } from 'expo-router';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { NO_REPLY_MS, patientCanCancel } from '@medora/shared/logic/care';
+import { NO_REPLY_MS, isDeclineReason, patientCanCancel } from '@medora/shared/logic/care';
 import type { CareRequest, ReferralProgressStatus } from '@medora/shared/logic/types';
 import { MessageThread } from '../../src/components/MessageThread';
 import { agoText } from '../../src/i18n/ago';
@@ -109,7 +109,7 @@ export default function PatientRequestsScreen(): React.JSX.Element {
                 </Notice>
               ) : null}
               {r.auto && status === 'accepted' ? <Notice tone="success">{t('patient.requests.autoAccepted')}</Notice> : null}
-              {status === 'declined' && r.reason && ['nobed', 'busy', 'equip', 'divert'].includes(r.reason) ? (
+              {status === 'declined' && isDeclineReason(r.reason) ? (
                 <Notice tone="warning">{t(`request.reason.${r.reason}` as StringKey)}</Notice>
               ) : null}
               {status === 'no_reply' && !referred ? <Notice tone="warning">{t('patient.requests.noReply')}</Notice> : null}
