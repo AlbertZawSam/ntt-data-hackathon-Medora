@@ -1,4 +1,4 @@
-import { POOLS, makeFakeClient, patientEvent, staffEvent } from './fakeData';
+import { POOLS, makeFakeClient, patientEvent, staffEvent, usePools } from './fakeData';
 
 let fake = makeFakeClient();
 jest.mock('@aws-amplify/backend/function/runtime', () => ({ getAmplifyDataClientConfig: async () => ({ resourceConfig: {}, libraryOptions: {} }) }));
@@ -18,7 +18,7 @@ const run = (h: unknown, event: unknown) => (h as (e: never, c: never, cb: never
 
 beforeEach(() => {
   mockRoutesSend.mockReset().mockRejectedValue(new Error('offline')); // default: no Amazon Location, so the estimate is used
-  process.env.STAFF_USER_POOL_ID = POOLS.STAFF;
+  usePools();
   delete process.env.MODEL_ID_FAST;
   delete process.env.GUARDRAIL_ID;
   fake = makeFakeClient({

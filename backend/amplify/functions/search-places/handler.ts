@@ -1,7 +1,7 @@
 import { GeoPlacesClient, SearchTextCommand } from '@aws-sdk/client-geo-places';
 import type { AppSyncIdentityCognito, AppSyncResolverEvent } from 'aws-lambda';
 import { BANGKOK_BOX, MAX_FOUND_PLACES, cleanPlaceQuery, parsePlaceResults } from '@medora/shared/logic/placeSearch';
-import { GROUPS } from '@medora/shared/logic/session';
+import { isPatientToken } from '@medora/shared/logic/access';
 
 interface Args {
   query?: string;
@@ -19,8 +19,8 @@ const places = new GeoPlacesClient({});
  */
 export const handler = async (event: AppSyncResolverEvent<Args>): Promise<string> => {
   const identity = event.identity as AppSyncIdentityCognito | null | undefined;
-  const groups = identity?.claims?.['cognito:groups'];
-  if (!Array.isArray(groups) || !groups.includes(GROUPS.patients)) throw new Error('not-patient');
+  // Patients only, and only with a token from the public pool (never a staff-pool token).
+  if (!isPatientToken(identity?.claims as Record<string, unknown> | undefined, process.env.PUBLIC_USER_POOL_ID)) throw new Error('not-patient');
   const query = cleanPlaceQuery(event.arguments.query);
   if (!query) return JSON.stringify({ places: [] });
   try {

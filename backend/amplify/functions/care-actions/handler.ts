@@ -2,7 +2,7 @@ import { getAmplifyDataClientConfig } from '@aws-amplify/backend/function/runtim
 import type { AppSyncIdentityCognito, AppSyncResolverEvent } from 'aws-lambda';
 import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
-import { callerFromClaims, canAnswerRequest } from '@medora/shared/logic/access';
+import { callerFromClaims, canAnswerRequest, isPatientToken } from '@medora/shared/logic/access';
 import { isDepartment, openDepartments } from '@medora/shared/logic/departments';
 import {
   MAX_MESSAGE,
@@ -18,6 +18,7 @@ import {
 } from '@medora/shared/logic/care';
 import { activeHolds, holdKind, newReservation, occupyOne, withHolds, type Reservation } from '@medora/shared/logic/reservations';
 import { GROUPS } from '@medora/shared/logic/session';
+import { statusErrorCode, writeHospitalStatus, type StatusModels } from '../../lib/hospitalStatus';
 import type { CareRequest, HospitalStatus, NeedKey, ReferralProgress } from '@medora/shared/logic/types';
 
 type Result<T> = { data: T | null; errors?: unknown[] };
@@ -40,6 +41,7 @@ interface Client {
     };
     HospitalStatus: Model<{ id: string; status: unknown }>;
     HospitalProfile: Model<{ id: string; name: unknown }>;
+    PublicDirectory: StatusModels['models']['PublicDirectory'];
     Message: Model<{ id: string }>;
     Reservation: Model<Reservation> & {
       list(input: Record_): Promise<{ data: Reservation[]; errors?: unknown[] }>;
@@ -124,13 +126,7 @@ async function stillSame(client: Client, request: RequestRecord): Promise<void> 
 /** A patient: public-pool token with the `patients` group. Returns the user's id. */
 function patientId(event: AppSyncResolverEvent<Record_>): string {
   const identity = event.identity as AppSyncIdentityCognito | null | undefined;
-  const claims = identity?.claims as Record_ | undefined;
-  const iss = claims?.iss;
-  const groups = claims?.['cognito:groups'];
-  const poolId = process.env.PUBLIC_USER_POOL_ID;
-  if (!poolId || typeof iss !== 'string' || !iss.endsWith(`/${poolId}`) || !Array.isArray(groups) || !groups.includes(GROUPS.patients)) {
-    throw new Error('not-patient');
-  }
+  if (!isPatientToken(identity?.claims as Record_ | undefined, process.env.PUBLIC_USER_POOL_ID)) throw new Error('not-patient');
   if (typeof identity?.sub !== 'string' || !identity.sub) throw new Error('not-patient');
   return identity.sub;
 }
@@ -338,10 +334,13 @@ async function couldTreatNow(client: Client, request: RequestRecord): Promise<bo
   return couldTreat(withHolds(parse<HospitalStatus>(row.data.status), await currentHolds(client, request.hospitalId)), request.needKey as NeedKey);
 }
 
+/** The patient takes one bed or NICU cot; saved without losing a concurrent update, and shown to patients. */
 async function occupy(client: Client, hospitalId: string, kind: 'bed' | 'nicu'): Promise<void> {
-  const row = await client.models.HospitalStatus.get({ id: hospitalId });
-  if (!row.data) return;
-  await client.models.HospitalStatus.update({ id: hospitalId, status: JSON.stringify(occupyOne(parse<HospitalStatus>(row.data.status), kind)) });
+  // The arrival is already saved, so a failed bed count must not fail the call (a retry would be refused by the
+  // state check and the bed never counted): log it, as before, and staff correct the count on My unit.
+  await writeHospitalStatus(client, hospitalId, (current) => ({ ok: true, status: occupyOne(current, kind) }), 'care-actions').catch((error: unknown) => {
+    console.error(`care-actions: bed count not saved (${statusErrorCode(error)})`);
+  });
 }
 
 /** Staff marked a referred patient arrived: the doctor's transfer to this hospital is arrived too. */

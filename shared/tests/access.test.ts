@@ -9,7 +9,11 @@ import {
   callerFromClaims,
   canUpdateStatusItem,
   checkInvitation,
+  isPatientToken,
+  isSignedInToken,
   isUnitClaim,
+  issuedBy,
+  mayRunReferralAgent,
   type Caller,
 } from '../logic/access';
 
@@ -154,5 +158,75 @@ describe('callerFromClaims', () => {
     expect(canManageHospital(access!, H1)).toBe(false);
     const empty = callerFromClaims({ iss, 'cognito:groups': ['hospital_staff'], 'custom:hospitalId': H1, 'custom:unit': '' }, POOL)!;
     expect(canUpdateStatusItem(empty, { hospitalId: H1, ownerUnit: 'ward' })).toBe(false);
+  });
+});
+
+// Tokens as Cognito issues them: the issuer names the pool. Pool ids are made up.
+const PUBLIC_POOL = 'us-east-1_PUB';
+const STAFF_POOL = 'us-east-1_STF';
+const token = (pool: string, groups: unknown, extra: Record<string, unknown> = {}) => ({
+  iss: `https://cognito-idp.us-east-1.amazonaws.com/${pool}`,
+  'cognito:groups': groups,
+  ...extra,
+});
+const pools = { publicPoolId: PUBLIC_POOL, staffPoolId: STAFF_POOL };
+
+describe('token checks: each group only from its own pool', () => {
+  it('matches the issuer exactly at the end, never a pool id that merely contains it', () => {
+    expect(issuedBy(token(PUBLIC_POOL, []), PUBLIC_POOL)).toBe(true);
+    expect(issuedBy(token(`${PUBLIC_POOL}X`, []), PUBLIC_POOL)).toBe(false);
+    expect(issuedBy(token(PUBLIC_POOL, []), undefined)).toBe(false);
+    expect(issuedBy(undefined, PUBLIC_POOL)).toBe(false);
+    expect(issuedBy({ iss: 42 }, PUBLIC_POOL)).toBe(false);
+  });
+
+  it('accepts a patient only from the public pool', () => {
+    expect(isPatientToken(token(PUBLIC_POOL, ['patients']), PUBLIC_POOL)).toBe(true);
+    expect(isPatientToken(token(STAFF_POOL, ['patients']), PUBLIC_POOL)).toBe(false);
+    expect(isPatientToken(token(PUBLIC_POOL, ['doctors']), PUBLIC_POOL)).toBe(false);
+    expect(isPatientToken(token(PUBLIC_POOL, 'patients'), PUBLIC_POOL)).toBe(false); // not a list
+    expect(isPatientToken(token(PUBLIC_POOL, ['patients']), undefined)).toBe(false); // pool id not configured
+  });
+
+  it('accepts patients from the public pool and hospital groups from the staff pool, nothing else', () => {
+    expect(isSignedInToken(token(PUBLIC_POOL, ['patients']), pools)).toBe(true);
+    for (const g of ['hospital_staff', 'doctors', 'admins']) {
+      expect(isSignedInToken(token(STAFF_POOL, [g]), pools)).toBe(true);
+      expect(isSignedInToken(token(PUBLIC_POOL, [g]), pools)).toBe(false); // a public-pool "doctor" or "admin"
+    }
+    expect(isSignedInToken(token(STAFF_POOL, ['patients']), pools)).toBe(false);
+    expect(isSignedInToken(token(STAFF_POOL, []), pools)).toBe(false);
+    expect(isSignedInToken(token('us-east-1_OTHER', ['patients']), pools)).toBe(false);
+    expect(isSignedInToken(undefined, pools)).toBe(false);
+  });
+});
+
+describe('mayRunReferralAgent (agent-runner)', () => {
+  const doctorToken = () => token(STAFF_POOL, ['doctors'], { 'custom:hospitalId': H1 });
+
+  it('lets the doctor of the staff pool who owns the referral run it', () => {
+    expect(mayRunReferralAgent({ sub: 'doc-1', claims: doctorToken() }, 'doc-1', STAFF_POOL, false)).toBe(true);
+  });
+
+  it("refuses another doctor's referral, and a call with no user id", () => {
+    expect(mayRunReferralAgent({ sub: 'doc-2', claims: doctorToken() }, 'doc-1', STAFF_POOL, false)).toBe(false);
+    expect(mayRunReferralAgent({ claims: doctorToken() }, 'doc-1', STAFF_POOL, false)).toBe(false);
+    expect(mayRunReferralAgent(null, 'doc-1', STAFF_POOL, false)).toBe(false);
+  });
+
+  it('refuses a public-pool token with a doctors group, a nurse, an admin, and a doctor with no hospital', () => {
+    expect(mayRunReferralAgent({ sub: 'doc-1', claims: token(PUBLIC_POOL, ['doctors'], { 'custom:hospitalId': H1 }) }, 'doc-1', STAFF_POOL, false)).toBe(false);
+    expect(mayRunReferralAgent({ sub: 'doc-1', claims: token(STAFF_POOL, ['hospital_staff'], { 'custom:hospitalId': H1, 'custom:unit': 'er' }) }, 'doc-1', STAFF_POOL, false)).toBe(false);
+    expect(mayRunReferralAgent({ sub: 'doc-1', claims: token(STAFF_POOL, ['admins'], { 'custom:hospitalId': H1 }) }, 'doc-1', STAFF_POOL, false)).toBe(false);
+    expect(mayRunReferralAgent({ sub: 'doc-1', claims: token(STAFF_POOL, ['doctors']) }, 'doc-1', STAFF_POOL, false)).toBe(false);
+    expect(mayRunReferralAgent({ sub: 'doc-1', claims: doctorToken() }, 'doc-1', undefined, false)).toBe(false); // pool id missing
+  });
+
+  it('refuses a token-less call through AppSync; a direct evaluation invoke must still name the owner', () => {
+    expect(mayRunReferralAgent({ sub: 'doc-1' }, 'doc-1', STAFF_POOL, false)).toBe(false);
+    expect(mayRunReferralAgent({ sub: 'doc-1' }, 'doc-1', STAFF_POOL, true)).toBe(true);
+    expect(mayRunReferralAgent({ sub: 'doc-2' }, 'doc-1', STAFF_POOL, true)).toBe(false);
+    // A direct invoke that carries a forged token is checked like any other call.
+    expect(mayRunReferralAgent({ sub: 'doc-1', claims: token(PUBLIC_POOL, ['doctors']) }, 'doc-1', STAFF_POOL, true)).toBe(false);
   });
 });

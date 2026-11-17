@@ -124,6 +124,31 @@ describe('reservations', () => {
     expect(fake.tables('Reservation')[0].state).toBe('converted');
     expect(JSON.parse(String(fake.tables('HospitalStatus')[0].status)).beds).toBe(0);
   });
+
+  it('still records the arrival when the bed count cannot be saved (a retry would be refused)', async () => {
+    fake.tables('HospitalStatus')[0].status = oneBed();
+    const id = await call(patientEvent('submitRequest', peds));
+    const models = fake.client.models as unknown as Record<string, { update: unknown }>;
+    const realUpdate = models.HospitalStatus.update;
+    models.HospitalStatus.update = async () => ({ data: null, errors: [{ errorType: 'DynamoDB:ConditionalCheckFailed' }] });
+    try {
+      await call(staffEvent('answerRequest', { requestId: id, action: 'arrived' }, ward));
+    } finally {
+      models.HospitalStatus.update = realUpdate;
+    }
+    expect(fake.tables('CareRequest').find((r) => r.id === id)?.status).toBe('completed');
+  });
+
+  it('refreshes the public directory on arrival, so patients stop seeing the bed that was just taken', async () => {
+    fake.tables('HospitalStatus')[0].status = oneBed();
+    Object.assign(fake.tables('HospitalProfile')[0], { hospitalId: 'H1', lat: 13.75, lng: 100.53, typicalWaitMin: 20 });
+    const id = await call(patientEvent('submitRequest', peds));
+    expect(fake.tables('PublicDirectory')).toHaveLength(0);
+    await call(staffEvent('answerRequest', { requestId: id, action: 'arrived' }, ward));
+    const entry = JSON.parse(String(fake.tables('PublicDirectory')[0].entry)) as { hospitalId: string; needs: Record<string, { label: string }> };
+    expect(entry.hospitalId).toBe('H1');
+    expect(entry.needs.child.label).toBe('unavailable');
+  });
 });
 
 describe('a referred patient arrives', () => {

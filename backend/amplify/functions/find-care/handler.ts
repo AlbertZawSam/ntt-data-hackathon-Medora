@@ -13,7 +13,7 @@ import { classifyNeed, evaluate } from '@medora/shared/logic/ranking';
 import { activeHolds, withHolds, type Reservation } from '@medora/shared/logic/reservations';
 import { looksLikeInjection, looksLikeNonsense } from '@medora/shared/logic/understand';
 import { redFlag } from '@medora/shared/logic/redFlags';
-import { GROUPS } from '@medora/shared/logic/session';
+import { isPatientToken } from '@medora/shared/logic/access';
 import { PATHWAYS } from '@medora/shared/logic/pathways';
 import type { Bi, HospitalStatus, NeedKey, RankableHospital } from '@medora/shared/logic/types';
 
@@ -86,8 +86,8 @@ async function understand(description: string): Promise<{ need: NeedKey; summary
  */
 export const handler = async (event: AppSyncResolverEvent<Args>): Promise<string> => {
   const identity = event.identity as AppSyncIdentityCognito | null | undefined;
-  const groups = identity?.claims?.['cognito:groups'];
-  if (!Array.isArray(groups) || !groups.includes(GROUPS.patients)) throw new Error('not-patient');
+  // Patients only, and only with a token from the public pool (never a staff-pool token).
+  if (!isPatientToken(identity?.claims as Record<string, unknown> | undefined, process.env.PUBLIC_USER_POOL_ID)) throw new Error('not-patient');
 
   const { description, lat, lng } = event.arguments;
   if (typeof description !== 'string' || description.trim().length === 0 || description.length > MAX_DESCRIPTION) throw new Error('bad-description');
