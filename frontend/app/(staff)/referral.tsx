@@ -118,7 +118,7 @@ export default function IncomingReferralScreen(): React.JSX.Element {
       {request.status === 'waiting' || request.status === 'accepted' ? (
         <Card padding="lg">
           <SectionHeader title={t('patient.requests.messages')} />
-          <MessageThread requestId={request.id} messages={data.messages} me="hospital" quickKeys={quickRepliesFor(request)} />
+          <MessageThread requestId={request.id} messages={data.messages} me="hospital" quickKeys={quickRepliesFor(request)} other="doctor" />
         </Card>
       ) : null}
       {back}

@@ -166,7 +166,7 @@ export default function StaffInboxScreen(): React.JSX.Element {
               {r.status === 'accepted' ? (
                 <>
                   <Button variant={chatOpen === r.id ? 'ghost' : 'secondary'} icon={chatOpen === r.id ? 'chevron-up' : 'chatbubbles'} label={t('staff.inbox.messages')} onPress={() => setChatOpen(chatOpen === r.id ? null : r.id)} />
-                  {chatOpen === r.id ? <MessageThread requestId={r.id} messages={data.messages} me="hospital" quickKeys={quickRepliesFor(r)} /> : null}
+                  {chatOpen === r.id ? <MessageThread requestId={r.id} messages={data.messages} me="hospital" quickKeys={quickRepliesFor(r)} other={r.referralId ? 'doctor' : 'patient'} /> : null}
                 </>
               ) : null}
             </Card>

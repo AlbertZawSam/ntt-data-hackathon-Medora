@@ -51,7 +51,7 @@ export default function AdminHospitalScreen(): React.JSX.Element {
         </Card>
       ) : (
         <View style={[styles.grid, wide && styles.gridWide]}>
-          {controlsForAdmin().map((control, index) => (
+          {controlsForAdmin(status).map((control, index) => (
             <Reveal key={control.id} index={index} style={wide ? styles.cell : undefined}>
               <ControlCard control={control} status={status} busy={busy} onSend={(change) => void send(change)} />
             </Reveal>

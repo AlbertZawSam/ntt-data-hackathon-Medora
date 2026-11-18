@@ -241,6 +241,8 @@
   "patient.requests.send": "Send",
   "patient.requests.noMessages": "No messages yet.",
   "patient.requests.fromHospital": "Hospital",
+  "patient.requests.fromPatient": "Patient",
+  "patient.requests.fromDoctor": "Referring doctor",
   "patient.requests.fromYou": "You",
   "request.status.waiting": "Waiting for the hospital",
   "request.status.accepted": "Accepted",

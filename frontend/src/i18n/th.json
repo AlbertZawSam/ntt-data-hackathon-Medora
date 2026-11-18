@@ -241,6 +241,8 @@
   "patient.requests.send": "ส่ง",
   "patient.requests.noMessages": "ยังไม่มีข้อความ",
   "patient.requests.fromHospital": "โรงพยาบาล",
+  "patient.requests.fromPatient": "ผู้ป่วย",
+  "patient.requests.fromDoctor": "แพทย์ผู้ส่งต่อ",
   "patient.requests.fromYou": "คุณ",
   "request.status.waiting": "รอโรงพยาบาลตอบ",
   "request.status.accepted": "ตอบรับแล้ว",
