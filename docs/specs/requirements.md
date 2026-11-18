@@ -66,7 +66,7 @@ Acceptance criteria use EARS notation (WHEN / WHILE / IF / WHERE ... THE SYSTEM 
 
 **User story:** As a patient, I want to tell a hospital I'm coming, so that it can prepare for me.
 
-1. WHEN the patient taps "Request to hospital" THE SYSTEM SHALL show a form with optional name and phone, a prefilled description, and how they are coming (car, taxi, ambulance, walking).
+1. WHEN the patient taps "Request to hospital" THE SYSTEM SHALL show a form with optional name and phone, a prefilled description, and how they are coming (car, ambulance, bike, walking).
 2. WHEN the patient sends the form THE SYSTEM SHALL create a request visible only to that hospital and the patient.
 3. WHEN a request arrives at a hospital whose rule accepts patient visits and whose emergency department is open THE SYSTEM SHALL accept it automatically and allow staff to undo it for 60 seconds.
 4. IF no one answers within 45 seconds THEN THE SYSTEM SHALL mark the request "no reply" and invite the patient to choose another hospital.

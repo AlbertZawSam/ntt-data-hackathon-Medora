@@ -25,7 +25,8 @@ export type DeclineReason = (typeof DECLINE_REASONS)[number];
 export function isDeclineReason(value: unknown): value is DeclineReason {
   return typeof value === 'string' && (DECLINE_REASONS as readonly string[]).includes(value);
 }
-export const ARRIVAL_MODES = ['car', 'taxi', 'ambulance', 'walking'] as const;
+/** How a patient says they will arrive. Taxi was dropped (14 Nov 2026); old requests keep showing it through `mode.taxi`. */
+export const ARRIVAL_MODES = ['car', 'ambulance', 'bike', 'walking'] as const;
 export type ArrivalMode = (typeof ARRIVAL_MODES)[number];
 
 export const MAX_DESCRIPTION = 1000;

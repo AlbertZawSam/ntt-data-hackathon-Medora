@@ -8,7 +8,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { MAX_MESSAGE, QUICK_REPLY_KEYS, type QuickReplyKey } from '@medora/shared/logic/care';
 import type { Message } from '@medora/shared/logic/types';
 import type { StringKey } from '../i18n/t';
-import { sendMessage } from '../services/data';
+import { refreshMessages, sendMessage } from '../services/data';
 import { useT } from '../state/AppProvider';
 import { Chip } from '../ui/Badge';
 import { Button } from '../ui/Button';
@@ -24,16 +24,27 @@ interface Props {
   disabled?: boolean;
   /** Quick replies offered to the hospital side; doctor referrals use their own set. */
   quickKeys?: readonly QuickReplyKey[];
+  /** On the hospital side, who the other person is: a patient, or the doctor who referred them. */
+  other?: 'patient' | 'doctor';
 }
+
+/** How often an open thread reads its messages again. */
+const REFRESH_MS = 5_000;
 
 const clock = (ms: number): string => new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-export function MessageThread({ requestId, messages, me, disabled, quickKeys = QUICK_REPLY_KEYS }: Props): React.JSX.Element {
+export function MessageThread({ requestId, messages, me, disabled, quickKeys = QUICK_REPLY_KEYS, other = 'patient' }: Props): React.JSX.Element {
   const t = useT();
   const theme = useTheme();
   const [text, setText] = React.useState('');
   const [busy, setBusy] = React.useState(false);
   const [failed, setFailed] = React.useState(false);
+  // While the thread is open, read it again every few seconds, so a reply shows even if its live event was missed.
+  React.useEffect(() => {
+    void refreshMessages(requestId);
+    const timer = setInterval(() => void refreshMessages(requestId), REFRESH_MS);
+    return () => clearInterval(timer);
+  }, [requestId]);
   const thread = React.useMemo(
     () => messages.filter((m) => m.requestId === requestId).sort((a, b) => a.createdAtMs - b.createdAtMs),
     [messages, requestId],
@@ -61,7 +72,7 @@ export function MessageThread({ requestId, messages, me, disabled, quickKeys = Q
           return (
             <View key={m.id} style={[styles.bubble, mine ? styles.mine : styles.theirs, { backgroundColor: mine ? theme.primary : theme.surface, borderColor: mine ? theme.primary : theme.border }]}>
               <Text style={[styles.who, { color: mine ? theme.onPrimary : theme.textMuted }]}>
-                {t(m.from === 'patient' ? (me === 'patient' ? 'patient.requests.fromYou' : 'patient.requests.fromHospital') : me === 'patient' ? 'patient.requests.fromHospital' : 'patient.requests.fromYou')}
+                {t(mine ? 'patient.requests.fromYou' : me === 'patient' ? 'patient.requests.fromHospital' : other === 'doctor' ? 'patient.requests.fromDoctor' : 'patient.requests.fromPatient')}
                 {'  ·  '}
                 {clock(m.createdAtMs)}
               </Text>

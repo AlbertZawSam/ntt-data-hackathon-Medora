@@ -16,11 +16,10 @@ describe('departments', () => {
     expect(isDepartment('ward')).toBe(false);
   });
 
-  it('gives the three demo hospitals all three departments, and they wait for staff to accept', () => {
-    for (const key of ['siam', 'rama9', 'chaophraya']) {
+  it('gives the large demo hospitals all three departments', () => {
+    for (const key of ['pathumwan', 'latphrao']) {
       const hospital = DEMO_HOSPITALS.find((h) => h.key === key)!;
       expect(openDepartments(demoStatus(hospital, Date.now()))).toEqual(['cardiology', 'surgery', 'obstetrics']);
-      expect(hospital.status.rules.visit).toBe(false);
     }
   });
 });

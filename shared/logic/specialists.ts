@@ -1,9 +1,10 @@
 /**
  * Specialists and clinic slots: input checks for admins, the public view patients see, ordering
- * (nearest first, then soonest slot) and slot booking. Pure TypeScript, used by the
- * `specialist-actions` Lambda and the apps. Requirements: 8.1 to 8.6, 11.1, 18.6
+ * (nearest first, then soonest slot), slot booking, slots as weekly clinic hours, and the small sample
+ * shown before a search. Pure TypeScript, used by the `specialist-actions` Lambda and the apps.
+ * Requirements: 8.1 to 8.6, 11.1, 18.6
  */
-import { haversineKm, type LatLng } from './ranking';
+import { haversineKm, PATIENT_RADIUS_KM, type LatLng } from './ranking';
 import type { Bi } from './types';
 
 export const SPECIALTIES = ['cardiology', 'neurology', 'obstetrics', 'pediatrics', 'orthopedics', 'general'] as const;
@@ -94,7 +95,7 @@ export interface SpecialistFilter {
 }
 
 /**
- * The patient's list: only specialists with an open slot, filtered by specialty and language, nearest
+ * The patient's list: only specialists with an open slot within the service area, filtered by specialty and language, nearest
  * hospital first, then the soonest slot. Booked slots and unshared names never leave the server.
  */
 export function listSpecialists(
@@ -110,6 +111,7 @@ export function listSpecialists(
     if (!h) continue;
     if (filter.specialty && r.specialty !== filter.specialty) continue;
     if (filter.language && !r.languages.includes(filter.language)) continue;
+    if (haversineKm(origin, h) > PATIENT_RADIUS_KM) continue;
     const slots = openSlots(r.slots, nowMs);
     if (slots.length === 0) continue;
     out.push({
@@ -138,6 +140,97 @@ export function bookSlot(slots: readonly Slot[], slotId: string, nowMs: number):
   if (slotMs(slot) <= nowMs) return { ok: false, reason: 'past' };
   const booked = { ...slot, booked: true };
   return { ok: true, slot: booked, slots: slots.map((s) => (s.id === slotId ? booked : s)) };
+}
+
+export function isSpecialty(value: unknown): value is Specialty {
+  return typeof value === 'string' && (SPECIALTIES as readonly string[]).includes(value);
+}
+
+/**
+ * A small taste of who is nearby before the person searches or picks a specialty: the nearest specialist of
+ * each specialty, up to `max`, in the order of the (nearest-first) list. Keeps the page short on load.
+ */
+export function sampleSpecialists<T extends { specialty: string }>(list: readonly T[], max = 3): T[] {
+  const out: T[] = [];
+  const seen = new Set<string>();
+  for (const s of list) {
+    if (out.length >= max) break;
+    if (seen.has(s.specialty)) continue;
+    seen.add(s.specialty);
+    out.push(s);
+  }
+  return out;
+}
+
+/** 0 = Monday … 6 = Sunday, from a YYYY-MM-DD calendar day (the clinic's own day, no time zone shift). */
+export function weekdayOf(day: string): number {
+  const [y, m, d] = day.split('-').map(Number);
+  return (new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7;
+}
+
+/** One stretch of clinic hours on a weekday: HH:MM start and end; the screen names the day and formats the clock. */
+export interface WeeklyHours {
+  weekday: number;
+  start: string;
+  end: string;
+}
+
+const toMin = (time: string): number => Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
+const toTime = (min: number): string => `${String(Math.floor(min / 60) % 24).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+const DEFAULT_SLOT_MIN = 30;
+const MAX_DETECTED_SLOT_MIN = 120;
+
+/**
+ * How long one appointment lasts, read from the data: the smallest gap between two slots on the same day.
+ * A gap over two hours means separate sessions, not one slot, so the default of 30 minutes is used instead.
+ */
+export function detectSlotMin(slots: readonly Slot[]): number {
+  const byDay = new Map<string, number[]>();
+  for (const s of slots) byDay.set(s.day, [...(byDay.get(s.day) ?? []), toMin(s.time)]);
+  let best = Infinity;
+  for (const times of byDay.values()) {
+    const sorted = [...new Set(times)].sort((a, b) => a - b);
+    for (let i = 1; i < sorted.length; i += 1) best = Math.min(best, sorted[i] - sorted[i - 1]);
+  }
+  return best <= MAX_DETECTED_SLOT_MIN ? best : DEFAULT_SLOT_MIN;
+}
+
+/**
+ * Open slots as weekly opening hours, the way a person reads a clinic sign ("Monday 13:30–16:30") rather than
+ * a list of dates: slots are grouped by weekday, consecutive times merge into one range, and the end is the
+ * last slot's start plus the slot length. Ordered Monday to Sunday, then by start time. Only open, future slots
+ * count, so a fully booked day disappears.
+ */
+export function weeklySchedule(slots: readonly Slot[], nowMs: number): WeeklyHours[] {
+  const open = openSlots(slots, nowMs);
+  const slotMin = detectSlotMin(open);
+  const byWeekday = new Map<number, Set<number>>();
+  for (const s of open) {
+    const day = weekdayOf(s.day);
+    byWeekday.set(day, (byWeekday.get(day) ?? new Set<number>()).add(toMin(s.time)));
+  }
+  const out: WeeklyHours[] = [];
+  for (const weekday of [...byWeekday.keys()].sort((a, b) => a - b)) {
+    const times = [...(byWeekday.get(weekday) ?? [])].sort((a, b) => a - b);
+    let start = times[0];
+    let last = times[0];
+    for (const time of times.slice(1)) {
+      if (time - last === slotMin) {
+        last = time;
+        continue;
+      }
+      out.push({ weekday, start: toTime(start), end: toTime(last + slotMin) });
+      start = time;
+      last = time;
+    }
+    out.push({ weekday, start: toTime(start), end: toTime(last + slotMin) });
+  }
+  return out;
+}
+
+/** The soonest open slot that falls on this weekday (0 = Monday), or undefined when that day is full. */
+export function nextSlotOnWeekday(slots: readonly Slot[], weekday: number, nowMs: number): Slot | undefined {
+  return openSlots(slots, nowMs).find((s) => weekdayOf(s.day) === weekday);
 }
 
 /** Maps a specialty to the care need a search can suggest it from (requirement 8.2). */

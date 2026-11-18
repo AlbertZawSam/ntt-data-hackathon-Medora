@@ -27,7 +27,8 @@ import { brand, fonts, fontSizes, radii, spacing, useTheme } from '../../src/ui/
 
 const DECLINE_ICON: Record<DeclineReason, IconName> = { nobed: 'bed-outline', busy: 'person-outline', equip: 'construct-outline', divert: 'swap-horizontal' };
 const CLOSED: ReadonlyArray<CareRequest['status']> = ['declined', 'cancelled', 'completed'];
-const MODE_ICON: Record<string, IconName> = { car: 'car', taxi: 'car-sport', ambulance: 'medkit', walking: 'walk' };
+/** `taxi` stays for requests sent before it was dropped from the patient form. */
+const MODE_ICON: Record<string, IconName> = { car: 'car', taxi: 'car-sport', ambulance: 'medkit', bike: 'bicycle', walking: 'walk' };
 const STATUS_TONE: Record<CareRequest['status'], Tone> = { waiting: 'warning', accepted: 'success', declined: 'danger', cancelled: 'neutral', no_reply: 'warning', completed: 'success' };
 /** The automatic-acceptance undo window, for the countdown bar. */
 const UNDO_WINDOW_S = UNDO_WINDOW_MS / 1000;
@@ -165,7 +166,7 @@ export default function StaffInboxScreen(): React.JSX.Element {
               {r.status === 'accepted' ? (
                 <>
                   <Button variant={chatOpen === r.id ? 'ghost' : 'secondary'} icon={chatOpen === r.id ? 'chevron-up' : 'chatbubbles'} label={t('staff.inbox.messages')} onPress={() => setChatOpen(chatOpen === r.id ? null : r.id)} />
-                  {chatOpen === r.id ? <MessageThread requestId={r.id} messages={data.messages} me="hospital" quickKeys={quickRepliesFor(r)} /> : null}
+                  {chatOpen === r.id ? <MessageThread requestId={r.id} messages={data.messages} me="hospital" quickKeys={quickRepliesFor(r)} other={r.referralId ? 'doctor' : 'patient'} /> : null}
                 </>
               ) : null}
             </Card>

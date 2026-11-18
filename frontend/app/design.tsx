@@ -79,7 +79,7 @@ export default function DesignGallery(): React.JSX.Element {
               <Badge tone="primary" icon="star" label="Best match" />
               <Badge tone="success" icon="checkmark-circle" label="Available" />
             </View>
-            <Text style={[styles.cardTitle, { color: theme.text }]}>Rama Nine General Hospital</Text>
+            <Text style={[styles.cardTitle, { color: theme.text }]}>Ratchada Neuroscience Hospital</Text>
             <Text style={[styles.muted, { color: theme.textMuted }]}>About 12 min by car · 4.1 km</Text>
           </Card>
         </Reveal>
@@ -135,7 +135,7 @@ export default function DesignGallery(): React.JSX.Element {
         <Timeline
           steps={[
             { id: '1', title: 'Case assessed', detail: 'Found 4 hospitals that can help.', state: 'done', time: '2 s' },
-            { id: '2', title: 'Capability sources checked', detail: 'Rama Nine General Hospital (rama9/neuro.md)', state: 'done', time: '3 s' },
+            { id: '2', title: 'Capability sources checked', detail: 'Ratchada Neuroscience Hospital (ratchada/neuro.md)', state: 'done', time: '3 s' },
             { id: '3', title: 'Hospitals asked', detail: 'Waiting up to 45 seconds for replies.', state: 'active' },
             { id: '4', title: 'Recommendation', state: 'pending' },
           ]}

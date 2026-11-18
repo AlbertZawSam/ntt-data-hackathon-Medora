@@ -219,5 +219,8 @@ describe('hospital admin', () => {
   it('lists set-up controls for the admin and every control for the ownership screen', () => {
     expect(controlsForAdmin().every((c) => c.kind === 'count' || c.kind === 'dept')).toBe(true);
     expect(allControls().length).toBeGreaterThan(controlsForAdmin().length);
+    // A heart and stroke hospital: only its own departments, never "diverting" for one it doesn't have.
+    const depts = controlsForAdmin({ depts: { ed: 'open', neuro: 'open', cardio: 'diverting' } }).filter((c) => c.kind === 'dept').map((c) => c.item);
+    expect(depts.sort()).toEqual(['cardio', 'ed', 'neuro']);
   });
 });

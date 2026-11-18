@@ -52,7 +52,7 @@ interface Client {
     PublicDirectory: Model<{ id: string; hospitalId: string; entry: unknown }>;
     Specialist: Model<Specialist>;
     CareRequest: Model<CareRequest>;
-    Message: Model<Message>;
+    Message: Model<Message> & { listMessageByRequestIdAndCreatedAtMs: (input: { requestId: string }) => Promise<DataList<Message>> };
     Referral: Model<Referral>;
     TraceStep: Model<TraceStep>;
     Transfer: Model<Transfer>;
@@ -173,6 +173,9 @@ class LiveDataStore {
   private subscriptions: Subscription[] = [];
   private expected = 0;
   private received = 0;
+  /** Messages read directly for an open thread, kept until sign-out: a missed live event never hides a message. */
+  private fetchedMessages = new Map<string, Message>();
+  private observedMessages: Message[] = [];
 
   getSnapshot = (): DataSnapshot => this.snapshot;
 
@@ -219,6 +222,8 @@ class LiveDataStore {
     this.subscriptions = [];
     this.expected = 0;
     this.received = 0;
+    this.fetchedMessages.clear();
+    this.observedMessages = [];
     this.snapshot = EMPTY_SNAPSHOT;
     this.emit();
   }
@@ -237,7 +242,9 @@ class LiveDataStore {
           first = false;
           this.received += 1;
         }
-        this.snapshot = { ...this.snapshot, [key]: map(items), isSynced: this.received === this.expected } as DataSnapshot;
+        const mapped = map(items);
+        if (key === 'messages') this.observedMessages = mapped as Message[];
+        this.snapshot = { ...this.snapshot, [key]: key === 'messages' ? this.allMessages() : mapped, isSynced: this.received === this.expected } as DataSnapshot;
         this.emit();
       },
       // Authorization and connectivity errors leave an empty/live snapshot; Amplify reconnects
@@ -245,6 +252,20 @@ class LiveDataStore {
       error: () => undefined,
     });
     this.subscriptions.push(subscription);
+  }
+
+  /** Adds messages read for one request to the live list (same id: the newer copy wins). */
+  mergeMessages(rows: Message[]): void {
+    if (rows.length === 0) return;
+    for (const row of rows) this.fetchedMessages.set(row.id, row);
+    this.snapshot = { ...this.snapshot, messages: this.allMessages() };
+    this.emit();
+  }
+
+  private allMessages(): Message[] {
+    const byId = new Map(this.fetchedMessages);
+    for (const row of this.observedMessages) byId.set(row.id, row);
+    return [...byId.values()];
   }
 
   private emit(): void {
@@ -465,6 +486,22 @@ export async function answerRequest(requestId: string, action: 'accept' | 'decli
 /** A quick reply is sent as a key so each side reads it in their own language. */
 export async function sendMessage(requestId: string, message: { key: QuickReplyKey } | { text: string }): Promise<void> {
   ensureData(await client.mutations.sendMessage({ requestId, ...message }), 'Send message');
+  await refreshMessages(requestId);
+}
+
+/**
+ * Reads one request's messages directly and adds them to the live list. Live events for new messages can be missed
+ * (the sender's own message, or one written for the other side), so an open thread calls this after sending and every
+ * few seconds. Read rules are the same as for the live list; a failed read changes nothing.
+ */
+export async function refreshMessages(requestId: string): Promise<void> {
+  if (!backendConfigured) return;
+  try {
+    const { data } = await client.models.Message.listMessageByRequestIdAndCreatedAtMs({ requestId });
+    liveData.mergeMessages(data ?? []);
+  } catch {
+    // keep what the live list has
+  }
 }
 
 /** Admin: invite staff, a doctor or another admin into the admin's own hospital. */

@@ -103,3 +103,29 @@ describe('aiRunsToday', () => {
     expect(aiRunsToday([{ startedAtMs: today, mode: 'ai' }, { startedAtMs: today }, { startedAtMs: today, mode: 'direct' }, { startedAtMs: yesterday, mode: 'ai' }], now)).toBe(2);
   });
 });
+
+import { soonestAccepted } from '../logic/referral';
+
+describe('soonestAccepted', () => {
+  const accepted = (hospitalId: string, note?: string) => ({ hospitalId, status: 'accepted' as const, ...(note ? { note } : {}) });
+  // `near` is 3 km away (about 10 minutes), `far` 8 km (about 26 minutes) by the offline estimate.
+  const assessment = assessReferral([makeHospital('near', 3), makeHospital('far', 8)], ORIGIN, 'stroke', NOW_MS, 50);
+
+  it('picks the closer hospital when both are ready', () => {
+    expect(soonestAccepted(assessment, [accepted('far'), accepted('near')])?.hospitalId).toBe('near');
+  });
+
+  it('picks a farther hospital that is ready now over a closer one with a stated delay', () => {
+    expect(soonestAccepted(assessment, [accepted('near', 'Neurologist in surgery, free in about 40 minutes'), accepted('far')])?.hospitalId).toBe('far');
+  });
+
+  it('keeps a short delay that still starts care sooner', () => {
+    expect(soonestAccepted(assessment, [accepted('near', 'free in 5 minutes'), accepted('far')])?.hospitalId).toBe('near');
+  });
+
+  it('puts a delay that breaks the window last, and ignores waiting, declined and unknown hospitals', () => {
+    const tight = assessReferral([makeHospital('near', 3), makeHospital('far', 8)], ORIGIN, 'stroke', NOW_MS, 200);
+    expect(soonestAccepted(tight, [accepted('near', 'free in about 60 minutes'), accepted('far')])?.hospitalId).toBe('far');
+    expect(soonestAccepted(assessment, [{ hospitalId: 'near', status: 'waiting' }, { hospitalId: 'far', status: 'declined' }, accepted('elsewhere')])).toBeUndefined();
+  });
+});

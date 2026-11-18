@@ -6,7 +6,7 @@
 import { useRouter, type Href } from 'expo-router';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { ARRIVAL_MODES, MAX_DESCRIPTION, MAX_NAME, type ArrivalMode, type PublicHospital } from '@medora/shared/logic/care';
+import { ARRIVAL_MODES, MAX_DESCRIPTION, MAX_NAME, NEED_KEYS, type ArrivalMode, type PublicHospital } from '@medora/shared/logic/care';
 import type { Bi, NeedKey } from '@medora/shared/logic/types';
 import { bedsText, bedsTone } from '../../src/i18n/beds';
 import { pick, type StringKey } from '../../src/i18n/t';
@@ -16,7 +16,6 @@ import { LocationChip } from '../../src/components/LocationChip';
 import { MapView, type MapMarker } from '../../src/components/MapView';
 import { findCare, submitRequest } from '../../src/services/data';
 import { setLastResults } from '../../src/services/lastResults';
-import { setLastNeed } from '../../src/services/lastNeed';
 import { checkEmergency, logEmergencyCheck } from '../../src/services/emergency';
 import { useChosenLocation } from '../../src/services/location';
 import { giveConsent, hasConsented } from '../../src/services/consent';
@@ -51,7 +50,7 @@ const LABEL_LOOK: Record<PublicHospital['label'], { tone: Tone; icon: IconName }
   notAvailable: { tone: 'danger', icon: 'close-circle' },
 };
 
-const MODE_ICON: Record<ArrivalMode, IconName> = { car: 'car', taxi: 'car-sport', ambulance: 'medkit', walking: 'walk' };
+const MODE_ICON: Record<ArrivalMode, IconName> = { car: 'car', ambulance: 'medkit', bike: 'bicycle', walking: 'walk' };
 const DEPARTMENT_ICON: Record<Department, IconName> = { cardiology: 'heart', surgery: 'bandage', obstetrics: 'woman' };
 const EXAMPLES = ['patient.care.example1', 'patient.care.example2', 'patient.care.example3'] as const;
 
@@ -153,7 +152,6 @@ export default function PatientCareScreen(): React.JSX.Element {
       const result = await findCare({ description: input.trim(), lat: location.lat, lng: location.lng });
       if ('emergency' in result) return emergency(result.emergency.key); // layer 2
       setNeed(result.need);
-      setLastNeed(result.need);
       setAiUsed(result.aiUsed);
       setSummary(result.summary);
       setHospitals(result.hospitals);
@@ -391,8 +389,27 @@ export default function PatientCareScreen(): React.JSX.Element {
   return (
     <Page title={t('patient.care.nearbyTitle')} onBack={() => { forget('care'); setPhase('describe'); }} backLabel={t('patient.care.newSearch')}>
       <Card padding="md">
+        {/* How the description was categorised: the matched category stands out, the others step back. */}
+        <Text style={[styles.meta, { color: theme.textMuted }]}>{t('patient.care.categoryTitle')}</Text>
         <View style={styles.row}>
-          <Badge tone="primary" icon="search" label={t('patient.care.lookingFor', { need: t(`need.${need}` as StringKey) })} />
+          {NEED_KEYS.map((key) => {
+            const label = t(`details.needShort.${key}` as StringKey);
+            return key === need ? (
+              <View key={key} accessible accessibilityLabel={t('patient.care.categoryMine', { need: label })}>
+                <Badge tone="primary" icon="checkmark-circle" label={label} />
+              </View>
+            ) : (
+              <View
+                key={key}
+                accessible
+                accessibilityLabel={t('patient.care.categoryOther', { need: label })}
+                accessibilityState={{ disabled: true }}
+                style={[styles.offChip, { borderColor: theme.border }]}
+              >
+                <Text style={[styles.offChipText, { color: theme.textMuted }]}>{label}</Text>
+              </View>
+            );
+          })}
           {!aiUsed ? <Badge tone="warning" icon="information-circle" label={t('patient.care.aiUnavailable')} /> : null}
         </View>
         {summary ? <Text style={[styles.meta, { color: theme.textMuted }]}>{t('patient.care.understood', { summary: pick(summary, lang) })}</Text> : null}
@@ -440,6 +457,8 @@ const styles = StyleSheet.create({
   meta: { fontSize: fontSizes.sm, fontFamily: fonts.regular, lineHeight: 20 },
   legend: { fontSize: fontSizes.xs, fontFamily: fonts.regular },
   dim: { opacity: 0.7 },
+  offChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, opacity: 0.6 },
+  offChipText: { fontSize: fontSizes.xs, fontFamily: fonts.medium },
   form: { gap: spacing.md, paddingTop: spacing.md, marginTop: spacing.xs, borderTopWidth: 1 },
   formTitle: { fontSize: fontSizes.lg, fontFamily: fonts.bold },
   buttons: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },

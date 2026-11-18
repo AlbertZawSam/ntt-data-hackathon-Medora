@@ -28,7 +28,7 @@ Every hospital account has `custom:hospitalId` (for example `H02`). A person can
 | `surgery` | Department staff: patient requests sent to Surgery, orthopedics and injuries; X-ray and operating theatre |
 | `obstetrics` | Department staff: patient requests sent to Obstetrics, pregnancy and birth; ultrasound and delivery room |
 
-**Department routing:** a patient may send a request to one of the hospital's open departments (`shared/logic/departments.ts`). That request is **answerable only by that department's staff** (and the `all` fallback), and only they see it in the Inbox; the server checks answers and messages in `canAnswerRequest`. Like every request, it stays **readable by all staff accounts of the hospital** through the API (the `hospitalId` read rule); restricting reads to the department is a follow-up. Requests without a department go to the other units (emergency, ward and so on), as before. A **doctor's referral** is sent to the receiving hospital's department for its type (heart attack → Cardiology, injury → Surgery, pregnancy → Obstetrics) when it has that department open; it can be answered by **that department or, as a fallback, the hospital's other non-department units**, so an urgent transfer never waits where no department account exists. Other departments can't answer it. Demo: Siam Central, Rama Nine and Chao Phraya have Cardiology, Surgery and Obstetrics. `npm run department-logins` creates, for each of them, a doctor, a General (emergency) account, the hospital admin (`admin.<hospital>`: beds, departments, units, rules, staff) and one account per department (18 in total). Department staff switch only their own equipment and can't confirm the hospital's whole status.
+**Department routing:** a patient may send a request to one of the hospital's open departments (`shared/logic/departments.ts`). That request is **answerable only by that department's staff** (and the `all` fallback), and only they see it in the Inbox; the server checks answers and messages in `canAnswerRequest`. Like every request, it stays **readable by all staff accounts of the hospital** through the API (the `hospitalId` read rule); restricting reads to the department is a follow-up. Requests without a department go to the other units (emergency, ward and so on), as before. A **doctor's referral** is sent to the receiving hospital's department for its type (heart attack → Cardiology, injury → Surgery, pregnancy → Obstetrics) when it has that department open; it can be answered by **that department or, as a fallback, the hospital's other non-department units**, so an urgent transfer never waits where no department account exists. Other departments can't answer it. Demo: Pathum Wan, Lat Phrao and Nan Valley have Cardiology, Surgery and Obstetrics. `npm run department-logins` creates, for each of them, a doctor, a General (emergency) account, the hospital admin (`admin.<hospital>`: beds, departments, units, rules, staff) and one account per department (6 per hospital). Department staff switch only their own equipment and can't confirm the hospital's whole status.
 
 Specialist on-duty switches belong to the unit the admin assigns them to (usually `er` or the specialist's department, set in settings). Each status item has an owning unit: the default above, or the unit the hospital admin chose on the Units screen (`HospitalStatus.owners`). Only unit staff whose `custom:unit` matches the owner can change it; `applyStatusChange` enforces this on the server.
 
@@ -66,13 +66,13 @@ Specialist on-duty switches belong to the unit the admin assigns them to (usuall
 
 | Email | Group | Hospital | Unit |
 | --- | --- | --- | --- |
-| admin.rama9@medora.demo | `admins` | H02 | |
-| ward.rama9@medora.demo | `hospital_staff` | H02 | `ward` |
-| radiology.rama9@medora.demo | `hospital_staff` | H02 | `radiology` |
-| nicu.chaophraya@medora.demo | `hospital_staff` | H03 | `nicu` |
-| er.chaophraya@medora.demo | `hospital_staff` | H03 | `er` |
-| doctor.thonburi@medora.demo | `doctors` | H04 | |
-| staff.bangna@medora.demo | `hospital_staff` | H07 | `all` (fallback) |
+| h02.admin@medora-demo.example | `admins` | H02 | |
+| ward-nursing.rama-nine@medora-demo.example | `hospital_staff` | H02 | `ward` |
+| radiology.rama-nine@medora-demo.example | `hospital_staff` | H02 | `radiology` |
+| neonatal-icu.chao-phraya@medora-demo.example | `hospital_staff` | H03 | `nicu` |
+| emergency.chao-phraya@medora-demo.example | `hospital_staff` | H03 | `er` |
+| h04.doctor1@medora-demo.example | `doctors` | H04 | |
+| staff.bangna@medora.demo (not created by default) | `hospital_staff` | H07 | `all` (fallback) |
 
 ## Tests that must pass
 

@@ -36,7 +36,7 @@ import type { HospitalStatus, RankableHospital } from '@medora/shared/logic/type
 import { seedHospitalId } from './seed-id';
 
 const REGION = 'us-east-1';
-const ORIGIN_KEY = 'thonburi';
+const ORIGIN_KEY = 'bangkapi';
 const POLL_MS = 2_000;
 const RUN_TIMEOUT_MS = 6 * 60_000;
 /** Rough dollars per run, from about 15k input and 2k output tokens over a full run. Check Cost Explorer after. */

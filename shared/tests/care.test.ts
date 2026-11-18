@@ -1,6 +1,7 @@
 import { PATHWAYS } from '../logic/pathways';
 import { evaluate } from '../logic/ranking';
 import {
+  ARRIVAL_MODES,
   DECLINE_REASONS,
   NO_REPLY_MS,
   UNDO_WINDOW_MS,
@@ -26,11 +27,16 @@ describe('validateRequestInput', () => {
     [{ needKey: 'cancer' }, 'need'],
     [{ etaMin: -1 }, 'eta'],
     [{ mode: 'boat' }, 'mode'],
+    [{ mode: 'taxi' }, 'mode'],
     [{ description: '   ' }, 'description'],
     [{ description: 'x'.repeat(1001) }, 'description'],
     [{ phone: 'call me' }, 'phone'],
   ])('refuses %j', (patch, issue) => {
     expect(validateRequestInput({ ...valid, ...patch })).toEqual({ ok: false, issue });
+  });
+  it('offers car, ambulance, bike and walking, and accepts each of them', () => {
+    expect([...ARRIVAL_MODES]).toEqual(['car', 'ambulance', 'bike', 'walking']);
+    for (const mode of ARRIVAL_MODES) expect(validateRequestInput({ ...valid, mode })).toMatchObject({ ok: true, value: { mode } });
   });
 });
 

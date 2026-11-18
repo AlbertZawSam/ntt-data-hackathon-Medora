@@ -25,8 +25,9 @@ describe('knowledge base documents', () => {
   it('names stroke care only for hospitals with neurology and a CT scanner', () => {
     const stroke = (key: string) => docs.find((d) => d.path === `${key}/neuro.md`)?.text ?? '';
     expect(stroke('rama9')).toContain('stroke care');
-    // Siam Central has neurology and CT too; Lat Phrao has both; none of the neuro-less hospitals has a document.
-    expect(docs.some((d) => d.path === 'thonburi/neuro.md')).toBe(false);
+    expect(stroke('bangna')).toContain('stroke care');
+    // The district hospital in Nan has no neurology, so it has no neurology document.
+    expect(docs.some((d) => d.path === 'nanhills/neuro.md')).toBe(false);
   });
 
   it('states registered capability only and never live counts', () => {

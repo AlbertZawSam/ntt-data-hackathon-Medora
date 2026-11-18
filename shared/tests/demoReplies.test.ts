@@ -11,22 +11,20 @@ describe('demoReply', () => {
 
   it('accepts by default and uses per-hospital presets', () => {
     expect(demoReply('rama9', 'stemi')).toEqual({ status: 'accepted' });
-    expect(demoReply('chatuchak', 'general')).toEqual({ status: 'declined', reason: 'busy' });
+    expect(demoReply('latphrao', 'stroke')).toMatchObject({ status: 'declined', reason: 'divert' });
+    expect(demoReply('nanvalley', 'stroke').status).toBe('accepted');
     expect(demoReply('unknown', 'stroke')).toEqual({ status: 'accepted' });
   });
 
-  it('only names demo hospitals that exist', () => {
-    const keys = new Set(DEMO_HOSPITALS.map((hospital) => hospital.key));
-    for (const key of ['rama9', 'chatuchak', 'thonburi']) expect(keys.has(key)).toBe(true);
+  it('uses only reasons staff can pick in the inbox', () => {
+    for (const h of DEMO_HOSPITALS) for (const reply of Object.values(h.demoReply ?? {})) if (reply?.reason) expect(['nobed', 'busy', 'equip', 'divert']).toContain(reply.reason);
   });
 });
 
 describe('hasDepartmentStaff', () => {
-  it('is true only for the three department demo hospitals', () => {
-    expect(hasDepartmentStaff('siam')).toBe(true);
-    expect(hasDepartmentStaff('rama9')).toBe(true);
-    expect(hasDepartmentStaff('chaophraya')).toBe(true);
-    expect(hasDepartmentStaff('ladprao')).toBe(false);
+  it('is true only for hospitals with all three departments and no preset reply', () => {
+    expect(DEMO_HOSPITALS.filter((h) => hasDepartmentStaff(h.key)).map((h) => h.key)).toEqual(['pathumwan']);
+    expect(hasDepartmentStaff('latphrao')).toBe(false); // all three departments, but its preset reply answers
     expect(hasDepartmentStaff('unknown')).toBe(false);
   });
 });

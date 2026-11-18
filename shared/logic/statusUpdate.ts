@@ -289,9 +289,10 @@ export function controlsForUnit(unit: string | undefined, status?: Pick<Hospital
   return ALL_CONTROLS.map((c) => c.control).filter((c) => ownerOfItem(status, controlItemId(c)) === unit);
 }
 
-/** The hospital admin's set-up controls: beds, ICU, NICU and every department. */
-export function controlsForAdmin(): UnitControl[] {
-  return ALL_CONTROLS.map((c) => c.control).filter((c) => c.kind === 'count' || c.kind === 'dept');
+/** The hospital admin's set-up controls: beds, ICU, NICU and each department the hospital has. */
+export function controlsForAdmin(status?: Pick<HospitalStatus, 'depts'>): UnitControl[] {
+  // Only the departments this hospital has: a department it never registered is not "diverting".
+  return ALL_CONTROLS.map((c) => c.control).filter((c) => c.kind === 'count' || (c.kind === 'dept' && (!status || c.item in status.depts)));
 }
 
 /** Every control, for the admin's "who owns what" screen. */

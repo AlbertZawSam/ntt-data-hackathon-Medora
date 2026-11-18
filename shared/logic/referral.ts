@@ -7,7 +7,7 @@ import { canConfirmReferral } from './access';
 import { PATHWAYS } from './pathways';
 import { classifyNeed, evaluate, type LatLng } from './ranking';
 import { askPolicy, remainingWindow } from './timeBudget';
-import type { Bi, PathwayKey, RankableHospital, RankedHospital } from './types';
+import type { Bi, CareRequest, PathwayKey, RankableHospital, RankedHospital } from './types';
 
 const REFERRAL_KEYWORDS: Array<{ pathway: PathwayKey; en: RegExp; th: string[] }> = [
   { pathway: 'stroke', en: /\b(stroke|face droop|slurred speech|one.?sided weakness)\b/i, th: ['หลอดเลือดสมอง', 'หน้าเบี้ยว', 'พูดไม่ชัด', 'อ่อนแรงครึ่งซีก'] },
@@ -72,6 +72,23 @@ export function statedDelayMin(note: string | undefined): number | null {
 export function delayExceedsWindow(assessment: ReferralAssessment, row: RankedHospital, delayMin: number | null): boolean {
   if (delayMin === null || !Number.isFinite(assessment.remainingMin)) return false;
   return row.driveMin + PATHWAYS[assessment.pathway].prepMin + delayMin > assessment.remainingMin;
+}
+
+/**
+ * The accepted hospital where care starts soonest: drive time plus any delay its staff stated ("neurologist free in
+ * about 40 minutes"), so a farther hospital that is ready now beats a closer one that is busy. Hospitals whose delay
+ * breaks the treatment window come last; ties keep the ranking order. Undefined when nobody has accepted.
+ */
+export function soonestAccepted<R extends Pick<CareRequest, 'hospitalId' | 'status' | 'note'>>(assessment: ReferralAssessment, requests: readonly R[]): R | undefined {
+  const options = assessment.ranked.flatMap((row, order) => {
+    if (!row.eligible) return [];
+    const request = requests.find((r) => r.hospitalId === row.hospital.id && r.status === 'accepted');
+    if (!request) return [];
+    const delay = statedDelayMin(request.note ?? undefined);
+    return [{ request, order, late: delayExceedsWindow(assessment, row, delay), startMin: row.driveMin + (delay ?? 0) }];
+  });
+  options.sort((a, b) => Number(a.late) - Number(b.late) || a.startMin - b.startMin || a.order - b.order);
+  return options[0]?.request;
 }
 
 export type ReferralDecision = 'confirm' | 'set_aside';

@@ -129,7 +129,7 @@ Paths follow the npm workspaces layout in `AGENTS.md` section 6: `frontend/`, `b
   - Done: sample cases, live trace with elapsed time, decision table saved by the agent (`shared/logic/decisionTable.ts`), map with the referring hospital, asked, accepted, declined and chosen hospitals and the route, recommendation with reasons and time to recommendation, confirm (creates the transfer) or set aside with a reason, transfer tracking with a simulated ambulance on the map. Left: one bed fewer on arrival (13.4).
 
 - [x] 21. Demo replies **P0**
-  - Optional switch: hospitals without an auto-accept rule reply after 8 seconds with preset notes (Rama Nine for stroke: neurologist free in about 40 minutes).
+  - Optional switch: hospitals without an auto-accept rule reply after 8 seconds with preset notes (Rama Nine for a stroke: neurologist free in about 40 minutes).
   - _Requirements: 17.2_
   - `shared/logic/demoReplies.ts`; `DEMO_REPLIES` on `agent-runner` (on by default, `MEDORA_DEMO_REPLIES=false` switches it off); only seeded demo hospitals reply. The agent also stops waiting once every asked hospital has replied (stroke sample: 21 s).
 

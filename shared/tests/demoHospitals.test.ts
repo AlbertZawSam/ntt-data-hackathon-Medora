@@ -12,8 +12,11 @@ const siam = { lat: DEFAULT_PLACE.lat, lng: DEFAULT_PLACE.lng };
 
 describe('demo hospitals', () => {
   it('pass the same checks as a hospital registered in the app', () => {
+    // The two Nan province hospitals (the rural referral story) are outside the Bangkok area the app registers.
+    const nan = ['nanvalley', 'nanhills'];
     for (const h of DEMO_HOSPITALS) {
-      expect(validateHospitalInput({ nameEn: h.name.en, nameTh: h.name.th, lat: h.lat, lng: h.lng, totalBeds: h.totalBeds, nicuTotal: h.nicuTotal }).ok).toBe(true);
+      const check = validateHospitalInput({ nameEn: h.name.en, nameTh: h.name.th, lat: h.lat, lng: h.lng, totalBeds: h.totalBeds, nicuTotal: h.nicuTotal });
+      expect(check.ok ? 'ok' : check.issue).toBe(nan.includes(h.key) ? 'location' : 'ok');
     }
     expect(new Set(DEMO_HOSPITALS.map((h) => h.key)).size).toBe(DEMO_HOSPITALS.length);
   });
@@ -31,11 +34,15 @@ describe('demo hospitals', () => {
   });
 
   it('show the behaviours the demo relies on', () => {
-    // Siam is nearest to the default location but is skipped for a child.
-    expect(skippedCloser(rankPublic(entries, 'child', siam, NOW_MS)).map((r) => r.entry.hospitalId)).toContain('siam');
-    expect(rankPublic(entries, 'injury', siam, NOW_MS).find((r) => r.entry.hospitalId === 'thonburi')?.stale).toBe(true);
-    expect(entries.find((e) => e.hospitalId === 'victory')?.needs.child.label).toBe('limited');
-    expect(entries.find((e) => e.hospitalId === 'chatuchak')?.needs.general.label).toBe('limited');
-    expect(nearestOpenEd(entries, { lat: 13.6682, lng: 100.6047 }, NOW_MS)?.entry.hospitalId).not.toBe('bangna');
+    // Asok Urgent Care is nearest to the default location but has no children's or pregnancy care, so it is skipped.
+    expect(skippedCloser(rankPublic(entries, 'child', siam, NOW_MS)).map((r) => r.entry.hospitalId)).toEqual(['asok']);
+    // The Thai child-fever search near Lat Phrao finds Chatuchak Children's first.
+    expect(rankPublic(entries, 'child', { lat: 13.816, lng: 100.5614 }, NOW_MS)[0].entry.hospitalId).toBe('chatuchak');
+    // Lat Phrao's data is over two hours old; Pathum Wan's is marked unclear, so it shows as limited.
+    expect(rankPublic(entries, 'injury', siam, NOW_MS).find((r) => r.entry.hospitalId === 'latphrao')?.stale).toBe(true);
+    expect(entries.find((e) => e.hospitalId === 'pathumwan')?.needs.general.label).toBe('limited');
+    // The Nan province hospitals are never offered to a patient in Bangkok.
+    expect(rankPublic(entries, 'general', siam, NOW_MS).map((r) => r.entry.hospitalId)).not.toContain('nanvalley');
+    expect(nearestOpenEd(entries, siam, NOW_MS)?.entry.hospitalId).not.toBe('nanhills');
   });
 });
