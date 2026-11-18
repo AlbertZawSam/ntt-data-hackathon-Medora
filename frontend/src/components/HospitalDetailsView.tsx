@@ -1,7 +1,7 @@
 /**
  * Hospital details a person opens from a Find care result to decide where to go, built to scan in a
- * glance: two status tiles (beds, emergency department), care chips showing what this hospital can do for each
- * category, with the person's own category active and the others stepped back, only the equipment that category needs, specialties on
+ * glance: two status tiles (beds, emergency department), care chips for the kinds of care this hospital has (its
+ * departments), with the person's own category active and the others stepped back, only the equipment that category needs, specialties on
  * duty as pills, one action to the matching specialists, and one line on wait and freshness. Symbols as well
  * as colour, so it reads without colour too. Free beds as the exact count and equipment as working or down
  * (AGENTS.md rule 6); never staff names. Without a `need` (a doctor's view) every category and item shows.
@@ -54,7 +54,8 @@ export function HospitalDetailsView({ details, nowMs, need, showBooking = true }
 
       <Text style={[styles.heading, { color: theme.textMuted }]}>{t('details.careTitle')}</Text>
       <View style={styles.chips}>
-        {NEED_KEYS.map((key) => {
+        {/* Only the kinds of care this hospital has, plus the person's own when it lacks it (shown as "can't"). */}
+        {NEED_KEYS.filter((key) => !details.offered || details.offered.includes(key) || key === need).map((key) => {
           const level = careLevel(details.care[key]);
           const name = t(`details.needShort.${key}` as StringKey);
           const mine = key === need;

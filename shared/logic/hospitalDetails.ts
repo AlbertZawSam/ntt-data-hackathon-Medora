@@ -9,6 +9,7 @@
 import { openDepartments, type Department } from './departments';
 import { equipmentList, type EquipmentKey } from './equipment';
 import { NEED_KEYS, publicEntry, type PublicLabel, type PublicProfile } from './publicDirectory';
+import { pathwayForNeed } from './pathways';
 import { freeBeds } from './ranking';
 import { openSlots, type SpecialistRecord, type Specialty } from './specialists';
 import type { HospitalStatus, NeedKey } from './types';
@@ -24,6 +25,11 @@ export interface HospitalDetails {
   edOpen: boolean;
   /** Each kind of care, as the same label Find care uses. */
   care: Record<NeedKey, PublicLabel>;
+  /**
+   * The kinds of care this hospital offers at all: those whose departments it has registered, open now or diverting.
+   * A children's ward that is diverting is offered but "can't help now"; a hospital without one doesn't offer it.
+   */
+  offered: NeedKey[];
   /** Specialties with a doctor on duty now and their department open: the specialty, never a name. */
   onDuty: Specialty[];
   /** Clinic specialists with an open slot; the name only when the doctor chose to show it. */
@@ -69,6 +75,7 @@ export function hospitalDetails(
     equipment: equipmentList(status.equip),
     edOpen: entry.edOpen,
     care,
+    offered: NEED_KEYS.filter((need) => pathwayForNeed(need).departments.every((dept) => dept in status.depts)),
     onDuty,
     clinic,
     departments: openDepartments(status),

@@ -1,4 +1,5 @@
 import fc from 'fast-check';
+import { DEMO_HOSPITALS, demoStatus } from '../logic/demoHospitals';
 import { bedLabel, hospitalDetails } from '../logic/hospitalDetails';
 import type { SpecialistRecord } from '../logic/specialists';
 import { arbStatus, NOW_MS, openStatus } from './generators';
@@ -60,5 +61,19 @@ describe('hospitalDetails', () => {
         for (const e of details.equipment) expect(e.working).toBe(status.equip[e.key] === true);
       }),
     );
+  });
+
+  it('offers only the kinds of care whose department the hospital has, even when it is diverting', () => {
+    const offered = (key: string) => {
+      const h = DEMO_HOSPITALS.find((x) => x.key === key)!;
+      return hospitalDetails({ hospitalId: h.key, name: h.name, lat: h.lat, lng: h.lng, typicalWaitMin: h.typicalWaitMin }, demoStatus(h, NOW_MS), [], NOW_MS).offered;
+    };
+    expect(offered('khlongsan')).toEqual(['injury', 'general']); // no maternity or children's department
+    expect(offered('chatuchak')).toEqual(['child', 'injury', 'general']);
+    expect(offered('chaophraya')).toEqual(['maternity', 'child', 'injury', 'general']);
+    // A department that is diverting is still the hospital's own: shown as "can't help now", not hidden.
+    const diverting = hospitalDetails(profile, openStatus({ depts: { ed: 'open', pediatrics: 'diverting' } }), [], NOW_MS);
+    expect(diverting.offered).toContain('child');
+    expect(diverting.care.child).toBe('unavailable');
   });
 });
