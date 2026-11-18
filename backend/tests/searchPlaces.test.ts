@@ -5,12 +5,14 @@ jest.mock('@aws-sdk/client-geo-places', () => ({
 }));
 
 import { handler } from '../amplify/functions/search-places/handler';
+import { tokenClaims, usePools } from './fakeData';
 
-const asPatient = { claims: { 'cognito:groups': ['patients'] } };
+const asPatient = { claims: tokenClaims(['patients']) };
 const call = (args: Record<string, unknown>, identity: unknown = asPatient) => handler({ arguments: args, identity } as never).then((text) => JSON.parse(text) as { places: Array<{ name: string }>; unavailable?: boolean });
 const item = (title: string, lng: number, lat: number) => ({ Title: title, PlaceId: title, Position: [lng, lat] });
 
 beforeEach(() => {
+  usePools();
   send.mockReset();
   for (const level of ['info', 'warn', 'error'] as const) jest.spyOn(console, level).mockImplementation(() => undefined);
 });
@@ -18,8 +20,10 @@ beforeEach(() => {
 describe('searchPlaces access', () => {
   it('is for patients only: doctors, staff, nurses and callers with no identity are refused before any search', async () => {
     for (const groups of [['doctors'], ['admins'], ['hospital_staff'], [], undefined]) {
-      await expect(call({ query: 'siam paragon' }, { claims: { 'cognito:groups': groups } })).rejects.toThrow('not-patient');
+      await expect(call({ query: 'siam paragon' }, { claims: tokenClaims(groups) })).rejects.toThrow('not-patient');
     }
+    // A token from the staff pool is refused even if it claims the patients group.
+    await expect(call({ query: 'siam paragon' }, { claims: tokenClaims(['patients'], 'STAFF') })).rejects.toThrow('not-patient');
     await expect(call({ query: 'siam paragon' }, null)).rejects.toThrow('not-patient');
     await expect(call({ query: 'siam paragon' }, {})).rejects.toThrow('not-patient'); // an identity with no claims
     expect(send).not.toHaveBeenCalled();

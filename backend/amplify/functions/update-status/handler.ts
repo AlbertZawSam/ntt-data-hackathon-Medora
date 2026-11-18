@@ -4,9 +4,8 @@ import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import { callerFromClaims, isUnitClaim } from '@medora/shared/logic/access';
 import { GROUPS } from '@medora/shared/logic/session';
-import { publicEntry } from '@medora/shared/logic/publicDirectory';
+import { writeHospitalStatus } from '../../lib/hospitalStatus';
 import { applyStatusChange, itemId, type StatusChange } from '@medora/shared/logic/statusUpdate';
-import type { Bi, HospitalStatus } from '@medora/shared/logic/types';
 
 interface Args {
   change: unknown;
@@ -34,29 +33,6 @@ interface StatusClient {
       create: (input: Record<string, unknown>) => Promise<Result>;
     };
   };
-}
-
-const parseJson = (raw: unknown): unknown => (typeof raw === 'string' ? JSON.parse(raw) : raw);
-
-/**
- * Refreshes the hospital's public labels from its new status, so patient screens change within
- * seconds (requirement 9.2). The status is already saved; a failure here is logged, not thrown.
- */
-async function refreshPublicEntry(client: StatusClient, hospitalId: string, status: HospitalStatus): Promise<void> {
-  const profile = await client.models.HospitalProfile.get({ id: hospitalId });
-  if (profile.errors?.length || !profile.data) {
-    console.error('update-status: no profile for the public directory');
-    return;
-  }
-  const name = parseJson(profile.data.name) as Bi;
-  const entry = JSON.stringify(
-    publicEntry({ hospitalId, name, lat: profile.data.lat, lng: profile.data.lng, typicalWaitMin: profile.data.typicalWaitMin }, status),
-  );
-  const updated = await client.models.PublicDirectory.update({ id: hospitalId, hospitalId, entry });
-  if (!updated.errors?.length && updated.data) return;
-  // Hospitals registered before the directory existed have no row yet.
-  const created = await client.models.PublicDirectory.create({ id: hospitalId, hospitalId, entry });
-  if (created.errors?.length) console.error('update-status: public directory write failed');
 }
 
 async function dataClient(): Promise<StatusClient> {
@@ -93,38 +69,19 @@ export const handler: AppSyncResolverHandler<Args, string> = async (event) => {
   if (!change) throw new Error('bad-change');
 
   const client = await dataClient();
-  // Staff and the admin write the same status. Apply the change to what was read, then re-read right before
-  // saving: if someone else saved in between, apply it again on top of their version instead of overwriting it.
-  const read = async (): Promise<{ raw: string; status: HospitalStatus }> => {
-    const current = await client.models.HospitalStatus.get({ id: caller.hospitalId! });
-    if (current.errors?.length || !current.data) {
-      console.error('update-status: no status for this hospital');
-      throw new Error('no-status');
-    }
-    // AWSJSON comes back as a string from AppSync.
-    const raw = typeof current.data.status === 'string' ? current.data.status : JSON.stringify(current.data.status);
-    return { raw, status: JSON.parse(raw) as HospitalStatus };
-  };
-  let result: ReturnType<typeof applyStatusChange> | undefined;
-  let written = false;
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const before = await read();
-    result = applyStatusChange(before.status, change, caller, caller.hospitalId, new Date().toISOString(), event.arguments.note ?? undefined);
-    if (!result.ok) {
-      console.warn(`update-status refused: ${result.reason}`);
-      throw new Error(result.reason);
-    }
-    if ((await read()).raw !== before.raw) continue; // changed meanwhile: apply again to the newer version
-    const saved = await client.models.HospitalStatus.update({ id: caller.hospitalId, status: JSON.stringify(result.status) });
-    if (saved.errors?.length) {
-      console.error('update-status: save failed');
-      throw new Error('save-failed');
-    }
-    written = true;
-    break;
+  // Staff and the admin write the same status: writeHospitalStatus re-reads right before saving and applies the
+  // change again on top of anyone else's newer version, then refreshes the public directory entry.
+  const hospitalId = caller.hospitalId;
+  const result = await writeHospitalStatus(
+    client,
+    hospitalId,
+    (current) => applyStatusChange(current, change, caller, hospitalId, new Date().toISOString(), event.arguments.note ?? undefined),
+    'update-status',
+  );
+  if (!result.ok) {
+    console.warn(`update-status refused: ${result.reason}`);
+    throw new Error(result.reason);
   }
-  if (!written || !result?.ok) throw new Error('busy');
-  await refreshPublicEntry(client, caller.hospitalId, result.status).catch(() => console.error('update-status: public directory refresh failed'));
   // Every app decision goes to the activity log (AGENTS.md 4b.6): ids and units only, never the note.
   const what = itemId(change);
   const logged = await client.models.Activity.create({

@@ -1,10 +1,9 @@
-import { EQUIPMENT_KEYS, equipmentForCase, equipmentForNeed, equipmentList, equipmentOwner, isEquipmentKey } from '../logic/equipment';
+import { EQUIPMENT_KEYS, equipmentForCase, equipmentForNeed, equipmentList, equipmentOwner } from '../logic/equipment';
 import { NEED_KEYS } from '../logic/publicDirectory';
 
 describe('equipment catalogue', () => {
   it('knows each item and its owning unit', () => {
-    expect(isEquipmentKey('ct')).toBe(true);
-    expect(isEquipmentKey('laser')).toBe(false);
+    expect(EQUIPMENT_KEYS).toContain('ct');
     expect(equipmentOwner('xray')).toBe('surgery');
     expect(equipmentOwner('delivery')).toBe('obstetrics');
     expect(equipmentOwner('laser')).toBeUndefined();

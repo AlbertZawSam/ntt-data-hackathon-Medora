@@ -1,4 +1,4 @@
-import { POOLS, makeFakeClient, patientEvent, staffEvent } from './fakeData';
+import { POOLS, makeFakeClient, patientEvent, staffEvent, usePools } from './fakeData';
 
 let fake = makeFakeClient();
 jest.mock('@aws-amplify/backend/function/runtime', () => ({ getAmplifyDataClientConfig: async () => ({ resourceConfig: {}, libraryOptions: {} }) }));
@@ -18,7 +18,7 @@ const run = (h: unknown, event: unknown) => (h as (e: never, c: never, cb: never
 
 beforeEach(() => {
   mockRoutesSend.mockReset().mockRejectedValue(new Error('offline')); // default: no Amazon Location, so the estimate is used
-  process.env.STAFF_USER_POOL_ID = POOLS.STAFF;
+  usePools();
   delete process.env.MODEL_ID_FAST;
   delete process.env.GUARDRAIL_ID;
   fake = makeFakeClient({
@@ -71,7 +71,7 @@ describe('findCare', () => {
     // Hospital details: beds as a word and the exact free count, equipment working or down, specialties on duty
     // (never names), bookable clinic specialists; never rosters, notes or rules.
     for (const h of out.hospitals) {
-      expect(Object.keys(h.details).sort()).toEqual(['beds', 'bedsFree', 'care', 'clinic', 'departments', 'edOpen', 'equipment', 'freeBeds', 'onDuty', 'typicalWaitMin', 'updatedAt']);
+      expect(Object.keys(h.details).sort()).toEqual(['beds', 'care', 'clinic', 'departments', 'edOpen', 'equipment', 'freeBeds', 'onDuty', 'typicalWaitMin', 'updatedAt']);
       expect(['available', 'limited', 'full']).toContain(h.details.beds);
       expect(JSON.stringify(h.details)).not.toMatch(/"(nicu|equip|oncall|notes|meta|rules|icu)"/);
     }

@@ -4,7 +4,7 @@
 
 ## What is compared
 
-The referral coordinator on **Amazon Nova Lite** (`MODEL_ID_FAST`, used while developing) against **Amazon Nova Pro** (`MODEL_ID_STRONG`, used for the demo). Ten runs of each case on each model, in English and Thai. If a Claude model is approved later, add it as a third column; only the environment variable changes.
+The referral coordinator on **Amazon Nova Lite** (`MODEL_ID_FAST`, the cheap option for development sandboxes with `MEDORA_AGENT_MODEL=fast`) against **Amazon Nova Pro** (`MODEL_ID_STRONG`, the agent's default on every stage). Ten runs of each case on each model, in English and Thai. If a Claude model is approved later, add it as a third column; only the environment variable changes.
 
 ## Cases
 
@@ -53,7 +53,7 @@ For each run it creates a referral from Thonburi with its own owner (`eval-<id>-
 - **Turns:** the loop is capped at 8 model turns in code; turns are not stored, so `withinTurnLimit` is enforced rather than measured.
 - **Results:** printed as the table below and saved, with the ids of everything created, to `scripts/.local/evals-<id>.json` (ignored by Git).
 - **Cleaning up:** `npm run evals -- --cleanup scripts/.local/evals-<id>.json --yes` deletes exactly the records that file lists (and shows what it would delete without `--yes`). A person runs this; coding agents never run delete commands.
-- **Cost:** Nova Lite while developing; Nova Pro only for the final evaluation, to stay inside the $350 budget. The estimate in the dry run is rough (about 15k input and 2k output tokens per run); check Cost Explorer afterwards.
+- **Cost:** the agent runs on Nova Pro by default; evaluation rounds on Lite (`--model fast`) stay cheapest, and `--model both` is for the final comparison, to stay inside the $350 budget. The estimate in the dry run is rough (about 15k input and 2k output tokens per run); check Cost Explorer afterwards.
 
 ## Results
 

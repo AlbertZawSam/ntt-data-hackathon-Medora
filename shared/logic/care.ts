@@ -5,9 +5,11 @@
  * Requirements: 5.4, 5.5, 6.1 to 6.6, 7.1 to 7.4, 18.6 (public users see simple labels only)
  */
 import { pathwayForNeed } from './pathways';
-import { dataAgeMin, failsFor, freeBeds, freeNicu } from './ranking';
+import { NEED_KEYS } from './publicDirectory';
+import { failsFor, freeBeds, freeNicu } from './ranking';
+import { RESERVATION_MS } from './reservations';
 import { ruleAccepts } from './rules';
-import type { CareRequest, CareRequestStatus, HospitalStatus, NeedKey, Pathway, RankedHospital } from './types';
+import type { CareRequest, CareRequestStatus, HospitalStatus, NeedKey, Pathway, RankedHospital, ReferralProgressStatus } from './types';
 import type { HospitalDetails } from './hospitalDetails';
 
 /** Staff can undo an automatic acceptance for this long (AGENTS.md section 4, rule 3). */
@@ -15,7 +17,14 @@ export const UNDO_WINDOW_MS = 60_000;
 /** A request nobody answers within this time is marked `no_reply` (requirement 6.5). */
 export const NO_REPLY_MS = 45_000;
 
-export const NEED_KEYS: readonly NeedKey[] = ['maternity', 'child', 'injury', 'general'];
+export { NEED_KEYS };
+
+/** Why staff decline a request; the app shows `request.reason.<key>` and the server accepts only these. */
+export const DECLINE_REASONS = ['nobed', 'busy', 'equip', 'divert'] as const;
+export type DeclineReason = (typeof DECLINE_REASONS)[number];
+export function isDeclineReason(value: unknown): value is DeclineReason {
+  return typeof value === 'string' && (DECLINE_REASONS as readonly string[]).includes(value);
+}
 /** How a patient says they will arrive. Taxi was dropped (14 Nov 2026); old requests keep showing it through `mode.taxi`. */
 export const ARRIVAL_MODES = ['car', 'ambulance', 'bike', 'walking'] as const;
 export type ArrivalMode = (typeof ARRIVAL_MODES)[number];
@@ -137,6 +146,33 @@ export function transition(
   }
 }
 
+const OPEN_STATUSES: readonly CareRequestStatus[] = ['waiting', 'accepted', 'no_reply'];
+/** Once the doctor confirmed the transfer, the ambulance is arranged: only the hospitals can stop it. */
+const TRANSFER_STARTED: readonly ReferralProgressStatus[] = ['confirmed', 'arrived'];
+
+/**
+ * Whether the patient may cancel their request: while it is open, including while a doctor is referring
+ * them on, until the transfer is confirmed. Before this, a referred request had no cancel at all.
+ */
+export function patientCanCancel(request: Pick<CareRequest, 'status' | 'referredTo'>): boolean {
+  if (!OPEN_STATUSES.includes(request.status)) return false;
+  return !(request.referredTo && TRANSFER_STARTED.includes(request.referredTo.status));
+}
+
+/**
+ * Whether a request still counts as the patient's one open request. One that nothing has happened to for
+ * the reservation time (2 hours, requirement 19.3) has lost its bed and no longer blocks a new request, so
+ * an abandoned request can't lock the account.
+ */
+export function blocksNewRequest(
+  request: Pick<CareRequest, 'type' | 'status' | 'createdAtMs' | 'acceptedAtMs' | 'referredTo'>,
+  nowMs: number,
+): boolean {
+  if (request.type === 'booking' || !OPEN_STATUSES.includes(request.status)) return false;
+  const lastChangeMs = Math.max(request.createdAtMs, request.acceptedAtMs ?? 0, request.referredTo?.atMs ?? 0);
+  return nowMs - lastChangeMs < RESERVATION_MS;
+}
+
 /** Seconds left in the undo window, 0 when over; the inbox shows this as a countdown. */
 export function undoSecondsLeft(request: Pick<CareRequest, 'status' | 'auto' | 'overrideUntil'>, nowMs: number): number {
   if (request.status !== 'accepted' || !request.auto || typeof request.overrideUntil !== 'number') return 0;
@@ -187,10 +223,5 @@ export function toPublicHospital(row: RankedHospital, pathway: Pathway): PublicH
     ...(row.failures.length > 0 ? { skipped: [...new Set(row.failures.map((f) => f.kind))] } : {}),
     ...(first && 'item' in first ? { skippedItem: first.item } : {}),
   };
-}
-
-/** Minutes the data is old, for freshness labels in the hospital app. */
-export function freshnessMin(status: HospitalStatus, nowMs: number): number {
-  return Math.round(dataAgeMin(status, nowMs));
 }
 

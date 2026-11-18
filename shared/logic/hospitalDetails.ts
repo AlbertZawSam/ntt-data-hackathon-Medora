@@ -15,22 +15,9 @@ import type { HospitalStatus, NeedKey } from './types';
 
 export type BedLabel = 'available' | 'limited' | 'full';
 
-/**
- * Free beds as a range, never the exact number (AGENTS.md rule 6): realistic enough to choose between
- * hospitals, without publishing a count people race for. Held beds count as taken.
- */
-export type BedRange = 'none' | '1-2' | '3-5' | '6-10' | '10+';
-
-export function bedRange(status: HospitalStatus): BedRange {
-  const free = freeBeds(status);
-  return free <= 0 ? 'none' : free <= 2 ? '1-2' : free <= 5 ? '3-5' : free <= 10 ? '6-10' : '10+';
-}
-
 export interface HospitalDetails {
   beds: BedLabel;
-  /** Free beds as a range (see BedRange). */
-  bedsFree: BedRange;
-  /** Free beds now: ready beds minus those held for patients who have asked or been accepted. */
+  /** Free beds now (AGENTS.md rule 6: the exact number): ready beds minus those held for patients who have asked or been accepted. */
   freeBeds: number;
   /** The hospital's equipment, each working or down. */
   equipment: Array<{ key: EquipmentKey; working: boolean }>;
@@ -78,7 +65,6 @@ export function hospitalDetails(
     .map((s) => ({ specialty: s.specialty, name: s.namePublic ? s.name : null }));
   return {
     beds: bedLabel(status),
-    bedsFree: bedRange(status),
     freeBeds: freeBeds(status),
     equipment: equipmentList(status.equip),
     edOpen: entry.edOpen,

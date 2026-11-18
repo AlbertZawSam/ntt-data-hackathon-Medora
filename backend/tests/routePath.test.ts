@@ -5,13 +5,16 @@ jest.mock('@aws-sdk/client-geo-routes', () => ({
 }));
 
 type Handler = (event: never) => Promise<string>;
-const event = (groups: string[] | undefined, args: Record<string, unknown>) => ({ identity: { claims: { 'cognito:groups': groups } }, arguments: args }) as never;
+import { tokenClaims, usePools } from './fakeData';
+
+const event = (groups: string[] | undefined, args: Record<string, unknown>, pool?: 'PUBLIC' | 'STAFF') => ({ identity: { claims: tokenClaims(groups, pool) }, arguments: args }) as never;
 const bangkok = { fromLat: 13.75, fromLng: 100.5, toLat: 13.8, toLng: 100.55 };
 let handler: Handler;
 
 beforeEach(() => {
   jest.resetModules();
   handler = (require('../amplify/functions/route-path/handler') as { handler: Handler }).handler;
+  usePools();
   send.mockReset();
   for (const level of ['info', 'warn', 'error'] as const) jest.spyOn(console, level).mockImplementation(() => undefined);
 });
@@ -35,6 +38,8 @@ describe('routePath', () => {
   it('refuses callers who are not signed in to a role', async () => {
     await expect(handler(event(undefined, bangkok))).rejects.toThrow('not-signed-in');
     await expect(handler(event(['strangers'], bangkok))).rejects.toThrow('not-signed-in');
+    await expect(handler(event(['admins'], bangkok, 'PUBLIC'))).rejects.toThrow('not-signed-in'); // public-pool "admin"
+    await expect(handler(event(['patients'], bangkok, 'STAFF'))).rejects.toThrow('not-signed-in');
     expect(send).not.toHaveBeenCalled();
   });
 

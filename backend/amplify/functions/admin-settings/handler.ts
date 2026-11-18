@@ -3,6 +3,7 @@ import type { AppSyncIdentityCognito, AppSyncResolverHandler } from 'aws-lambda'
 import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import { callerFromClaims, canManageHospital } from '@medora/shared/logic/access';
+import { writeHospitalStatus, type StatusModels } from '../../lib/hospitalStatus';
 import { sanitizeRules } from '@medora/shared/logic/rules';
 
 type Result<T> = { data: T | null; errors?: unknown[] };
@@ -12,6 +13,8 @@ interface Client {
       get(i: { id: string }): Promise<Result<{ id: string; status: unknown }>>;
       update(i: { id: string; status: string }): Promise<Result<unknown>>;
     };
+    HospitalProfile: StatusModels['models']['HospitalProfile'];
+    PublicDirectory: StatusModels['models']['PublicDirectory'];
     Activity: { create(i: Record<string, unknown>): Promise<Result<unknown>> };
   };
 }
@@ -35,11 +38,8 @@ export const handler: AppSyncResolverHandler<{ rules: unknown }, string> = async
   if (!rules) throw new Error('bad-rules');
 
   const client = await dataClient();
-  const current = await client.models.HospitalStatus.get({ id: caller.hospitalId });
-  if (current.errors?.length || !current.data) throw new Error('no-status');
-  const stored = (typeof current.data.status === 'string' ? JSON.parse(current.data.status) : current.data.status) as Record<string, unknown>;
-  const saved = await client.models.HospitalStatus.update({ id: caller.hospitalId, status: JSON.stringify({ ...stored, rules }) });
-  if (saved.errors?.length) throw new Error('save-failed');
+  // Only the rules change; re-read before saving so a nurse's bed update made meanwhile is not overwritten.
+  await writeHospitalStatus(client, caller.hospitalId, (current) => ({ ok: true, status: { ...current, rules } }), 'admin-settings');
 
   const logged = await client.models.Activity.create({
     hospitalId: caller.hospitalId,

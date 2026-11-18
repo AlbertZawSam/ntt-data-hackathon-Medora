@@ -1,10 +1,9 @@
 import { DescribeKeyCommand, LocationClient } from '@aws-sdk/client-location';
 import type { AppSyncIdentityCognito, AppSyncResolverEvent } from 'aws-lambda';
 import { mapStyleUrl } from '@medora/shared/logic/mapStyle';
-import { GROUPS } from '@medora/shared/logic/session';
+import { isSignedInToken } from '@medora/shared/logic/access';
 
 const location = new LocationClient({});
-const ROLES: readonly string[] = [GROUPS.patients, GROUPS.staff, GROUPS.doctors, GROUPS.admins];
 
 /** The key never changes while the stack stands, so a warm Lambda keeps it instead of asking again. */
 let cached: string | null = null;
@@ -15,8 +14,8 @@ let cached: string | null = null;
  */
 export const handler = async (event: AppSyncResolverEvent<Record<string, never>>): Promise<string> => {
   const identity = event.identity as AppSyncIdentityCognito | null | undefined;
-  const groups = identity?.claims?.['cognito:groups'];
-  if (!Array.isArray(groups) || !groups.some((group) => ROLES.includes(String(group)))) throw new Error('not-signed-in');
+  // Any Medora account, each group only from its own pool.
+  if (!isSignedInToken(identity?.claims as Record<string, unknown> | undefined, { publicPoolId: process.env.PUBLIC_USER_POOL_ID, staffPoolId: process.env.STAFF_USER_POOL_ID })) throw new Error('not-signed-in');
   const keyName = process.env.MAP_KEY_NAME;
   if (!keyName) return JSON.stringify({ styleUrl: null });
   try {

@@ -45,8 +45,8 @@ cfnUserPoolClient.writeAttributes = ['email', 'custom:role'];
 cfnUserPoolClient.preventUserExistenceErrors = 'ENABLED';
 
 // Amazon Nova on Bedrock (AGENTS.md 4a): Amazon's own models only, direct in-region model IDs.
-// Nova Lite understands patient descriptions and runs the agent while developing; Nova Pro runs the
-// referral agent on the demo stage. Paid per token only; nothing is billed while idle.
+// Nova Lite understands patient descriptions and finds care (fast, cheap, most of the traffic); Nova Pro runs
+// the doctor's referral agent on every stage. Paid per token only; nothing is billed while idle.
 const MODEL_ID_FAST = 'amazon.nova-lite-v1:0';
 const MODEL_ID_STRONG = 'amazon.nova-pro-v1:0';
 
@@ -118,6 +118,10 @@ backend.agentRunner.addEnvironment('MODEL_ID_STRONG', MODEL_ID_STRONG);
 backend.agentRunner.addEnvironment('GUARDRAIL_ID', guardrail.attrGuardrailId);
 backend.agentRunner.addEnvironment('GUARDRAIL_VERSION', 'DRAFT');
 backend.agentRunner.addEnvironment('AGENT_GUARDRAIL_ID', agentGuardrail.attrGuardrailId);
+// Referral agent model: Nova Pro by default. `MEDORA_AGENT_MODEL=fast npm run sandbox` drops a sandbox to Nova Lite
+// for cheap development runs. Cost: nothing while idle; a few cents per run on Pro, about one cent on Lite.
+// The IAM below already names both models, so this adds no permission.
+backend.agentRunner.addEnvironment('AGENT_MODEL', process.env.MEDORA_AGENT_MODEL === 'fast' ? 'fast' : 'strong');
 // Demo replies (task 21): seeded demo hospitals answer referrals after 8 seconds with preset replies.
 // Only the synthetic hospitals from scripts/seed.ts are affected. Set MEDORA_DEMO_REPLIES=false to switch off.
 backend.agentRunner.addEnvironment('DEMO_REPLIES', process.env.MEDORA_DEMO_REPLIES === 'false' ? 'false' : 'true');
@@ -355,10 +359,19 @@ backend.updateStatus.addEnvironment('STAFF_USER_POOL_ID', staffPool.userPoolId);
 backend.careActions.addEnvironment('PUBLIC_USER_POOL_ID', backend.auth.resources.userPool.userPoolId);
 backend.careActions.addEnvironment('STAFF_USER_POOL_ID', staffPool.userPoolId);
 
+// Every handler checks which pool issued the token, not only the group (docs/roles.md: enforce on the server).
+// Pool ids are not secrets; no IAM is added. Patient-only: find-care, search-places. Any account: map-config,
+// route-path. agent-runner: doctors of the staff pool who own the referral.
+const publicPoolId = backend.auth.resources.userPool.userPoolId;
+for (const fn of [backend.findCare, backend.searchPlaces]) fn.addEnvironment('PUBLIC_USER_POOL_ID', publicPoolId);
+for (const fn of [backend.mapConfig, backend.routePath]) {
+  fn.addEnvironment('PUBLIC_USER_POOL_ID', publicPoolId);
+  fn.addEnvironment('STAFF_USER_POOL_ID', staffPool.userPoolId);
+}
+backend.agentRunner.addEnvironment('STAFF_USER_POOL_ID', staffPool.userPoolId);
+
 // find-care reads its model ids from the environment (AGENTS.md 4a); agent-runner's are set with its
 // guardrails above.
-// Demo switch (task 21): simulated hospital replies, off unless DEMO_REPLIES=true is set for the demo stage.
-if (process.env.DEMO_REPLIES === 'true') backend.agentRunner.addEnvironment('DEMO_REPLIES', 'true');
 backend.findCare.addEnvironment('MODEL_ID_FAST', MODEL_ID_FAST);
 backend.findCare.addEnvironment('GUARDRAIL_ID', guardrail.attrGuardrailId);
 backend.findCare.addEnvironment('GUARDRAIL_VERSION', 'DRAFT');

@@ -2,7 +2,7 @@ import { getAmplifyDataClientConfig } from '@aws-amplify/backend/function/runtim
 import type { AppSyncIdentityCognito, AppSyncResolverEvent } from 'aws-lambda';
 import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
-import { callerFromClaims, canManageHospital } from '@medora/shared/logic/access';
+import { callerFromClaims, canManageHospital, isPatientToken } from '@medora/shared/logic/access';
 import { isInBangkok } from '@medora/shared/logic/places';
 import { GROUPS } from '@medora/shared/logic/session';
 import {
@@ -56,11 +56,7 @@ function admin(event: AppSyncResolverEvent<Rec>): { hospitalId: string; sub: str
 
 function patientId(event: AppSyncResolverEvent<Rec>): string {
   const identity = event.identity as AppSyncIdentityCognito | null | undefined;
-  const claims = identity?.claims as Rec | undefined;
-  const groups = claims?.['cognito:groups'];
-  const iss = claims?.iss;
-  const poolId = process.env.PUBLIC_USER_POOL_ID;
-  if (!poolId || typeof iss !== 'string' || !iss.endsWith(`/${poolId}`) || !Array.isArray(groups) || !groups.includes(GROUPS.patients) || typeof identity?.sub !== 'string') {
+  if (!isPatientToken(identity?.claims as Rec | undefined, process.env.PUBLIC_USER_POOL_ID) || typeof identity?.sub !== 'string') {
     throw new Error('not-patient');
   }
   return identity.sub;

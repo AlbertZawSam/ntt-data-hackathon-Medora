@@ -24,18 +24,37 @@ export function makeFakeClient(seed: Record<string, Row[]> = {}) {
     // Secondary-index queries, as the generated client names them.
     listReservationByRequestId: async ({ requestId }: { requestId: string }) => ({ data: table(name).filter((r) => r.requestId === requestId) }),
     listCareRequestByOwnerIdAndCreatedAtMs: async ({ ownerId }: { ownerId: string }) => ({ data: table(name).filter((r) => r.ownerId === ownerId) }),
+    listCareRequestByReferralIdAndCreatedAtMs: async ({ referralId }: { referralId: string }) => ({ data: table(name).filter((r) => r.referralId === referralId) }),
+    listReferralByFromHospitalIdAndStartedAtMs: async ({ fromHospitalId }: { fromHospitalId: string }, options: { filter?: Record<string, { eq: unknown }> } = {}) => ({
+      data: table(name).filter((r) => r.fromHospitalId === fromHospitalId && Object.entries(options.filter ?? {}).every(([k, c]) => r[k] === c.eq)),
+    }),
     delete: async ({ id }: { id: string }) => {
       tables[name] = table(name).filter((r) => r.id !== id);
       return { data: null };
     },
   });
-  const names = ['CareRequest', 'HospitalStatus', 'HospitalProfile', 'Message', 'Activity', 'Referral', 'Transfer', 'Specialist', 'Reservation'];
+  const names = ['CareRequest', 'HospitalStatus', 'HospitalProfile', 'Message', 'Activity', 'Referral', 'Transfer', 'Specialist', 'Reservation', 'PublicDirectory'];
   return { tables: (name: string) => table(name), client: { models: Object.fromEntries(names.map((m) => [m, model(m)])) } };
 }
 
 const STAFF = 'us-east-1_STAFF';
 const PUBLIC = 'us-east-1_PUBLIC';
 export const POOLS = { STAFF, PUBLIC };
+
+/** Sets both pool ids, as backend.ts does for every handler that checks tokens. */
+export const usePools = (): void => {
+  process.env.PUBLIC_USER_POOL_ID = PUBLIC;
+  process.env.STAFF_USER_POOL_ID = STAFF;
+};
+
+/**
+ * ID token claims as Cognito issues them. By default patients come from the public pool and every hospital
+ * group from the staff pool; pass `pool` to forge a token from the other pool.
+ */
+export const tokenClaims = (groups: string[] | undefined, pool?: 'PUBLIC' | 'STAFF') => ({
+  iss: `https://cognito-idp.us-east-1.amazonaws.com/${(pool ?? (groups?.includes('patients') ? 'PUBLIC' : 'STAFF')) === 'PUBLIC' ? PUBLIC : STAFF}`,
+  'cognito:groups': groups,
+});
 
 export const patientEvent = (fieldName: string, args: Record<string, unknown>, sub = 'p1') => ({
   // The shape Amplify Gen 2 function resolvers send: the field at the top level, no `info`.

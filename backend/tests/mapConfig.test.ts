@@ -4,15 +4,18 @@ jest.mock('@aws-sdk/client-location', () => ({
   DescribeKeyCommand: jest.fn((input: unknown) => ({ input })),
 }));
 
-const as = (groups: string[] | undefined) => ({ identity: { claims: { 'cognito:groups': groups } }, arguments: {} });
+import { tokenClaims, usePools } from './fakeData';
+
+const as = (groups: string[] | undefined, pool?: 'PUBLIC' | 'STAFF') => ({ identity: { claims: tokenClaims(groups, pool) }, arguments: {} });
 type Handler = (event: never) => Promise<string>;
 // A fresh copy of the handler per test: it keeps the key in memory for a warm Lambda, and that must not leak between tests.
 let handler: Handler;
-const call = (groups: string[] | undefined) => handler(as(groups) as never).then((text) => JSON.parse(text) as { styleUrl: string | null });
+const call = (groups: string[] | undefined, pool?: 'PUBLIC' | 'STAFF') => handler(as(groups, pool) as never).then((text) => JSON.parse(text) as { styleUrl: string | null });
 
 beforeEach(() => {
   jest.resetModules();
   handler = (require('../amplify/functions/map-config/handler') as { handler: Handler }).handler;
+  usePools();
   process.env.MAP_KEY_NAME = 'medora-maps-test';
   process.env.AWS_REGION = 'us-east-1';
   send.mockReset();
@@ -44,6 +47,9 @@ describe('mapConfig', () => {
   it('refuses callers with no role and does not touch the key', async () => {
     for (const groups of [undefined, [], ['visitors']]) await expect(call(groups as string[] | undefined)).rejects.toThrow('not-signed-in');
     await expect(handler({ arguments: {} } as never)).rejects.toThrow('not-signed-in');
+    // Each group only from its own pool: a public-pool doctor or a staff-pool patient is refused.
+    await expect(call(['doctors'], 'PUBLIC')).rejects.toThrow('not-signed-in');
+    await expect(call(['patients'], 'STAFF')).rejects.toThrow('not-signed-in');
     expect(send).not.toHaveBeenCalled();
   });
 

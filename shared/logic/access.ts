@@ -15,20 +15,8 @@ export type Unit = (typeof UNITS)[number];
 export const ALL_UNITS = 'all';
 export type UnitClaim = Unit | typeof ALL_UNITS;
 
-/** The status items of a hospital, and the unit that owns each by default. */
-export const STATUS_ITEM_TYPES = [
-  'beds',
-  'icu',
-  'nicu',
-  'ed',
-  'ct',
-  'mri',
-  'cathlab',
-  'specialist',
-] as const;
-export type StatusItemType = (typeof STATUS_ITEM_TYPES)[number];
-
-export const DEFAULT_OWNER_UNIT: Record<Exclude<StatusItemType, 'specialist'>, Unit> = {
+/** The status items of a hospital and the unit that owns each by default (specialists: DEFAULT_SPECIALIST_UNIT). */
+export const DEFAULT_OWNER_UNIT: Record<'beds' | 'icu' | 'nicu' | 'ed' | 'ct' | 'mri' | 'cathlab', Unit> = {
   beds: 'ward',
   icu: 'icu',
   nicu: 'nicu',
@@ -106,6 +94,25 @@ export function canConfirmReferral(caller: Caller & { userId?: string }, referra
   return canStartReferral(caller) && caller.userId !== undefined && caller.userId === referral.ownerId;
 }
 
+/**
+ * Who may run the referral agent (agent-runner). Through AppSync: a doctor of the staff pool who owns the
+ * referral; a public-pool token is refused even if it carries a `doctors` group. `direct` is true only for a
+ * direct Lambda invoke by the evaluation runner (it needs IAM `lambda:InvokeFunction`, and AppSync never
+ * forwards the field that marks it); such an invoke has no token claims and must still name the owner.
+ */
+export function mayRunReferralAgent(
+  identity: { sub?: string; claims?: Record<string, unknown> } | null | undefined,
+  ownerId: string,
+  staffPoolId: string | undefined,
+  direct: boolean,
+): boolean {
+  const sub = identity?.sub;
+  if (typeof sub !== 'string' || !sub || sub !== ownerId) return false;
+  if (direct && !identity?.claims) return true;
+  const caller = callerFromClaims(identity?.claims, staffPoolId);
+  return !!caller && canConfirmReferral({ ...caller, userId: sub }, { ownerId });
+}
+
 /** Settings, specialists, slots, auto-accept rules, unit ownership: admins of that hospital. */
 export function canManageHospital(caller: Caller, hospitalId: string): boolean {
   return inGroup(caller, GROUPS.admins) && hasHospital(caller) && caller.hospitalId === hospitalId;
@@ -117,14 +124,38 @@ export function canManageHospital(caller: Caller, hospitalId: string): boolean {
  * public pool) or an access token without the custom claims yields `undefined`.
  */
 export function callerFromClaims(claims: Record<string, unknown> | undefined, poolId: string | undefined): Caller | undefined {
-  if (!claims || !poolId || typeof claims.iss !== 'string' || !claims.iss.endsWith(`/${poolId}`)) return undefined;
-  const groups = claims['cognito:groups'];
+  if (!claims || !issuedBy(claims, poolId)) return undefined;
   const text = (v: unknown): string | undefined => (typeof v === 'string' && v.length > 0 ? v : undefined);
   return {
-    groups: Array.isArray(groups) ? groups.map(String) : [],
+    groups: groupsOf(claims),
     hospitalId: text(claims['custom:hospitalId']),
     unit: text(claims['custom:unit']),
   };
+}
+
+/** True when the ID token was issued by the given user pool (its `iss` ends in `/<poolId>`). */
+export function issuedBy(claims: Record<string, unknown> | undefined, poolId: string | undefined): boolean {
+  return !!claims && !!poolId && typeof claims.iss === 'string' && claims.iss.endsWith(`/${poolId}`);
+}
+
+function groupsOf(claims: Record<string, unknown> | undefined): string[] {
+  const groups = claims?.['cognito:groups'];
+  return Array.isArray(groups) ? groups.map(String) : [];
+}
+
+/**
+ * A patient: an ID token from the public pool with the `patients` group. A staff-pool token, or a
+ * public-pool token without the group, is refused.
+ */
+export function isPatientToken(claims: Record<string, unknown> | undefined, publicPoolId: string | undefined): boolean {
+  return issuedBy(claims, publicPoolId) && groupsOf(claims).includes(GROUPS.patients);
+}
+
+/** Any Medora account: a patient of the public pool, or a hospital account (any hospital group) of the staff pool. */
+export function isSignedInToken(claims: Record<string, unknown> | undefined, pools: { publicPoolId?: string; staffPoolId?: string }): boolean {
+  if (isPatientToken(claims, pools.publicPoolId)) return true;
+  const hospitalGroups: readonly string[] = [GROUPS.staff, GROUPS.doctors, GROUPS.admins];
+  return issuedBy(claims, pools.staffPoolId) && groupsOf(claims).some((g) => hospitalGroups.includes(g));
 }
 
 export interface Invitation {
@@ -148,10 +179,4 @@ export function checkInvitation(caller: Caller, invitation: Invitation): Invitat
   if (invitation.group === GROUPS.staff && !isUnitClaim(invitation.unit)) return { ok: false, reason: 'bad-unit' };
   if (invitation.group !== GROUPS.staff && invitation.unit !== undefined) return { ok: false, reason: 'bad-unit' };
   return { ok: true };
-}
-
-/** Items shown on a staff member's "My unit" screen. */
-export function itemsForUnit<T extends { ownerUnit: string }>(unit: string | undefined, items: readonly T[]): T[] {
-  if (unit === ALL_UNITS) return [...items];
-  return isUnit(unit) ? items.filter((i) => i.ownerUnit === unit) : [];
 }

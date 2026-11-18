@@ -124,6 +124,31 @@ describe('reservations', () => {
     expect(fake.tables('Reservation')[0].state).toBe('converted');
     expect(JSON.parse(String(fake.tables('HospitalStatus')[0].status)).beds).toBe(0);
   });
+
+  it('still records the arrival when the bed count cannot be saved (a retry would be refused)', async () => {
+    fake.tables('HospitalStatus')[0].status = oneBed();
+    const id = await call(patientEvent('submitRequest', peds));
+    const models = fake.client.models as unknown as Record<string, { update: unknown }>;
+    const realUpdate = models.HospitalStatus.update;
+    models.HospitalStatus.update = async () => ({ data: null, errors: [{ errorType: 'DynamoDB:ConditionalCheckFailed' }] });
+    try {
+      await call(staffEvent('answerRequest', { requestId: id, action: 'arrived' }, ward));
+    } finally {
+      models.HospitalStatus.update = realUpdate;
+    }
+    expect(fake.tables('CareRequest').find((r) => r.id === id)?.status).toBe('completed');
+  });
+
+  it('refreshes the public directory on arrival, so patients stop seeing the bed that was just taken', async () => {
+    fake.tables('HospitalStatus')[0].status = oneBed();
+    Object.assign(fake.tables('HospitalProfile')[0], { hospitalId: 'H1', lat: 13.75, lng: 100.53, typicalWaitMin: 20 });
+    const id = await call(patientEvent('submitRequest', peds));
+    expect(fake.tables('PublicDirectory')).toHaveLength(0);
+    await call(staffEvent('answerRequest', { requestId: id, action: 'arrived' }, ward));
+    const entry = JSON.parse(String(fake.tables('PublicDirectory')[0].entry)) as { hospitalId: string; needs: Record<string, { label: string }> };
+    expect(entry.hospitalId).toBe('H1');
+    expect(entry.needs.child.label).toBe('unavailable');
+  });
 });
 
 describe('a referred patient arrives', () => {
@@ -322,5 +347,69 @@ describe('a bed is held from the moment a patient sends a request', () => {
     await call(patientEvent('cancelRequest', { requestId: id }));
     expect(fake.tables('Reservation').find((r) => r.requestId === id)?.state).toBe('released');
     await expect(call(patientEvent('submitRequest', req))).resolves.toEqual(expect.any(String));
+  });
+});
+
+describe('a patient whose doctor is referring them on', () => {
+  const progress = (status: string) => JSON.stringify({ name: { en: 'Siam Central', th: 'สยามเซ็นทรัล' }, status, atMs: Date.now() });
+  beforeEach(() => {
+    // The patient's accepted request at H1; H1's doctor referred them to H2, which accepted and holds a bed.
+    fake.tables('CareRequest').push(
+      { id: 'own', type: 'visit', hospitalId: 'H1', ownerId: 'p1', needKey: 'injury', status: 'accepted', auto: false, createdAtMs: Date.now(), referredTo: progress('accepted') } as never,
+      { id: 'sent', type: 'referral', hospitalId: 'H2', ownerId: 'd1', needKey: 'injury', status: 'accepted', auto: false, referralId: 'ref1', createdAtMs: Date.now() } as never,
+    );
+    fake.tables('Referral').push({ id: 'ref1', mode: 'direct', status: 'awaiting', chosenId: 'H2', fromHospitalId: 'H1', sourceRequestId: 'own' } as never);
+    fake.tables('Reservation').push({ id: 'hold2', requestId: 'sent', hospitalId: 'H2', kind: 'bed', state: 'held', createdAtMs: Date.now(), expiresAtMs: Date.now() + 60_000 } as never);
+  });
+  it('can cancel before the transfer is confirmed, which withdraws the referral and frees the bed', async () => {
+    await call(patientEvent('cancelRequest', { requestId: 'own' }));
+    expect(fake.tables('CareRequest').find((r) => r.id === 'own')?.status).toBe('cancelled');
+    expect(fake.tables('CareRequest').find((r) => r.id === 'sent')?.status).toBe('cancelled');
+    expect(fake.tables('Referral').find((r) => r.id === 'ref1')?.status).toBe('set_aside');
+    expect(fake.tables('Reservation').find((r) => r.id === 'hold2')?.state).toBe('released');
+  });
+  it("can't cancel once the doctor confirmed the transfer", async () => {
+    Object.assign(fake.tables('CareRequest').find((r) => r.id === 'own')!, { referredTo: progress('confirmed') });
+    await expect(call(patientEvent('cancelRequest', { requestId: 'own' }))).rejects.toThrow('bad-state');
+  });
+  it('is not locked out of new requests by an abandoned request', async () => {
+    await expect(call(patientEvent('submitRequest', req))).rejects.toThrow('already-open');
+    const old = Date.now() - 3 * 60 * 60 * 1000;
+    Object.assign(fake.tables('CareRequest').find((r) => r.id === 'own')!, { createdAtMs: old, referredTo: JSON.stringify({ name: { en: 'S', th: 'ส' }, status: 'accepted', atMs: old }) });
+    await expect(call(patientEvent('submitRequest', req))).resolves.toEqual(expect.any(String));
+  });
+});
+
+describe('a patient cancel never undoes a doctor', () => {
+  const progress = JSON.stringify({ name: { en: 'Siam Central', th: 'สยามเซ็นทรัล' }, status: 'accepted', atMs: Date.now() });
+  beforeEach(() => {
+    fake.tables('CareRequest').push(
+      { id: 'own', type: 'visit', hospitalId: 'H1', ownerId: 'p1', needKey: 'injury', status: 'accepted', auto: false, createdAtMs: Date.now(), referredTo: progress } as never,
+      { id: 'sent', type: 'referral', hospitalId: 'H2', ownerId: 'd1', needKey: 'injury', status: 'accepted', auto: false, referralId: 'ref1', createdAtMs: Date.now() } as never,
+    );
+  });
+  it('refuses when the referral is already confirmed, even before the patient copy says so', async () => {
+    fake.tables('Referral').push({ id: 'ref1', mode: 'direct', status: 'confirmed', chosenId: 'H2', fromHospitalId: 'H1', sourceRequestId: 'own' } as never);
+    await expect(call(patientEvent('cancelRequest', { requestId: 'own' }))).rejects.toThrow('bad-state');
+    expect(fake.tables('CareRequest').find((r) => r.id === 'own')?.status).toBe('accepted');
+    expect(fake.tables('CareRequest').find((r) => r.id === 'sent')?.status).toBe('accepted');
+    expect(fake.tables('Referral').find((r) => r.id === 'ref1')?.status).toBe('confirmed');
+  });
+  it("tells the doctor why, and leaves another hospital's referral alone", async () => {
+    fake.tables('Referral').push(
+      { id: 'ref1', mode: 'direct', status: 'awaiting', chosenId: 'H2', fromHospitalId: 'H1', sourceRequestId: 'own' } as never,
+      { id: 'ref2', mode: 'direct', status: 'awaiting', chosenId: 'H3', fromHospitalId: 'H9', sourceRequestId: 'own' } as never,
+    );
+    await call(patientEvent('cancelRequest', { requestId: 'own' }));
+    expect(fake.tables('Referral').find((r) => r.id === 'ref1')).toMatchObject({ status: 'set_aside', why: expect.stringContaining('patient cancelled') });
+    expect(fake.tables('Referral').find((r) => r.id === 'ref2')?.status).toBe('awaiting');
+  });
+  it('keeps the request open for a retry when withdrawing the referral fails', async () => {
+    fake.tables('Referral').push({ id: 'ref1', mode: 'direct', status: 'awaiting', chosenId: 'H2', fromHospitalId: 'H1', sourceRequestId: 'own' } as never);
+    jest.spyOn(fake.client.models.Referral, 'update').mockResolvedValueOnce({ data: null, errors: [{}] } as never);
+    await expect(call(patientEvent('cancelRequest', { requestId: 'own' }))).rejects.toThrow('save-failed');
+    expect(fake.tables('CareRequest').find((r) => r.id === 'own')?.status).toBe('accepted');
+    await call(patientEvent('cancelRequest', { requestId: 'own' }));
+    expect(fake.tables('CareRequest').find((r) => r.id === 'own')?.status).toBe('cancelled');
   });
 });

@@ -6,7 +6,7 @@
 import { useRouter, type Href } from 'expo-router';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { ARRIVAL_MODES, NEED_KEYS, type ArrivalMode, type PublicHospital } from '@medora/shared/logic/care';
+import { ARRIVAL_MODES, MAX_DESCRIPTION, MAX_NAME, NEED_KEYS, type ArrivalMode, type PublicHospital } from '@medora/shared/logic/care';
 import type { Bi, NeedKey } from '@medora/shared/logic/types';
 import { bedsText, bedsTone } from '../../src/i18n/beds';
 import { pick, type StringKey } from '../../src/i18n/t';
@@ -235,7 +235,7 @@ export default function PatientCareScreen(): React.JSX.Element {
               numberOfLines={5}
               textAlignVertical="top"
               inputStyle={styles.multiline}
-              maxLength={1000}
+              maxLength={MAX_DESCRIPTION}
               editable={phase !== 'searching'}
             />
             {text.length === 0 ? (
@@ -368,7 +368,7 @@ export default function PatientCareScreen(): React.JSX.Element {
                       onChange={setMode}
                       options={ARRIVAL_MODES.map((m) => ({ value: m, label: t(`mode.${m}` as StringKey), icon: MODE_ICON[m] }))}
                     />
-                    <Field label={t('patient.care.namePlaceholder')} icon="person-outline" value={name} onChangeText={setName} maxLength={80} />
+                    <Field label={t('patient.care.namePlaceholder')} icon="person-outline" value={name} onChangeText={setName} maxLength={MAX_NAME} />
                     <Field label={t('patient.care.phonePlaceholder')} icon="call-outline" value={phone} onChangeText={setPhone} keyboardType="phone-pad" maxLength={20} />
                     <View style={styles.buttons}>
                       <View style={styles.flex}>

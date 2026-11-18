@@ -2,20 +2,24 @@ import { getAmplifyDataClientConfig } from '@aws-amplify/backend/function/runtim
 import type { AppSyncIdentityCognito, AppSyncResolverEvent } from 'aws-lambda';
 import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
-import { callerFromClaims, canAnswerRequest } from '@medora/shared/logic/access';
+import { callerFromClaims, canAnswerRequest, isPatientToken } from '@medora/shared/logic/access';
 import { isDepartment, openDepartments } from '@medora/shared/logic/departments';
 import {
   MAX_MESSAGE,
+  blocksNewRequest,
   quickRepliesFor,
   couldTreat,
+  patientCanCancel,
   decideNewRequest,
   transition,
   validateRequestInput,
+  isDeclineReason,
   type RequestAction,
 } from '@medora/shared/logic/care';
 import { activeHolds, holdKind, newReservation, occupyOne, withHolds, type Reservation } from '@medora/shared/logic/reservations';
 import { GROUPS } from '@medora/shared/logic/session';
-import type { CareRequest, HospitalStatus, NeedKey } from '@medora/shared/logic/types';
+import { statusErrorCode, writeHospitalStatus, type StatusModels } from '../../lib/hospitalStatus';
+import type { CareRequest, HospitalStatus, NeedKey, ReferralProgress } from '@medora/shared/logic/types';
 
 type Result<T> = { data: T | null; errors?: unknown[] };
 type Record_ = Record<string, unknown>;
@@ -26,15 +30,18 @@ interface Model<T> {
   update(input: Record_): Promise<Result<T>>;
 }
 
-type RequestRecord = Omit<CareRequest, 'patient'> & { patient: unknown };
+type RequestRecord = Omit<CareRequest, 'patient' | 'referredTo'> & { patient: unknown; referredTo?: unknown };
+type ReferralRecord = { id: string; status: string; mode: string; chosenId?: string | null; chosenName?: unknown; sourceRequestId?: string | null };
 
 interface Client {
   models: {
     CareRequest: Model<RequestRecord> & {
       listCareRequestByOwnerIdAndCreatedAtMs(input: { ownerId: string }, options?: Record_): Promise<{ data: RequestRecord[]; errors?: unknown[] }>;
+      listCareRequestByReferralIdAndCreatedAtMs(input: { referralId: string }, options?: Record_): Promise<{ data: RequestRecord[]; errors?: unknown[] }>;
     };
     HospitalStatus: Model<{ id: string; status: unknown }>;
     HospitalProfile: Model<{ id: string; name: unknown }>;
+    PublicDirectory: StatusModels['models']['PublicDirectory'];
     Message: Model<{ id: string }>;
     Reservation: Model<Reservation> & {
       list(input: Record_): Promise<{ data: Reservation[]; errors?: unknown[] }>;
@@ -42,7 +49,9 @@ interface Client {
       listReservationByRequestId(input: { requestId: string }): Promise<{ data: Reservation[]; errors?: unknown[] }>;
     };
     Activity: Model<{ id: string }>;
-    Referral: Model<{ id: string; status: string; mode: string; chosenId?: string | null; chosenName?: unknown; sourceRequestId?: string | null }>;
+    Referral: Model<ReferralRecord> & {
+      listReferralByFromHospitalIdAndStartedAtMs(input: { fromHospitalId: string }, options?: Record_): Promise<{ data: ReferralRecord[]; errors?: unknown[] }>;
+    };
     Transfer: Model<{ id: string; status: string }> & {
       list(input: Record_): Promise<{ data: Array<{ id: string; status: string; toHospitalId: string }>; errors?: unknown[] }>;
     };
@@ -117,13 +126,7 @@ async function stillSame(client: Client, request: RequestRecord): Promise<void> 
 /** A patient: public-pool token with the `patients` group. Returns the user's id. */
 function patientId(event: AppSyncResolverEvent<Record_>): string {
   const identity = event.identity as AppSyncIdentityCognito | null | undefined;
-  const claims = identity?.claims as Record_ | undefined;
-  const iss = claims?.iss;
-  const groups = claims?.['cognito:groups'];
-  const poolId = process.env.PUBLIC_USER_POOL_ID;
-  if (!poolId || typeof iss !== 'string' || !iss.endsWith(`/${poolId}`) || !Array.isArray(groups) || !groups.includes(GROUPS.patients)) {
-    throw new Error('not-patient');
-  }
+  if (!isPatientToken(identity?.claims as Record_ | undefined, process.env.PUBLIC_USER_POOL_ID)) throw new Error('not-patient');
   if (typeof identity?.sub !== 'string' || !identity.sub) throw new Error('not-patient');
   return identity.sub;
 }
@@ -155,7 +158,7 @@ async function submitRequest(client: Client, event: AppSyncResolverEvent<Record_
   // One open request per patient: every request holds a bed, so one account can't hold a hospital's beds.
   const mine = await client.models.CareRequest.listCareRequestByOwnerIdAndCreatedAtMs({ ownerId }, { limit: 100, sortDirection: 'DESC' });
   if (mine.errors?.length) throw new Error('data-unavailable');
-  if ((mine.data ?? []).some((r) => r.type !== 'booking' && (r.status === 'waiting' || r.status === 'accepted' || r.status === 'no_reply'))) {
+  if ((mine.data ?? []).some((r) => blocksNewRequest({ ...r, referredTo: progress(r) }, nowMs))) {
     console.warn('care-actions refused: already-open');
     throw new Error('already-open');
   }
@@ -193,15 +196,59 @@ async function patientCancel(client: Client, event: AppSyncResolverEvent<Record_
   if (request.ownerId !== ownerId) throw new Error('not-owner');
   const move = transition(request, 'cancel', Date.now());
   if (!move.ok) throw new Error(move.reason);
+  // Once the doctor confirmed the transfer, only the hospitals can stop it. `referredTo` is only the patient's
+  // copy and is written after the confirmation, so the referrals themselves decide.
+  if (!patientCanCancel({ status: request.status, referredTo: progress(request) })) throw new Error('bad-state');
+  const referrals = request.referredTo ? await openReferrals(client, request) : [];
   await stillSame(client, request);
+  // The referrals are withdrawn first, so a failure leaves the request open for a retry, never a cancelled
+  // patient with a referral the doctor can still confirm.
+  for (const referral of referrals) await withdrawReferral(client, request, referral.id);
   must(await client.models.CareRequest.update({ id: request.id, status: move.status }), 'save-failed');
   await settle(client, request.id, 'released');
   await log(client, request.hospitalId, ownerId, 'Patient', 'ผู้ป่วย', `Request ${request.id}: cancelled`, `คำขอ ${request.id}: ยกเลิก`);
   return 'ok';
 }
 
+/** The referral progress the API stores as JSON on a patient's request. */
+function progress(request: RequestRecord): ReferralProgress | null {
+  return request.referredTo ? parse<ReferralProgress>(request.referredTo) : null;
+}
+
+const OPEN_REFERRAL = ['running', 'awaiting'];
+const WITHDRAWN = { en: 'The patient cancelled their request.', th: 'ผู้ป่วยยกเลิกคำขอแล้ว' };
+
+/** The doctor's open referrals of this patient's request; refuses if one is already confirmed. */
+async function openReferrals(client: Client, request: RequestRecord): Promise<ReferralRecord[]> {
+  const found = await client.models.Referral.listReferralByFromHospitalIdAndStartedAtMs(
+    { fromHospitalId: request.hospitalId },
+    { filter: { sourceRequestId: { eq: request.id } }, limit: 1000 },
+  );
+  if (found.errors?.length) throw new Error('data-unavailable');
+  if (found.data.some((r) => r.status === 'confirmed')) throw new Error('bad-state');
+  return found.data.filter((r) => OPEN_REFERRAL.includes(r.status));
+}
+
+/**
+ * Sets the referral aside, then withdraws the receiving hospital's request and releases its held bed, as
+ * when the doctor sets it aside. The referral is re-read and closed first, so a doctor's confirmation or a
+ * staff accept in the meantime is never overwritten (both act only on an open referral).
+ */
+async function withdrawReferral(client: Client, request: RequestRecord, referralId: string): Promise<void> {
+  const fresh = must(await client.models.Referral.get({ id: referralId }), 'no-referral');
+  if (fresh.status === 'confirmed') throw new Error('bad-state');
+  if (!OPEN_REFERRAL.includes(fresh.status)) return;
+  must(await client.models.Referral.update({ id: referralId, status: 'set_aside', why: JSON.stringify(WITHDRAWN) }), 'save-failed');
+  const asked = await client.models.CareRequest.listCareRequestByReferralIdAndCreatedAtMs({ referralId });
+  if (asked.errors?.length) throw new Error('data-unavailable');
+  for (const r of asked.data.filter((a) => a.status === 'waiting' || a.status === 'accepted' || a.status === 'no_reply')) {
+    must(await client.models.CareRequest.update({ id: r.id, status: 'cancelled' }), 'withdraw-failed');
+    await settle(client, r.id, 'released');
+  }
+  await log(client, request.hospitalId, undefined, 'Patient', 'ผู้ป่วย', `Referral ${referralId}: set_aside (patient cancelled)`, `การส่งต่อ ${referralId}: ยกเลิก (ผู้ป่วยยกเลิก)`);
+}
+
 const STAFF_ACTIONS: readonly string[] = ['accept', 'decline', 'undo', 'arrived'];
-const DECLINE_REASONS = ['nobed', 'busy', 'equip', 'divert'];
 
 async function answerRequest(client: Client, event: AppSyncResolverEvent<Record_>): Promise<string> {
   const { caller, sub } = staffCaller(event);
@@ -217,7 +264,7 @@ async function answerRequest(client: Client, event: AppSyncResolverEvent<Record_
   if (!move.ok) throw new Error(move.reason);
 
   await stillSame(client, request);
-  const reason = typeof event.arguments.reason === 'string' && DECLINE_REASONS.includes(event.arguments.reason) ? event.arguments.reason : undefined;
+  const reason = isDeclineReason(event.arguments.reason) ? event.arguments.reason : undefined;
   const note = typeof event.arguments.note === 'string' ? event.arguments.note.trim().slice(0, 200) : undefined;
   must(
     await client.models.CareRequest.update({
@@ -287,10 +334,13 @@ async function couldTreatNow(client: Client, request: RequestRecord): Promise<bo
   return couldTreat(withHolds(parse<HospitalStatus>(row.data.status), await currentHolds(client, request.hospitalId)), request.needKey as NeedKey);
 }
 
+/** The patient takes one bed or NICU cot; saved without losing a concurrent update, and shown to patients. */
 async function occupy(client: Client, hospitalId: string, kind: 'bed' | 'nicu'): Promise<void> {
-  const row = await client.models.HospitalStatus.get({ id: hospitalId });
-  if (!row.data) return;
-  await client.models.HospitalStatus.update({ id: hospitalId, status: JSON.stringify(occupyOne(parse<HospitalStatus>(row.data.status), kind)) });
+  // The arrival is already saved, so a failed bed count must not fail the call (a retry would be refused by the
+  // state check and the bed never counted): log it, as before, and staff correct the count on My unit.
+  await writeHospitalStatus(client, hospitalId, (current) => ({ ok: true, status: occupyOne(current, kind) }), 'care-actions').catch((error: unknown) => {
+    console.error(`care-actions: bed count not saved (${statusErrorCode(error)})`);
+  });
 }
 
 /** Staff marked a referred patient arrived: the doctor's transfer to this hospital is arrived too. */
