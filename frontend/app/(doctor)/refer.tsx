@@ -7,6 +7,7 @@ import { useRouter, type Href } from 'expo-router';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { DECLINE_REASONS } from '@medora/shared/logic/care';
+import { isReferablePatient } from '@medora/shared/logic/directReferral';
 import { parseDecisionRows, type DecisionRow } from '@medora/shared/logic/decisionTable';
 import type { CareRequest, Referral } from '@medora/shared/logic/types';
 import { MapView, shortLabel, type MapMarker, type MarkerKind } from '../../src/components/MapView';
@@ -98,11 +99,12 @@ export default function DoctorReferScreen(): React.JSX.Element {
         .sort((a, b) => (a.status === b.status ? b.createdAtMs - a.createdAtMs : a.status === 'waiting' ? -1 : 1)),
     [data.careRequests, session?.hospitalId, session?.userId],
   );
-  // Patients' own requests that reached this hospital and are still active (last 24 hours): the doctor can refer one.
+  // Patients' own requests at this hospital (last 24 hours), the same ones the server lets a doctor refer: waiting,
+  // accepted, or already arrived, for when this hospital turns out to lack the equipment or specialist they need.
   const patients = React.useMemo(
     () =>
       data.careRequests
-        .filter((r) => r.hospitalId === session?.hospitalId && !r.referralId && r.type !== 'booking' && (r.status === 'waiting' || r.status === 'accepted') && Date.now() - r.createdAtMs < 24 * 60 * 60_000)
+        .filter((r) => isReferablePatient(r, session?.hospitalId, Date.now()))
         .sort((a, b) => b.createdAtMs - a.createdAtMs),
     [data.careRequests, session?.hospitalId],
   );
@@ -488,6 +490,8 @@ export default function DoctorReferScreen(): React.JSX.Element {
                 <Text style={[styles.itemTitle, { color: theme.text }]}>{patientLabel(t, r.patient.name, r.id)}</Text>
                 {index === 0 ? <Badge tone="primary" label={t('doctor.patients.latest')} /> : null}
                 {r.status === 'waiting' ? <Badge tone="warning" label={t('staff.inbox.status.waiting')} /> : null}
+                {r.status === 'accepted' ? <Badge tone="success" label={t('request.status.accepted')} /> : null}
+                {r.status === 'completed' ? <Badge tone="neutral" icon="location" label={t('doctor.patients.arrived')} /> : null}
               </View>
               {/* Patient text is data, shown as plain text and never interpreted. */}
               <Text numberOfLines={1} style={[styles.body, { color: theme.text }]}>{r.patient.description}</Text>

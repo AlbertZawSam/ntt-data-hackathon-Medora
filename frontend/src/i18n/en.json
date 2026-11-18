@@ -566,6 +566,7 @@
   "doctor.patients.title": "Patients",
   "doctor.patients.empty": "No patients yet. Requests that reach your hospital appear here.",
   "doctor.patients.unnamed": "Patient",
+  "doctor.patients.arrived": "At your hospital",
   "doctor.patients.refer": "Refer",
   "doctor.referPanel.title": "Refer {{name}}",
   "doctor.referPanel.choose": "Nearest hospitals",

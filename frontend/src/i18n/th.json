@@ -566,6 +566,7 @@
   "doctor.patients.title": "ผู้ป่วย",
   "doctor.patients.empty": "ยังไม่มีผู้ป่วย คำขอที่ส่งถึงโรงพยาบาลของคุณจะแสดงที่นี่",
   "doctor.patients.unnamed": "ผู้ป่วย",
+  "doctor.patients.arrived": "อยู่ที่โรงพยาบาลแล้ว",
   "doctor.patients.refer": "ส่งต่อ",
   "doctor.referPanel.title": "ส่งต่อ {{name}}",
   "doctor.referPanel.choose": "โรงพยาบาลใกล้สุด",
