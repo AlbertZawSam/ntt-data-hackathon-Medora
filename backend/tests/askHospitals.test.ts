@@ -426,3 +426,35 @@ describe('demo replies never answer for hospitals with real staff accounts', () 
     }
   });
 });
+
+describe('demo replies in a short wait', () => {
+  it("still answer when the window is tight and the wait is only 8 seconds (Sathorn's heart-attack reply)", async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(NOW);
+    try {
+      const { store } = makeStore(null);
+      store.demoHospitalKey = (id) => id;
+      const updated: Array<{ id: string; status?: string; note?: string }> = [];
+      store.updateRequest = async (id, changes) => {
+        updated.push({ id, status: changes.status, note: changes.note });
+      };
+      const created: CareRequest[] = [];
+      const create = store.createRequest;
+      store.createRequest = async (request) => {
+        const row = await create(request);
+        created.push(row);
+        return row;
+      };
+      const tools = new ReferralTools({ id: 'ref1', ownerId: 'd1', fromHospitalId: 'sukhumvit', text: 'case', lang: 'en', onsetMin: 40, requestIds: [], startedAtMs: Date.now() }, store);
+      const assessed = (await tools.execute('assess_case', { pathway: 'stemi' })) as { hospitals: Array<{ hospital_id: string; can_help: boolean }> };
+      expect(assessed.hospitals.filter((h) => h.can_help).map((h) => h.hospital_id)).toContain('sathorn');
+      const asking = tools.execute('ask_hospitals', { hospital_ids: ['sathorn'], wait_seconds: 8 });
+      await jest.advanceTimersByTimeAsync(9_000);
+      await asking;
+      const sathorn = created.find((r) => r.hospitalId === 'sathorn')!;
+      expect(updated.find((u) => u.id === sathorn.id)).toMatchObject({ status: 'accepted', note: expect.stringContaining('20 minutes') });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+});

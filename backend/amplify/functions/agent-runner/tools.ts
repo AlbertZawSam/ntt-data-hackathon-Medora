@@ -413,11 +413,13 @@ export class ReferralTools {
   private async waitForReplies(ids: string[], waitSeconds: number): Promise<void> {
     const started = this.store.now();
     const deadline = started + waitSeconds * 1_000;
+    // Demo replies land inside the wait even when it is short (8 s when the window is tight), one poll before the end.
+    const demoAfterMs = Math.max(0, Math.min(DEMO_REPLY_AFTER_SEC * 1_000, waitSeconds * 1_000 - POLL_MS));
     let demoDone = false;
     for (;;) {
       const pending = (await this.store.requests(this.referral.id)).filter((request) => ids.includes(request.hospitalId) && request.status === 'waiting');
       if (pending.length === 0 || this.store.now() >= deadline) return;
-      if (!demoDone && this.store.now() - started >= DEMO_REPLY_AFTER_SEC * 1_000) {
+      if (!demoDone && this.store.now() - started >= demoAfterMs) {
         demoDone = true;
         await this.demoReplies(pending);
         continue;
