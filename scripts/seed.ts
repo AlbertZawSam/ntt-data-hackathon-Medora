@@ -7,20 +7,22 @@
  *
  * Reads the API from frontend/amplify_outputs.json, so it writes only to the sandbox you deployed.
  * Writes three tables per hospital (HospitalProfile, HospitalStatus, PublicDirectory) and a few made-up
- * specialists with clinic slots for the next three days. Synthetic data only.
- * Cost: about 33 DynamoDB writes per run, well under one US cent.
+ * specialists with weekly clinic hours (open slots for the next seven days). Synthetic data only.
+ * Cost: about 110 DynamoDB writes and deletes and one small scan per run, well under one US cent.
  */
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { AppSyncClient, paginateListGraphqlApis } from '@aws-sdk/client-appsync';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { DeleteCommand, DynamoDBDocumentClient, PutCommand, paginateScan } from '@aws-sdk/lib-dynamodb';
 import { DEMO_HOSPITALS, demoStatus } from '@medora/shared/logic/demoHospitals';
 import { demoSpecialists } from '@medora/shared/logic/demoSpecialists';
 import { publicEntry } from '@medora/shared/logic/publicDirectory';
 import { seedHospitalId, seedSpecialistId } from './seed-id';
 
 const REGION = 'us-east-1';
+/** The demo hospitals used until 18 Nov 2026, replaced by the team's new data set; seeding removes their rows. */
+const RETIRED_KEYS = ['rama9', 'siam', 'chaophraya', 'thonburi', 'ladprao', 'victory', 'bangna', 'chatuchak'];
 
 async function findApiId(url: string): Promise<string> {
   const appsync = new AppSyncClient({ region: REGION });
@@ -74,7 +76,19 @@ async function main(): Promise<void> {
   for (const { hospitalKey, input } of specialists) {
     await put('Specialist', { id: seedSpecialistId(hospitalKey, input.name), hospitalId: seedHospitalId(hospitalKey), ...input });
   }
-  console.log(`\n${specialists.length} specialists with clinic slots for the next three days.`);
+  // Earlier demo hospitals: only ids made from their seed keys, never a hospital registered in the app.
+  const retired = new Set(RETIRED_KEYS.filter((key) => !DEMO_HOSPITALS.some((h) => h.key === key)).map(seedHospitalId));
+  for (const id of retired) for (const model of ['HospitalProfile', 'HospitalStatus', 'PublicDirectory']) await db.send(new DeleteCommand({ TableName: table(model), Key: { id } }));
+  let removed = 0;
+  for await (const page of paginateScan({ client: db }, { TableName: table('Specialist'), ProjectionExpression: 'id, hospitalId' })) {
+    for (const row of page.Items ?? []) {
+      if (!retired.has(String(row.hospitalId))) continue;
+      await db.send(new DeleteCommand({ TableName: table('Specialist'), Key: { id: row.id } }));
+      removed += 1;
+    }
+  }
+  console.log(`\nRemoved ${retired.size} earlier demo hospitals and their ${removed} specialists (if they were there).`);
+  console.log(`\n${specialists.length} specialists with weekly clinic hours (open slots for the next seven days).`);
   console.log('\nDone. Run it again any time to reset these hospitals to their starting status.');
   console.log('Test accounts with a login page: npm run test-logins -- <hospital id above>');
 }

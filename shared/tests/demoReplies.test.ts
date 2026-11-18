@@ -3,30 +3,29 @@ import { demoReply, hasDepartmentStaff } from '../logic/demoReplies';
 import { statedDelayMin } from '../logic/referral';
 
 describe('demoReply', () => {
-  it("gives Rama Nine's stroke reply a delay the agent can read", () => {
-    const reply = demoReply('rama9', 'stroke');
+  it("gives Sathorn's heart-attack reply a delay the agent can read", () => {
+    const reply = demoReply('sathorn', 'stemi');
     expect(reply.status).toBe('accepted');
-    expect(statedDelayMin(reply.note)).toBe(40);
+    expect(statedDelayMin(reply.note)).toBe(20);
   });
 
   it('accepts by default and uses per-hospital presets', () => {
-    expect(demoReply('rama9', 'stemi')).toEqual({ status: 'accepted' });
-    expect(demoReply('chatuchak', 'general')).toEqual({ status: 'declined', reason: 'busy' });
+    expect(demoReply('ratchada', 'stroke')).toEqual({ status: 'accepted' });
+    expect(demoReply('thonglo', 'peds')).toEqual({ status: 'declined', reason: 'nobed' });
+    expect(demoReply('nonthaburi', 'general')).toEqual({ status: 'declined', reason: 'busy' });
     expect(demoReply('unknown', 'stroke')).toEqual({ status: 'accepted' });
   });
 
   it('only names demo hospitals that exist', () => {
     const keys = new Set(DEMO_HOSPITALS.map((hospital) => hospital.key));
-    for (const key of ['rama9', 'chatuchak', 'thonburi']) expect(keys.has(key)).toBe(true);
+    for (const key of ['sathorn', 'thonglo', 'nonthaburi']) expect(keys.has(key)).toBe(true);
   });
 });
 
 describe('hasDepartmentStaff', () => {
   it('is true only for the three department demo hospitals', () => {
-    expect(hasDepartmentStaff('siam')).toBe(true);
-    expect(hasDepartmentStaff('rama9')).toBe(true);
-    expect(hasDepartmentStaff('chaophraya')).toBe(true);
-    expect(hasDepartmentStaff('ladprao')).toBe(false);
+    expect(DEMO_HOSPITALS.filter((h) => hasDepartmentStaff(h.key)).map((h) => h.key)).toEqual(['krungthep', 'sukhumvit', 'minburi']);
+    expect(hasDepartmentStaff('sathorn')).toBe(false);
     expect(hasDepartmentStaff('unknown')).toBe(false);
   });
 });

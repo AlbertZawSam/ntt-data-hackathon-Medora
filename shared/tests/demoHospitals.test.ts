@@ -31,11 +31,16 @@ describe('demo hospitals', () => {
   });
 
   it('show the behaviours the demo relies on', () => {
-    // Siam is nearest to the default location but is skipped for a child.
-    expect(skippedCloser(rankPublic(entries, 'child', siam, NOW_MS)).map((r) => r.entry.hospitalId)).toContain('siam');
-    expect(rankPublic(entries, 'injury', siam, NOW_MS).find((r) => r.entry.hospitalId === 'thonburi')?.stale).toBe(true);
-    expect(entries.find((e) => e.hospitalId === 'victory')?.needs.child.label).toBe('limited');
-    expect(entries.find((e) => e.hospitalId === 'chatuchak')?.needs.general.label).toBe('limited');
-    expect(nearestOpenEd(entries, { lat: 13.6682, lng: 100.6047 }, NOW_MS)?.entry.hospitalId).not.toBe('bangna');
+    // Sathorn (heart only) is nearest to the default location but is skipped for a child or a pregnancy.
+    expect(skippedCloser(rankPublic(entries, 'child', siam, NOW_MS)).map((r) => r.entry.hospitalId)).toEqual(['sathorn']);
+    expect(skippedCloser(rankPublic(entries, 'maternity', siam, NOW_MS)).map((r) => r.entry.hospitalId)).toEqual(['sathorn']);
+    // Nonthaburi's status is 48 minutes old, so it shows as possibly outdated.
+    expect(rankPublic(entries, 'injury', siam, NOW_MS).find((r) => r.entry.hospitalId === 'nonthaburi')?.stale).toBe(true);
+    // Its children's ward is diverting; Bang Khae has no emergency department.
+    expect(entries.find((e) => e.hospitalId === 'nonthaburi')?.needs.child.label).toBe('unavailable');
+    expect(entries.find((e) => e.hospitalId === 'bangkhae')?.needs.general.label).toBe('unavailable');
+    expect(entries.find((e) => e.hospitalId === 'bangkhae')?.needs.maternity.label).toBe('available');
+    // Bang Khae is the nearest hospital to Bang Khae, but never the nearest open emergency department.
+    expect(nearestOpenEd(entries, { lat: 13.712, lng: 100.404 }, NOW_MS)?.entry.hospitalId).not.toBe('bangkhae');
   });
 });

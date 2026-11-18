@@ -24,7 +24,7 @@ const EQUIPMENT: Record<string, Bi> = {
 };
 
 export interface KbDocument {
-  /** Path under `shared/data/kb/`, for example `rama9/neuro.md`. */
+  /** Path under `shared/data/kb/`, for example `ratchada/neuro.md`. */
   path: string;
   text: string;
   /** Bedrock metadata sidecar (`<path>.metadata.json`): lets retrieval return the hospital and department. */

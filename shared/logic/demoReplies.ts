@@ -20,9 +20,9 @@ export interface DemoReply {
 
 /** Preset replies by demo hospital key (`data/hospitals.json`) and pathway; `*` is any pathway. */
 const PRESETS: Record<string, Partial<Record<PathwayKey | '*', DemoReply>>> = {
-  rama9: { stroke: { status: 'accepted', note: 'Neurologist in surgery, free in about 40 minutes' } },
-  chatuchak: { '*': { status: 'declined', reason: 'busy' } },
-  thonburi: { '*': { status: 'declined', reason: 'nobed' } },
+  sathorn: { stemi: { status: 'accepted', note: 'Cath lab busy with a case, free in about 20 minutes' } },
+  thonglo: { '*': { status: 'declined', reason: 'nobed' } },
+  nonthaburi: { '*': { status: 'declined', reason: 'busy' } },
 };
 
 /** The preset reply for a demo hospital; demo hospitals with no preset accept with no note. */

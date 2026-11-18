@@ -16,6 +16,12 @@
     { "key": "donmueang", "name": { "en": "Don Mueang", "th": "ดอนเมือง" }, "lat": 13.9126, "lng": 100.6067 },
     { "key": "banglamphu", "name": { "en": "Banglamphu / Khao San", "th": "บางลำพู / ข้าวสาร" }, "lat": 13.7589, "lng": 100.4974 },
     { "key": "thonburi", "name": { "en": "Thonburi (Wongwian Yai)", "th": "ธนบุรี (วงเวียนใหญ่)" }, "lat": 13.7211, "lng": 100.493 },
-    { "key": "bangna", "name": { "en": "Bang Na", "th": "บางนา" }, "lat": 13.6682, "lng": 100.6047 }
+    { "key": "bangna", "name": { "en": "Bang Na", "th": "บางนา" }, "lat": 13.6682, "lng": 100.6047 },
+    { "key": "sathorn", "name": { "en": "Sathorn", "th": "สาทร" }, "lat": 13.7215, "lng": 100.529 },
+    { "key": "thonglo", "name": { "en": "Thong Lo", "th": "ทองหล่อ" }, "lat": 13.732, "lng": 100.581 },
+    { "key": "bangkapi", "name": { "en": "Bang Kapi", "th": "บางกะปิ" }, "lat": 13.7655, "lng": 100.644 },
+    { "key": "minburi", "name": { "en": "Min Buri", "th": "มีนบุรี" }, "lat": 13.8135, "lng": 100.733 },
+    { "key": "bangkhae", "name": { "en": "Bang Khae", "th": "บางแค" }, "lat": 13.711, "lng": 100.408 },
+    { "key": "nonthaburi", "name": { "en": "Nonthaburi", "th": "นนทบุรี" }, "lat": 13.86, "lng": 100.518 }
   ]
 }

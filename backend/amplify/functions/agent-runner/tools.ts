@@ -431,7 +431,7 @@ export class ReferralTools {
     let replied = 0;
     for (const request of pending) {
       const key = this.store.demoHospitalKey(request.hospitalId);
-      // Hospitals with real staff accounts (Siam Central, Rama Nine, Chao Phraya) never get an automatic demo
+      // Hospitals with real staff accounts (Krungthep Central, Sukhumvit International, Min Buri) never get an automatic demo
       // reply: every referral there waits for a person to accept or decline it.
       if (!key || hasDepartmentStaff(key)) continue;
       const reply = demoReply(key, this.state.assessment.pathway);

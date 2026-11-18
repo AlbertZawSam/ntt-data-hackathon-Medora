@@ -37,7 +37,7 @@ const departmentsOnly = args.includes('--departments');
 if (!departmentsOnly && (!hospitalId || !/^H-[0-9a-f]{16}$/.test(hospitalId))) {
   console.error('Usage: npm run test-logins -- <hospitalId> [--profile <aws-profile>]');
   console.error('   or: npm run test-logins -- --departments   (department staff of the two demo hospitals)');
-  console.error('Hospital ids are printed by `npm run seed` (for example Siam Central: H-a154080ed58d7b39).');
+  console.error('Hospital ids are printed by `npm run seed` (for example Krungthep Central: H-8f54c2ee7fb7348e).');
   process.exit(1);
 }
 
@@ -82,9 +82,9 @@ ACCOUNTS = ACCOUNTS.map((a) => ({ ...a, hospitalId, section: '' }));
 
 const DEPARTMENT_NAMES = { cardiology: 'Cardiology', surgery: 'Surgery', obstetrics: 'Obstetrics' };
 if (departmentsOnly) {
-  // One account per department, readable emails: cardiology.rama9@medora.demo and so on.
+  // One account per department, readable emails: cardiology.krungthep@medora.demo and so on.
   ACCOUNTS = DEMO.filter((h) => DEPARTMENTS.every((d) => h.departments.includes(d.dept))).flatMap((h) => [
-    // The hospital's referring doctor: runs the AI referral (for example a heart attack from Chao Phraya to Rama Nine).
+    // The hospital's referring doctor: runs the AI referral (for example a heart attack from Min Buri to Sathorn Heart).
     { email: `doctor.${h.key}@medora.demo`, group: 'doctors', role: 'Doctor: refer patients, accept incoming referrals', hospitalId: seedId(h.key), section: h.name.en },
     // General / emergency requests (no department) go to the emergency unit.
     { email: `general.${h.key}@medora.demo`, group: 'hospital_staff', unit: 'er', role: 'General (emergency): requests without a department', hospitalId: seedId(h.key), section: h.name.en },

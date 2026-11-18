@@ -37,7 +37,7 @@ describe('searchPlaces', () => {
   });
 
   it('lists names that start with the query before names that only contain it', () => {
-    expect(searchPlaces('bang').map((p) => p.key).sort()).toEqual(['banglamphu', 'bangna', 'bangsue']);
+    expect(searchPlaces('bang').map((p) => p.key).sort()).toEqual(['bangkapi', 'bangkhae', 'banglamphu', 'bangna', 'bangsue']);
     const keys = searchPlaces('ra').map((p) => p.key);
     expect(keys[0]).toBe('rama9'); // starts with "ra"
     expect(keys).toContain('ladprao'); // "Lat Phrao" only contains it
