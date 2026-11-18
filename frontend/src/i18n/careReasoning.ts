@@ -70,3 +70,27 @@ export function careReasoning(t: T, lang: Lang, input: CareReasoningInput): Time
   steps.push({ id: 'you', title: t('patient.care.why.youTitle'), detail: t('patient.care.why.youDetail'), state: 'active' });
   return steps;
 }
+
+/** How long each server step is shown before the next one lights up while Find care waits for its answer. */
+export const PROGRESS_STEP_MS = 1_200;
+
+/**
+ * The live view while Find care searches. The emergency check really is done: it runs on the phone before anything
+ * is sent. The server then reads the description, checks hospitals and orders them in one request, so those steps
+ * light up one by one as "in progress" and are never shown as done until the answer arrives.
+ */
+export function careProgress(t: T, elapsedMs: number): TimelineStep[] {
+  const server: Array<{ id: string; title: StringKey; detail: StringKey }> = [
+    { id: 'understood', title: 'patient.care.live.understoodTitle', detail: 'patient.care.live.understoodDetail' },
+    { id: 'checked', title: 'patient.care.live.checkedTitle', detail: 'patient.care.live.checkedDetail' },
+    { id: 'order', title: 'patient.care.live.orderTitle', detail: 'patient.care.live.orderDetail' },
+  ];
+  return [
+    { id: 'safety', title: t('patient.care.why.safetyTitle'), detail: t('patient.care.live.safetyDetail'), state: 'done' },
+    ...server.map((step, i): TimelineStep => ({
+      id: step.id,
+      title: t(step.title),
+      ...(elapsedMs >= i * PROGRESS_STEP_MS ? { detail: t(step.detail), state: 'active' as const } : { state: 'pending' as const }),
+    })),
+  ];
+}

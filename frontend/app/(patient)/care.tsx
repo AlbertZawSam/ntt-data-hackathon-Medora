@@ -9,7 +9,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { ARRIVAL_MODES, MAX_DESCRIPTION, MAX_NAME, NEED_KEYS, type ArrivalMode, type PublicHospital } from '@medora/shared/logic/care';
 import type { Bi, NeedKey } from '@medora/shared/logic/types';
 import { bedsText, bedsTone } from '../../src/i18n/beds';
-import { careReasoning } from '../../src/i18n/careReasoning';
+import { careProgress, careReasoning, PROGRESS_STEP_MS } from '../../src/i18n/careReasoning';
 import { pick, type StringKey } from '../../src/i18n/t';
 import { suggestedDepartment, type Department } from '@medora/shared/logic/departments';
 import { HospitalDetailsView } from '../../src/components/HospitalDetailsView';
@@ -80,6 +80,9 @@ export default function PatientCareScreen(): React.JSX.Element {
   const [summary, setSummary] = React.useState<Bi | undefined>(undefined);
   const [unclear, setUnclear] = React.useState(false);
   const [showAi, setShowAi] = React.useState(false);
+  // While searching: when the request was sent, and a clock that lights up the next step of the live reasoning.
+  const [searchStartMs, setSearchStartMs] = React.useState(0);
+  const [tickMs, setTickMs] = React.useState(0);
   const [hospitals, setHospitals] = React.useState<PublicHospital[]>([]);
   const [selected, setSelected] = React.useState<PublicHospital | null>(null);
   const [detailsFor, setDetailsFor] = React.useState<string | null>(null);
@@ -95,6 +98,11 @@ export default function PatientCareScreen(): React.JSX.Element {
   // Results stay live: free beds change when a ward updates its count or another patient asks for a bed.
   // A refresh sends the care type already found, so it makes no model call; failures keep the last results.
   const searchedAtMs = React.useRef(0);
+  React.useEffect(() => {
+    if (phase !== 'searching') return;
+    const timer = setInterval(() => setTickMs(Date.now()), PROGRESS_STEP_MS / 2);
+    return () => clearInterval(timer);
+  }, [phase]);
   const refresh = React.useRef<() => Promise<void>>(async () => {});
   refresh.current = async () => {
     if (phase !== 'results' || !text.trim()) return;
@@ -151,6 +159,8 @@ export default function PatientCareScreen(): React.JSX.Element {
     const match = checkEmergency(input); // layer 1: on the phone, offline, before anything is sent
     void logEmergencyCheck(session, match);
     if (match) return emergency(match.key);
+    setSearchStartMs(Date.now());
+    setTickMs(Date.now());
     setPhase('searching');
     try {
       const result = await findCare({ description: input.trim(), lat: location.lat, lng: location.lng });
@@ -166,6 +176,8 @@ export default function PatientCareScreen(): React.JSX.Element {
         setPhase('unclear');
         return;
       }
+      // The reasoning opens with the results, so the live steps carry on into the real decisions.
+      setShowAi(true);
       setPhase('results');
       searchedAtMs.current = Date.now();
       remember('care', { text: input.trim(), atMs: Date.now() } satisfies SavedSearch);
@@ -272,7 +284,10 @@ export default function PatientCareScreen(): React.JSX.Element {
         </Reveal>
         {phase === 'searching' ? (
           <View style={styles.stack} accessibilityLiveRegion="polite">
-            <SkeletonCard lines={2} />
+            <Card padding="lg">
+              <SectionHeader title={t('patient.care.live.title')} />
+              <Timeline steps={careProgress(t, tickMs - searchStartMs)} />
+            </Card>
             <SkeletonCard lines={2} />
           </View>
         ) : null}

@@ -51,3 +51,16 @@ describe('Find care AI reasoning', () => {
     expect(steps[4].detail).toContain('คลินิกเร่งด่วนอโศก');
   });
 });
+
+import { careProgress, PROGRESS_STEP_MS } from '../src/i18n/careReasoning';
+
+describe('Find care live reasoning while searching', () => {
+  it('shows the phone emergency check as done and lights up the server steps one by one, never as done', () => {
+    const at = (ms: number) => careProgress(tFor('en'), ms).map((s) => s.state);
+    expect(at(0)).toEqual(['done', 'active', 'pending', 'pending']);
+    expect(at(PROGRESS_STEP_MS)).toEqual(['done', 'active', 'active', 'pending']);
+    expect(at(10 * PROGRESS_STEP_MS)).toEqual(['done', 'active', 'active', 'active']);
+    expect(careProgress(tFor('en'), 0)[0].detail).toContain('on your phone');
+    expect(careProgress(tFor('th'), 0)[1].title).toBe('กำลังอ่านอาการที่คุณเล่า');
+  });
+});
