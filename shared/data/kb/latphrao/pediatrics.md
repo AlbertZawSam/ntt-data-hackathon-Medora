@@ -1,6 +1,6 @@
 # Lat Phrao University Hospital: Pediatrics / โรงพยาบาลมหาวิทยาลัยลาดพร้าว: กุมารเวชศาสตร์
 
-Lat Phrao University Hospital has a pediatrics department registered.
+Department registered at Lat Phrao University Hospital: Pediatrics.
 Equipment on site: CT scanner, MRI scanner, cath lab.
 Care this hospital can support when the department is open and staffed: children's admission.
 Typical emergency department wait: about 60 minutes. Location: 13.8065, 100.576.

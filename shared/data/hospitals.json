@@ -1,5 +1,5 @@
 {
-  "_note": "Synthetic demo hospitals for Medora (team data set, 18 Nov 2026). Fictional Bangkok hospitals and doctors modelled on Thai hospital tiers (the Nan province pair was removed and Khlong San Bone and Trauma added on 18 Nov); not real hospitals, people or availability. Converted from the team's medora-demo-hospitals.json: ready beds are the ward-owned beds, ICU beds the ICU-owned units (ICU, CCU, stroke unit), on-duty roles come from the doctors on duty now, and the typical wait is chosen by hospital type. `updatedMinAgo` is turned into a time when seeding.",
+  "_note": "Synthetic demo hospitals for Medora (team data set, 18 Nov 2026). Fictional Bangkok hospitals and doctors modelled on Thai hospital tiers (the Nan province pair was removed, Khlong San added, and specialty names made general on 18 Nov); not real hospitals, people or availability. Converted from the team's medora-demo-hospitals.json: ready beds are the ward-owned beds, ICU beds the ICU-owned units (ICU, CCU, stroke unit), on-duty roles come from the doctors on duty now, and the typical wait is chosen by hospital type. `updatedMinAgo` is turned into a time when seeding.",
   "hospitals": [
     {
       "key": "pathumwan",
@@ -79,8 +79,8 @@
       "key": "rama9",
       "teamId": "H02",
       "name": {
-        "en": "Rama Nine Neuro and Heart Hospital",
-        "th": "โรงพยาบาลประสาทและหัวใจพระรามเก้า"
+        "en": "Rama Nine City Hospital",
+        "th": "โรงพยาบาลพระรามเก้าซิตี้"
       },
       "area": {
         "en": "Huai Khwang, Bangkok",
@@ -150,8 +150,8 @@
       "key": "chaophraya",
       "teamId": "H03",
       "name": {
-        "en": "Chao Phraya Women's and Children's Hospital",
-        "th": "โรงพยาบาลแม่และเด็กเจ้าพระยา"
+        "en": "Chao Phraya Central Hospital",
+        "th": "โรงพยาบาลเจ้าพระยาเซ็นทรัล"
       },
       "area": {
         "en": "Bang Rak, Bangkok",
@@ -218,7 +218,7 @@
         "*": {
           "status": "declined",
           "reason": "equip",
-          "note": "Women's and children's hospital: no adult general medicine team."
+          "note": "We take pregnancy, newborn and children's cases; no adult general medicine team on duty."
         }
       }
     },
@@ -374,8 +374,8 @@
       "key": "asok",
       "teamId": "H06",
       "name": {
-        "en": "Asok Urgent Care Clinic",
-        "th": "คลินิกเร่งด่วนอโศก"
+        "en": "Asok Medical Clinic",
+        "th": "คลินิกเวชกรรมอโศก"
       },
       "area": {
         "en": "Watthana, Bangkok",
@@ -426,7 +426,7 @@
         "*": {
           "status": "declined",
           "reason": "equip",
-          "note": "Urgent care clinic: no inpatient beds or CT for referrals."
+          "note": "We are a clinic with no CT and only observation beds; we can't take referrals."
         }
       }
     },
@@ -434,8 +434,8 @@
       "key": "bangna",
       "teamId": "H07",
       "name": {
-        "en": "Bang Na Heart and Stroke Institute",
-        "th": "สถาบันหัวใจและหลอดเลือดสมองบางนา"
+        "en": "Bang Na City Hospital",
+        "th": "โรงพยาบาลบางนาซิตี้"
       },
       "area": {
         "en": "Bang Na, Bangkok",
@@ -499,8 +499,8 @@
       "key": "chatuchak",
       "teamId": "H08",
       "name": {
-        "en": "Chatuchak Children's Hospital",
-        "th": "โรงพยาบาลเด็กจตุจักร"
+        "en": "Chatuchak Park Hospital",
+        "th": "โรงพยาบาลจตุจักรพาร์ค"
       },
       "area": {
         "en": "Chatuchak, Bangkok",
@@ -557,7 +557,7 @@
         "*": {
           "status": "declined",
           "reason": "equip",
-          "note": "Children's hospital: we can't admit adult patients."
+          "note": "We treat children only; we can't admit adult patients."
         }
       }
     },
@@ -565,8 +565,8 @@
       "key": "khlongsan",
       "teamId": "H11",
       "name": {
-        "en": "Khlong San Bone and Trauma Hospital",
-        "th": "โรงพยาบาลกระดูกและอุบัติเหตุคลองสาน"
+        "en": "Khlong San City Hospital",
+        "th": "โรงพยาบาลคลองสานซิตี้"
       },
       "area": {
         "en": "Khlong San, Bangkok",
@@ -623,7 +623,7 @@
         "*": {
           "status": "declined",
           "reason": "equip",
-          "note": "Bone and trauma hospital only: no general medicine team for this case."
+          "note": "We treat bone and injury cases only; no general medicine team for this case."
         }
       }
     }

@@ -14,9 +14,9 @@ const hospital = (id: string, en: string, th: string, driveMin: number, label: P
 });
 // As Find care returns them: hospitals that can help first, then the ones that can't.
 const hospitals = [
-  hospital('chaophraya', "Chao Phraya Women's and Children's Hospital", 'โรงพยาบาลแม่และเด็กเจ้าพระยา', 12, 'available'),
+  hospital('chaophraya', "Chao Phraya Central Hospital", 'โรงพยาบาลเจ้าพระยาเซ็นทรัล', 12, 'available'),
   hospital('pathumwan', 'Pathum Wan Medical Center', 'ศูนย์การแพทย์ปทุมวัน', 9, 'limited'),
-  hospital('asok', 'Asok Urgent Care Clinic', 'คลินิกเร่งด่วนอโศก', 5, 'notAvailable'),
+  hospital('asok', 'Asok Medical Clinic', 'คลินิกเวชกรรมอโศก', 5, 'notAvailable'),
 ];
 
 describe('Find care AI reasoning', () => {
@@ -27,10 +27,10 @@ describe('Find care AI reasoning', () => {
     expect(steps[1].detail).toBe('The AI (Amazon Nova) read it as: Child. A child with a high fever.');
     expect(steps[2].title).toBe('Checked 3 hospitals near you');
     expect(steps[2].detail).toContain('2 can help with this now; 1 can');
-    expect(steps[4].title).toBe("Best match: Chao Phraya Women's and Children's Hospital");
+    expect(steps[4].title).toBe("Best match: Chao Phraya Central Hospital");
     // The closer hospital that can't help is named, with no reason beyond "can't take this case right now".
     expect(steps[4].detail).toContain('Closer, but can');
-    expect(steps[4].detail).toContain('Asok Urgent Care Clinic');
+    expect(steps[4].detail).toContain('Asok Medical Clinic');
     expect(steps.at(-1)?.detail).toContain('the hospital decides');
   });
 
@@ -47,8 +47,8 @@ describe('Find care AI reasoning', () => {
   it('reads in Thai with Thai hospital names', () => {
     const steps = careReasoning(tFor('th'), 'th', { need: 'child', aiUsed: true, hospitals });
     expect(steps[2].title).toBe('ตรวจสอบโรงพยาบาลใกล้คุณ 3 แห่ง');
-    expect(steps[4].title).toBe('เหมาะที่สุด: โรงพยาบาลแม่และเด็กเจ้าพระยา');
-    expect(steps[4].detail).toContain('คลินิกเร่งด่วนอโศก');
+    expect(steps[4].title).toBe('เหมาะที่สุด: โรงพยาบาลเจ้าพระยาเซ็นทรัล');
+    expect(steps[4].detail).toContain('คลินิกเวชกรรมอโศก');
   });
 });
 

@@ -31,9 +31,9 @@ describe('demo hospitals', () => {
   });
 
   it('show the behaviours the demo relies on', () => {
-    // Asok Urgent Care is nearest to the default location but has no children's or pregnancy care, so it is skipped.
+    // Asok Medical Clinic is nearest to the default location but has no children's or pregnancy care, so it is skipped.
     expect(skippedCloser(rankPublic(entries, 'child', siam, NOW_MS)).map((r) => r.entry.hospitalId)).toEqual(['asok']);
-    // The Thai child-fever search near Lat Phrao finds Chatuchak Children's first.
+    // The Thai child-fever search near Lat Phrao finds Chatuchak Park first.
     expect(rankPublic(entries, 'child', { lat: 13.816, lng: 100.5614 }, NOW_MS)[0].entry.hospitalId).toBe('chatuchak');
     // Lat Phrao's data is over two hours old; Pathum Wan's is marked unclear, so it shows as limited.
     expect(rankPublic(entries, 'injury', siam, NOW_MS).find((r) => r.entry.hospitalId === 'latphrao')?.stale).toBe(true);

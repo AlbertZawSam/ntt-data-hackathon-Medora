@@ -1,6 +1,6 @@
 # Lat Phrao University Hospital: Emergency department / โรงพยาบาลมหาวิทยาลัยลาดพร้าว: ห้องฉุกเฉิน
 
-Lat Phrao University Hospital has a emergency department department registered.
+Department registered at Lat Phrao University Hospital: Emergency department.
 Equipment on site: CT scanner, MRI scanner, cath lab.
 Care this hospital can support when the department is open and staffed: stroke care, heart attack care, injury care, urgent care.
 Typical emergency department wait: about 60 minutes. Location: 13.8065, 100.576.

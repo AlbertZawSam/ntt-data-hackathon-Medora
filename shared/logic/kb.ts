@@ -55,7 +55,7 @@ export function buildKbDocuments(hospitals: readonly DemoHospital[], idFor: (key
       const text = [
         `# ${hospital.name.en}: ${dept.en} / ${hospital.name.th}: ${dept.th}`,
         '',
-        `${hospital.name.en} has a ${dept.en.toLowerCase()} department registered.`,
+        `Department registered at ${hospital.name.en}: ${dept.en}.`,
         `Equipment on site: ${equipment.length ? list(equipment, 'en') : 'none registered'}.`,
         `Care this hospital can support when the department is open and staffed: ${careEn}.`,
         `Typical emergency department wait: about ${hospital.typicalWaitMin} minutes. Location: ${hospital.lat}, ${hospital.lng}.`,

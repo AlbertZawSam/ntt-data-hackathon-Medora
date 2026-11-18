@@ -1,6 +1,6 @@
 # Pathum Wan Medical Center: Cardiology / ศูนย์การแพทย์ปทุมวัน: อายุรกรรมหัวใจ
 
-Pathum Wan Medical Center has a cardiology department registered.
+Department registered at Pathum Wan Medical Center: Cardiology.
 Equipment on site: CT scanner, MRI scanner, cath lab.
 Care this hospital can support when the department is open and staffed: heart attack care.
 Typical emergency department wait: about 30 minutes. Location: 13.7445, 100.53.

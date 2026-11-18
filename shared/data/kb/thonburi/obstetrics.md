@@ -1,6 +1,6 @@
 # Thonburi Riverside Hospital: Obstetrics / โรงพยาบาลธนบุรีริมน้ำ: สูติกรรม
 
-Thonburi Riverside Hospital has a obstetrics department registered.
+Department registered at Thonburi Riverside Hospital: Obstetrics.
 Equipment on site: CT scanner, MRI scanner.
 Care this hospital can support when the department is open and staffed: preterm birth care, pregnancy care.
 Typical emergency department wait: about 45 minutes. Location: 13.722, 100.485.
