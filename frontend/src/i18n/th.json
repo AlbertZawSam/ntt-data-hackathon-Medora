@@ -672,7 +672,6 @@
   "patient.care.categoryTitle": "เราเข้าใจว่าคุณต้องการ",
   "patient.care.categoryMine": "{{need}}: หมวดที่ตรงกับคุณ",
   "patient.care.categoryOther": "{{need}}: ไม่ใช่ที่คุณค้นหา",
-  "details.otherNeed": "ไม่ใช่ที่คุณค้นหา",
   "details.seeSpecialists": "ดูแพทย์เฉพาะทาง{{specialty}}",
   "details.seeGeneralDoctors": "ดูแพทย์ทั่วไป",
   "patient.specialists.subtitle": "ค้นหาจากอาการ สาขา หรือชื่อแพทย์",

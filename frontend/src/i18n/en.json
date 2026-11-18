@@ -672,7 +672,6 @@
   "patient.care.categoryTitle": "We understood this as",
   "patient.care.categoryMine": "{{need}}: your category",
   "patient.care.categoryOther": "{{need}}: not your search",
-  "details.otherNeed": "not your search",
   "details.seeSpecialists": "See {{specialty}} specialists",
   "details.seeGeneralDoctors": "See general doctors",
   "patient.specialists.subtitle": "Search by problem, specialty or doctor",

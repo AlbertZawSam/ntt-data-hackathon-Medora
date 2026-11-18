@@ -1,7 +1,7 @@
 /**
  * Hospital details a person opens from a Find care result to decide where to go, built to scan in a
- * glance: two status tiles (beds, emergency department), care chips with the person's own category lit in
- * its availability colour and the others greyed out, only the equipment that category needs, specialties on
+ * glance: two status tiles (beds, emergency department), care chips showing what this hospital can do for each
+ * category, with the person's own category active and the others stepped back, only the equipment that category needs, specialties on
  * duty as pills, one action to the matching specialists, and one line on wait and freshness. Symbols as well
  * as colour, so it reads without colour too. Free beds as the exact count and equipment as working or down
  * (AGENTS.md rule 6); never staff names. Without a `need` (a doctor's view) every category and item shows.
@@ -57,27 +57,16 @@ export function HospitalDetailsView({ details, nowMs, need, showBooking = true }
         {NEED_KEYS.map((key) => {
           const level = careLevel(details.care[key]);
           const name = t(`details.needShort.${key}` as StringKey);
-          // The other categories step back (grey, no availability colour, no symbol) so the eye lands on the person's own.
-          if (need && key !== need) {
-            return (
-              <View
-                key={key}
-                accessible
-                accessibilityLabel={`${name}: ${t('details.otherNeed')}`}
-                accessibilityState={{ disabled: true }}
-                style={[styles.chip, styles.chipOff, { backgroundColor: theme.surfaceAlt, borderColor: 'transparent' }]}
-              >
-                <Text style={[styles.chipText, { color: theme.textMuted }]}>{name}</Text>
-              </View>
-            );
-          }
           const mine = key === need;
+          // Every category shows what this hospital can do for it, so hospitals differ at a glance; only the person's own
+          // category is active (border, full colour, "your need"), the others step back but keep their symbol.
+          const other = Boolean(need) && !mine;
           return (
             <View
               key={key}
               accessible
               accessibilityLabel={`${name}: ${t(`label.${details.care[key]}` as StringKey)}${mine ? `, ${t('details.yourNeed')}` : ''}`}
-              style={[styles.chip, { backgroundColor: tint(level), borderColor: mine ? color[level] : 'transparent' }]}
+              style={[styles.chip, other && styles.chipOff, { backgroundColor: tint(level), borderColor: mine ? color[level] : 'transparent' }]}
             >
               <Text style={[styles.chipText, { color: color[level] }]}>
                 {SYMBOL[level]} {name}
