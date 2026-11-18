@@ -4,10 +4,19 @@
  * Requirements: 17.1 (task 5.3)
  */
 import data from '../data/hospitals.json';
-import type { Bi, HospitalStatus } from './types';
+import type { Bi, HospitalStatus, PathwayKey } from './types';
+
+/** A preset answer to a doctor's referral (task 21): a decline reason code, or a short staff note with any delay. */
+export interface DemoReply {
+  status: 'accepted' | 'declined';
+  reason?: string;
+  note?: string;
+}
 
 export interface DemoHospital {
   key: string;
+  /** The team data set's id (H01 to H10), used by the demo account list. */
+  teamId?: string;
   name: Bi;
   lat: number;
   lng: number;
@@ -16,8 +25,13 @@ export interface DemoHospital {
   typicalWaitMin: number;
   departments: string[];
   equipment: string[];
+  /** District and hospital type, for the scenario notes. */
+  area?: Bi;
+  type?: string;
   /** What this hospital shows in the demo. */
   demo: string;
+  /** Preset replies to doctor referrals by pathway; `*` is any pathway. */
+  demoReply?: Partial<Record<PathwayKey | '*', DemoReply>>;
   status: Omit<HospitalStatus, 'updatedAt'> & { updatedMinAgo: number };
 }
 

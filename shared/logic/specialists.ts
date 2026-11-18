@@ -4,7 +4,7 @@
  * shown before a search. Pure TypeScript, used by the `specialist-actions` Lambda and the apps.
  * Requirements: 8.1 to 8.6, 11.1, 18.6
  */
-import { haversineKm, type LatLng } from './ranking';
+import { haversineKm, PATIENT_RADIUS_KM, type LatLng } from './ranking';
 import type { Bi } from './types';
 
 export const SPECIALTIES = ['cardiology', 'neurology', 'obstetrics', 'pediatrics', 'orthopedics', 'general'] as const;
@@ -95,7 +95,7 @@ export interface SpecialistFilter {
 }
 
 /**
- * The patient's list: only specialists with an open slot, filtered by specialty and language, nearest
+ * The patient's list: only specialists with an open slot within the service area, filtered by specialty and language, nearest
  * hospital first, then the soonest slot. Booked slots and unshared names never leave the server.
  */
 export function listSpecialists(
@@ -111,6 +111,7 @@ export function listSpecialists(
     if (!h) continue;
     if (filter.specialty && r.specialty !== filter.specialty) continue;
     if (filter.language && !r.languages.includes(filter.language)) continue;
+    if (haversineKm(origin, h) > PATIENT_RADIUS_KM) continue;
     const slots = openSlots(r.slots, nowMs);
     if (slots.length === 0) continue;
     out.push({

@@ -9,7 +9,7 @@ import { NEED_KEYS, MAX_DESCRIPTION, toPublicHospital, targetForNeed } from '@me
 import { hospitalDetails } from '@medora/shared/logic/hospitalDetails';
 import type { SpecialistRecord } from '@medora/shared/logic/specialists';
 import { isInBangkok } from '@medora/shared/logic/places';
-import { classifyNeed, evaluate } from '@medora/shared/logic/ranking';
+import { classifyNeed, evaluate, haversineKm, PATIENT_RADIUS_KM } from '@medora/shared/logic/ranking';
 import { activeHolds, withHolds, type Reservation } from '@medora/shared/logic/reservations';
 import { looksLikeInjection, looksLikeNonsense } from '@medora/shared/logic/understand';
 import { redFlag } from '@medora/shared/logic/redFlags';
@@ -118,6 +118,8 @@ export const handler = async (event: AppSyncResolverEvent<Args>): Promise<string
   const statusById = new Map(statuses.data.map((s) => [s.hospitalId, parse<HospitalStatus>(s.status)]));
   const hospitals: RankableHospital[] = profiles.data.flatMap((p) => {
     const status = statusById.get(p.hospitalId);
+    // Only hospitals in the patient's service area (a provincial hospital hundreds of kilometres away is not care nearby).
+    if (haversineKm({ lat, lng }, p) > PATIENT_RADIUS_KM) return [];
     // Held beds count as not free, so the public never sees a hospital as open when its beds are promised.
     return status ? [{ id: p.hospitalId, name: parse<Bi>(p.name), lat: p.lat, lng: p.lng, typicalWaitMin: p.typicalWaitMin, status: withHolds(status, activeHolds(reservations.data, p.hospitalId, Date.now())) }] : [];
   });

@@ -1,42 +1,579 @@
 {
-  "_note": "Synthetic demo hospitals for Medora (team data set, 18 Nov 2026). Names, locations, capacity and doctors are made up for the NTT DATA Digital Innovation Challenge 2026 and do not describe any real hospital. Each status is chosen to show one behaviour in the demo; `updatedMinAgo` is turned into a time when seeding.",
+  "_note": "Synthetic demo hospitals for Medora (team data set, 18 Nov 2026). Fictional hospitals and doctors modelled on Thai hospital tiers; not real hospitals, people or availability. Converted from the team's medora-demo-hospitals.json: ready beds are the ward-owned beds, ICU beds the ICU-owned units (ICU, CCU, stroke unit), on-duty roles come from the doctors on duty now, and the typical wait is chosen by hospital type. `updatedMinAgo` is turned into a time when seeding.",
   "hospitals": [
     {
-      "key": "krungthep",
+      "key": "pathumwan",
+      "teamId": "H01",
       "name": {
-        "en": "Krungthep Central Medical Centre",
-        "th": "ศูนย์การแพทย์กรุงเทพกลาง"
+        "en": "Pathum Wan Medical Center",
+        "th": "ศูนย์การแพทย์ปทุมวัน"
       },
-      "lat": 13.77,
-      "lng": 100.542,
-      "totalBeds": 450,
+      "area": {
+        "en": "Pathum Wan, Bangkok",
+        "th": "ปทุมวัน กรุงเทพฯ"
+      },
+      "type": "Private hospital, tertiary",
+      "lat": 13.7445,
+      "lng": 100.53,
+      "totalBeds": 346,
       "nicuTotal": 8,
-      "typicalWaitMin": 45,
+      "typicalWaitMin": 30,
       "departments": [
         "ed",
-        "neuro",
         "cardio",
-        "pediatrics",
         "ortho",
-        "obstetrics"
+        "obstetrics",
+        "pediatrics"
       ],
       "equipment": [
         "ct",
         "mri",
         "cathlab"
       ],
-      "demo": "Tertiary referral hospital with every department, CT, MRI and cath lab, and the longest typical wait. Has real staff accounts (doctor, General, admin, Cardiology, Surgery, Obstetrics), so referrals and department requests wait for a person to accept.",
+      "demo": "Large private hospital; data marked unclear, so it ranks lower with a 'call ahead' label.",
       "status": {
-        "beds": 18,
-        "icu": 3,
+        "beds": 31,
+        "icu": 5,
+        "nicu": 2,
+        "depts": {
+          "ed": "open",
+          "cardio": "open",
+          "ortho": "open",
+          "obstetrics": "open",
+          "pediatrics": "open"
+        },
+        "equip": {
+          "ct": true,
+          "mri": true,
+          "cathlab": true,
+          "lab": true,
+          "ecg": true,
+          "echo": true,
+          "xray": true,
+          "theatre": true,
+          "ultrasound": true
+        },
+        "oncall": {
+          "er": true,
+          "cardiologist": true,
+          "orthopedist": true,
+          "obstetrician": true,
+          "pediatrician": true
+        },
+        "rules": {
+          "minBeds": 2,
+          "visit": true,
+          "stroke": false,
+          "stemi": false,
+          "preterm": false,
+          "peds": true
+        },
+        "conflict": true,
+        "updatedMinAgo": 8,
+        "notes": {
+          "conflict": "Two staff updates disagree on ICU beds"
+        }
+      }
+    },
+    {
+      "key": "rama9",
+      "teamId": "H02",
+      "name": {
+        "en": "Rama Nine Neuro and Heart Hospital",
+        "th": "โรงพยาบาลประสาทและหัวใจพระรามเก้า"
+      },
+      "area": {
+        "en": "Huai Khwang, Bangkok",
+        "th": "ห้วยขวาง กรุงเทพฯ"
+      },
+      "type": "Private specialty hospital (neuro and heart)",
+      "lat": 13.757,
+      "lng": 100.566,
+      "totalBeds": 150,
+      "nicuTotal": 0,
+      "typicalWaitMin": 20,
+      "departments": [
+        "ed",
+        "neuro",
+        "cardio"
+      ],
+      "equipment": [
+        "ct",
+        "mri",
+        "cathlab"
+      ],
+      "demo": "Closer for the stroke referral; accepts with a 40-minute neurologist delay. The radiology technologist can set a CT to down.",
+      "status": {
+        "beds": 9,
+        "icu": 4,
+        "nicu": 0,
+        "depts": {
+          "ed": "open",
+          "neuro": "open",
+          "cardio": "open"
+        },
+        "equip": {
+          "ct": true,
+          "mri": true,
+          "cathlab": true,
+          "lab": true,
+          "ecg": true,
+          "echo": true,
+          "xray": true,
+          "theatre": true,
+          "ultrasound": true
+        },
+        "oncall": {
+          "er": true,
+          "neurologist": true,
+          "cardiologist": true
+        },
+        "rules": {
+          "minBeds": 2,
+          "visit": true,
+          "stroke": false,
+          "stemi": false,
+          "preterm": false,
+          "peds": false
+        },
+        "conflict": false,
+        "updatedMinAgo": 5
+      },
+      "demoReply": {
+        "stroke": {
+          "status": "accepted",
+          "note": "Can accept, but our neurologist is in surgery and free in about 40 minutes."
+        }
+      }
+    },
+    {
+      "key": "chaophraya",
+      "teamId": "H03",
+      "name": {
+        "en": "Chao Phraya Women's and Children's Hospital",
+        "th": "โรงพยาบาลแม่และเด็กเจ้าพระยา"
+      },
+      "area": {
+        "en": "Bang Rak, Bangkok",
+        "th": "บางรัก กรุงเทพฯ"
+      },
+      "type": "Private women's and children's hospital",
+      "lat": 13.7385,
+      "lng": 100.506,
+      "totalBeds": 124,
+      "nicuTotal": 12,
+      "typicalWaitMin": 25,
+      "departments": [
+        "ed",
+        "obstetrics",
+        "pediatrics"
+      ],
+      "equipment": [
+        "ct"
+      ],
+      "demo": "Pregnancy and preterm cases: obstetrics open, NICU cots free, accepts automatically.",
+      "status": {
+        "beds": 15,
+        "icu": 1,
         "nicu": 3,
+        "depts": {
+          "ed": "open",
+          "obstetrics": "open",
+          "pediatrics": "open"
+        },
+        "equip": {
+          "ct": true,
+          "lab": true,
+          "ecg": true,
+          "xray": true,
+          "theatre": true,
+          "ultrasound": true,
+          "delivery": true
+        },
+        "oncall": {
+          "er": true,
+          "obstetrician": true,
+          "pediatrician": true
+        },
+        "rules": {
+          "minBeds": 1,
+          "visit": true,
+          "stroke": false,
+          "stemi": false,
+          "preterm": true,
+          "peds": true
+        },
+        "conflict": false,
+        "updatedMinAgo": 6
+      }
+    },
+    {
+      "key": "thonburi",
+      "teamId": "H04",
+      "name": {
+        "en": "Thonburi Riverside Hospital",
+        "th": "โรงพยาบาลธนบุรีริมน้ำ"
+      },
+      "area": {
+        "en": "Thon Buri, Bangkok",
+        "th": "ธนบุรี กรุงเทพฯ"
+      },
+      "type": "Public general hospital",
+      "lat": 13.722,
+      "lng": 100.485,
+      "totalBeds": 421,
+      "nicuTotal": 8,
+      "typicalWaitMin": 45,
+      "departments": [
+        "ed",
+        "ortho",
+        "obstetrics",
+        "pediatrics"
+      ],
+      "equipment": [
+        "ct",
+        "mri"
+      ],
+      "demo": "The referring hospital in Bangkok: no neurologist or stroke unit, so the demo doctor refers the stroke patient out.",
+      "status": {
+        "beds": 34,
+        "icu": 2,
+        "nicu": 1,
+        "depts": {
+          "ed": "open",
+          "ortho": "open",
+          "obstetrics": "open",
+          "pediatrics": "open"
+        },
+        "equip": {
+          "ct": true,
+          "mri": true,
+          "lab": true,
+          "ecg": true,
+          "xray": true,
+          "theatre": true,
+          "ultrasound": true,
+          "delivery": true
+        },
+        "oncall": {
+          "er": true,
+          "orthopedist": true,
+          "obstetrician": true,
+          "pediatrician": true
+        },
+        "rules": {
+          "minBeds": 2,
+          "visit": true,
+          "stroke": false,
+          "stemi": false,
+          "preterm": false,
+          "peds": false
+        },
+        "conflict": false,
+        "updatedMinAgo": 20
+      }
+    },
+    {
+      "key": "latphrao",
+      "teamId": "H05",
+      "name": {
+        "en": "Lat Phrao University Hospital",
+        "th": "โรงพยาบาลมหาวิทยาลัยลาดพร้าว"
+      },
+      "area": {
+        "en": "Lat Phrao, Bangkok",
+        "th": "ลาดพร้าว กรุงเทพฯ"
+      },
+      "type": "University teaching hospital",
+      "lat": 13.8065,
+      "lng": 100.576,
+      "totalBeds": 1064,
+      "nicuTotal": 30,
+      "typicalWaitMin": 60,
+      "departments": [
+        "ed",
+        "cardio",
+        "neuro",
+        "ortho",
+        "obstetrics",
+        "pediatrics"
+      ],
+      "equipment": [
+        "ct",
+        "mri",
+        "cathlab"
+      ],
+      "demo": "Largest hospital, but neurology diverting, stroke unit full and data over 2 hours old: skipped for stroke, labelled 'may be outdated'.",
+      "status": {
+        "beds": 28,
+        "icu": 4,
+        "nicu": 2,
+        "depts": {
+          "ed": "open",
+          "cardio": "open",
+          "neuro": "diverting",
+          "ortho": "open",
+          "obstetrics": "open",
+          "pediatrics": "open"
+        },
+        "equip": {
+          "ct": true,
+          "mri": true,
+          "cathlab": true,
+          "lab": true,
+          "ecg": true,
+          "echo": true,
+          "xray": true,
+          "theatre": true,
+          "ultrasound": true,
+          "delivery": true
+        },
+        "oncall": {
+          "er": true,
+          "cardiologist": true,
+          "neurologist": true,
+          "orthopedist": true,
+          "obstetrician": true,
+          "pediatrician": true
+        },
+        "rules": {
+          "minBeds": 3,
+          "visit": false,
+          "stroke": false,
+          "stemi": false,
+          "preterm": false,
+          "peds": false
+        },
+        "conflict": false,
+        "updatedMinAgo": 130
+      },
+      "demoReply": {
+        "*": {
+          "status": "declined",
+          "reason": "divert",
+          "note": "Neurology is diverting new admissions until tonight; stroke unit full."
+        }
+      }
+    },
+    {
+      "key": "asok",
+      "teamId": "H06",
+      "name": {
+        "en": "Asok Urgent Care Clinic",
+        "th": "คลินิกเร่งด่วนอโศก"
+      },
+      "area": {
+        "en": "Watthana, Bangkok",
+        "th": "วัฒนา กรุงเทพฯ"
+      },
+      "type": "Private urgent care and polyclinic",
+      "lat": 13.7385,
+      "lng": 100.562,
+      "totalBeds": 6,
+      "nicuTotal": 0,
+      "typicalWaitMin": 10,
+      "departments": [
+        "ed",
+        "ortho"
+      ],
+      "equipment": [],
+      "demo": "Good for minor injuries; no CT or inpatient beds, so never suggested for stroke or serious cases.",
+      "status": {
+        "beds": 0,
+        "icu": 0,
+        "nicu": 0,
+        "depts": {
+          "ed": "open",
+          "ortho": "open"
+        },
+        "equip": {
+          "lab": true,
+          "ecg": true,
+          "xray": true,
+          "ultrasound": true
+        },
+        "oncall": {
+          "er": true,
+          "orthopedist": false
+        },
+        "rules": {
+          "minBeds": 1,
+          "visit": true,
+          "stroke": false,
+          "stemi": false,
+          "preterm": false,
+          "peds": false
+        },
+        "conflict": false,
+        "updatedMinAgo": 12
+      }
+    },
+    {
+      "key": "bangna",
+      "teamId": "H07",
+      "name": {
+        "en": "Bang Na Heart and Stroke Institute",
+        "th": "สถาบันหัวใจและหลอดเลือดสมองบางนา"
+      },
+      "area": {
+        "en": "Bang Na, Bangkok",
+        "th": "บางนา กรุงเทพฯ"
+      },
+      "type": "Private specialty hospital (heart and stroke)",
+      "lat": 13.669,
+      "lng": 100.604,
+      "totalBeds": 110,
+      "nicuTotal": 0,
+      "typicalWaitMin": 20,
+      "departments": [
+        "ed",
+        "neuro",
+        "cardio"
+      ],
+      "equipment": [
+        "ct",
+        "mri",
+        "cathlab"
+      ],
+      "demo": "Farther but ready now: CT and clot-removal suite working, neurologist on duty, auto-accepts stroke. The agent's recommendation.",
+      "status": {
+        "beds": 9,
+        "icu": 8,
+        "nicu": 0,
+        "depts": {
+          "ed": "open",
+          "neuro": "open",
+          "cardio": "open"
+        },
+        "equip": {
+          "ct": true,
+          "mri": true,
+          "cathlab": true,
+          "lab": true,
+          "ecg": true,
+          "echo": true,
+          "xray": true,
+          "theatre": true,
+          "ultrasound": true
+        },
+        "oncall": {
+          "er": true,
+          "neurologist": true,
+          "cardiologist": true
+        },
+        "rules": {
+          "minBeds": 1,
+          "visit": true,
+          "stroke": true,
+          "stemi": true,
+          "preterm": false,
+          "peds": false
+        },
+        "conflict": false,
+        "updatedMinAgo": 9
+      }
+    },
+    {
+      "key": "chatuchak",
+      "teamId": "H08",
+      "name": {
+        "en": "Chatuchak Children's Hospital",
+        "th": "โรงพยาบาลเด็กจตุจักร"
+      },
+      "area": {
+        "en": "Chatuchak, Bangkok",
+        "th": "จตุจักร กรุงเทพฯ"
+      },
+      "type": "Public children's hospital",
+      "lat": 13.815,
+      "lng": 100.554,
+      "totalBeds": 254,
+      "nicuTotal": 24,
+      "typicalWaitMin": 35,
+      "departments": [
+        "ed",
+        "pediatrics"
+      ],
+      "equipment": [
+        "ct",
+        "mri"
+      ],
+      "demo": "The Thai child-fever search near Lat Phrao: pediatrics open, beds free, accepts automatically.",
+      "status": {
+        "beds": 13,
+        "icu": 2,
+        "nicu": 2,
+        "depts": {
+          "ed": "open",
+          "pediatrics": "open"
+        },
+        "equip": {
+          "ct": true,
+          "mri": true,
+          "lab": true,
+          "ecg": true,
+          "xray": true,
+          "theatre": true,
+          "ultrasound": true
+        },
+        "oncall": {
+          "er": true,
+          "pediatrician": true
+        },
+        "rules": {
+          "minBeds": 2,
+          "visit": true,
+          "stroke": false,
+          "stemi": false,
+          "preterm": false,
+          "peds": true
+        },
+        "conflict": false,
+        "updatedMinAgo": 14
+      }
+    },
+    {
+      "key": "nanvalley",
+      "teamId": "H09",
+      "name": {
+        "en": "Nan Valley Provincial Hospital",
+        "th": "โรงพยาบาลจังหวัดน่านวัลเลย์"
+      },
+      "area": {
+        "en": "Mueang Nan, Nan province",
+        "th": "อำเภอเมืองน่าน จังหวัดน่าน"
+      },
+      "type": "Public provincial hospital",
+      "lat": 18.784,
+      "lng": 100.779,
+      "totalBeds": 481,
+      "nicuTotal": 12,
+      "typicalWaitMin": 40,
+      "departments": [
+        "ed",
+        "neuro",
+        "cardio",
+        "ortho",
+        "obstetrics",
+        "pediatrics"
+      ],
+      "equipment": [
+        "ct",
+        "mri",
+        "cathlab"
+      ],
+      "demo": "Rural referral: the provincial hospital that can treat the stroke patient from the district hospital, about an hour's drive away.",
+      "status": {
+        "beds": 25,
+        "icu": 4,
+        "nicu": 2,
         "depts": {
           "ed": "open",
           "neuro": "open",
           "cardio": "open",
-          "pediatrics": "open",
           "ortho": "open",
-          "obstetrics": "open"
+          "obstetrics": "open",
+          "pediatrics": "open"
         },
         "equip": {
           "ct": true,
@@ -54,456 +591,84 @@
           "er": true,
           "neurologist": true,
           "cardiologist": true,
-          "pediatrician": true,
           "orthopedist": true,
-          "obstetrician": true
-        },
-        "rules": {
-          "minBeds": 2,
-          "visit": false
-        },
-        "conflict": false,
-        "updatedMinAgo": 5
-      }
-    },
-    {
-      "key": "sathorn",
-      "name": {
-        "en": "Sathorn Heart Institute",
-        "th": "สถาบันหัวใจสาทร"
-      },
-      "lat": 13.7235,
-      "lng": 100.531,
-      "totalBeds": 150,
-      "nicuTotal": 0,
-      "typicalWaitMin": 25,
-      "departments": [
-        "ed",
-        "cardio"
-      ],
-      "equipment": [
-        "ct",
-        "cathlab"
-      ],
-      "demo": "Heart only. Its cath lab is busy with a case and free in about 20 minutes: the demo reply to a heart-attack referral says so, and the agent checks the delay against the treatment window.",
-      "status": {
-        "beds": 7,
-        "icu": 2,
-        "nicu": 0,
-        "depts": {
-          "ed": "open",
-          "cardio": "open"
-        },
-        "equip": {
-          "ct": true,
-          "cathlab": true,
-          "lab": true,
-          "ecg": true,
-          "echo": true,
-          "xray": true
-        },
-        "oncall": {
-          "er": true,
-          "cardiologist": true
-        },
-        "rules": {
-          "minBeds": 1,
-          "visit": true
-        },
-        "conflict": false,
-        "updatedMinAgo": 3,
-        "cathlabBusyMin": 20,
-        "notes": {
-          "cathlab": "Busy with a case, free in about 20 minutes"
-        }
-      }
-    },
-    {
-      "key": "phranakhon",
-      "name": {
-        "en": "Phra Nakhon Women and Children's Hospital",
-        "th": "โรงพยาบาลแม่และเด็กพระนคร"
-      },
-      "lat": 13.759,
-      "lng": 100.499,
-      "totalBeds": 200,
-      "nicuTotal": 10,
-      "typicalWaitMin": 30,
-      "departments": [
-        "ed",
-        "pediatrics",
-        "obstetrics"
-      ],
-      "equipment": [],
-      "demo": "Pregnancy, birth and children, with the largest NICU; accepts preterm labour automatically. No CT, so no stroke or heart-attack care.",
-      "status": {
-        "beds": 9,
-        "icu": 1,
-        "nicu": 4,
-        "depts": {
-          "ed": "open",
-          "pediatrics": "open",
-          "obstetrics": "open"
-        },
-        "equip": {
-          "lab": true,
-          "ecg": true,
-          "xray": true,
-          "theatre": true,
-          "ultrasound": true,
-          "delivery": true
-        },
-        "oncall": {
-          "er": true,
-          "pediatrician": true,
-          "obstetrician": true
-        },
-        "rules": {
-          "minBeds": 1,
-          "preterm": true,
-          "peds": true,
-          "maternity": true
-        },
-        "conflict": false,
-        "updatedMinAgo": 4
-      }
-    },
-    {
-      "key": "bangkapi",
-      "name": {
-        "en": "Bang Kapi Trauma and Orthopaedic Hospital",
-        "th": "โรงพยาบาลอุบัติเหตุและกระดูกบางกะปิ"
-      },
-      "lat": 13.766,
-      "lng": 100.647,
-      "totalBeds": 180,
-      "nicuTotal": 0,
-      "typicalWaitMin": 30,
-      "departments": [
-        "ed",
-        "ortho"
-      ],
-      "equipment": [
-        "ct",
-        "mri"
-      ],
-      "demo": "Injuries and bone surgery with CT, MRI and operating theatres; accepts walk-in injuries automatically.",
-      "status": {
-        "beds": 11,
-        "icu": 2,
-        "nicu": 0,
-        "depts": {
-          "ed": "open",
-          "ortho": "open"
-        },
-        "equip": {
-          "ct": true,
-          "mri": true,
-          "lab": true,
-          "ecg": true,
-          "xray": true,
-          "theatre": true
-        },
-        "oncall": {
-          "er": true,
-          "orthopedist": true
+          "obstetrician": false,
+          "pediatrician": false
         },
         "rules": {
           "minBeds": 1,
           "visit": true,
-          "injury": true
+          "stroke": true,
+          "stemi": false,
+          "preterm": false,
+          "peds": false
         },
         "conflict": false,
-        "updatedMinAgo": 6
+        "updatedMinAgo": 11
+      },
+      "demoReply": {
+        "stroke": {
+          "status": "accepted",
+          "note": "Accepted. Stroke team ready; CT available on arrival."
+        }
       }
     },
     {
-      "key": "ratchada",
+      "key": "nanhills",
+      "teamId": "H10",
       "name": {
-        "en": "Ratchada Neuroscience Hospital",
-        "th": "โรงพยาบาลประสาทวิทยารัชดา"
+        "en": "Nan Hills District Hospital",
+        "th": "โรงพยาบาลชุมชนน่านฮิลส์"
       },
-      "lat": 13.793,
-      "lng": 100.574,
-      "totalBeds": 160,
+      "area": {
+        "en": "A district of Nan province",
+        "th": "อำเภอหนึ่งในจังหวัดน่าน"
+      },
+      "type": "Public community (district) hospital",
+      "lat": 19.18,
+      "lng": 100.91,
+      "totalBeds": 56,
       "nicuTotal": 0,
-      "typicalWaitMin": 30,
+      "typicalWaitMin": 15,
       "departments": [
         "ed",
-        "neuro"
-      ],
-      "equipment": [
-        "ct",
-        "mri"
-      ],
-      "demo": "Stroke centre: neurologist on duty, CT and MRI. Accepts a stroke referral through the demo reply after 8 seconds. No heart, children or pregnancy care.",
-      "status": {
-        "beds": 6,
-        "icu": 1,
-        "nicu": 0,
-        "depts": {
-          "ed": "open",
-          "neuro": "open"
-        },
-        "equip": {
-          "ct": true,
-          "mri": true,
-          "lab": true,
-          "ecg": true,
-          "xray": true
-        },
-        "oncall": {
-          "er": true,
-          "neurologist": true
-        },
-        "rules": {
-          "minBeds": 1
-        },
-        "conflict": false,
-        "updatedMinAgo": 4
-      }
-    },
-    {
-      "key": "sukhumvit",
-      "name": {
-        "en": "Sukhumvit International Hospital",
-        "th": "โรงพยาบาลนานาชาติสุขุมวิท"
-      },
-      "lat": 13.731,
-      "lng": 100.567,
-      "totalBeds": 250,
-      "nicuTotal": 4,
-      "typicalWaitMin": 20,
-      "departments": [
-        "ed",
-        "cardio",
-        "pediatrics",
-        "ortho",
-        "obstetrics"
-      ],
-      "equipment": [
-        "ct",
-        "mri"
-      ],
-      "demo": "Private general hospital where every specialist speaks English. Heart clinic but no cath lab, so a heart attack is referred on. Has real staff accounts (doctor, General, admin, Cardiology, Surgery, Obstetrics).",
-      "status": {
-        "beds": 15,
-        "icu": 3,
-        "nicu": 2,
-        "depts": {
-          "ed": "open",
-          "cardio": "open",
-          "pediatrics": "open",
-          "ortho": "open",
-          "obstetrics": "open"
-        },
-        "equip": {
-          "ct": true,
-          "mri": true,
-          "lab": true,
-          "ecg": true,
-          "echo": true,
-          "xray": true,
-          "theatre": true,
-          "ultrasound": true,
-          "delivery": true
-        },
-        "oncall": {
-          "er": true,
-          "cardiologist": true,
-          "pediatrician": true,
-          "orthopedist": true,
-          "obstetrician": true
-        },
-        "rules": {
-          "minBeds": 2,
-          "visit": false
-        },
-        "conflict": false,
-        "updatedMinAgo": 7
-      }
-    },
-    {
-      "key": "thonglo",
-      "name": {
-        "en": "Thong Lo Children's Hospital",
-        "th": "โรงพยาบาลเด็กทองหล่อ"
-      },
-      "lat": 13.733,
-      "lng": 100.583,
-      "totalBeds": 100,
-      "nicuTotal": 6,
-      "typicalWaitMin": 35,
-      "departments": [
-        "ed",
+        "obstetrics",
         "pediatrics"
       ],
       "equipment": [],
-      "demo": "Children only, with few free beds, so it shows \"limited\"; the demo reply declines doctor referrals for lack of a bed.",
+      "demo": "Where the 2 a.m. story starts: no CT and no neurologist, so the doctor refers the stroke patient to Nan Valley Provincial Hospital.",
       "status": {
-        "beds": 2,
-        "icu": 1,
-        "nicu": 2,
+        "beds": 12,
+        "icu": 0,
+        "nicu": 0,
         "depts": {
           "ed": "open",
+          "obstetrics": "open",
           "pediatrics": "open"
         },
         "equip": {
           "lab": true,
           "ecg": true,
-          "xray": true
-        },
-        "oncall": {
-          "er": true,
-          "pediatrician": true
-        },
-        "rules": {
-          "minBeds": 1,
-          "peds": true
-        },
-        "conflict": false,
-        "updatedMinAgo": 3
-      }
-    },
-    {
-      "key": "bangkhae",
-      "name": {
-        "en": "Bang Khae Maternity Hospital",
-        "th": "โรงพยาบาลสูติกรรมบางแค"
-      },
-      "lat": 13.712,
-      "lng": 100.404,
-      "totalBeds": 60,
-      "nicuTotal": 2,
-      "typicalWaitMin": 15,
-      "departments": [
-        "obstetrics"
-      ],
-      "equipment": [],
-      "demo": "Small maternity hospital with no emergency department: pregnancy care only, never injuries or urgent care.",
-      "status": {
-        "beds": 5,
-        "icu": 0,
-        "nicu": 1,
-        "depts": {
-          "obstetrics": "open"
-        },
-        "equip": {
-          "lab": true,
+          "xray": true,
           "theatre": true,
           "ultrasound": true,
           "delivery": true
         },
         "oncall": {
-          "obstetrician": true
-        },
-        "rules": {
-          "minBeds": 1,
-          "maternity": true
-        },
-        "conflict": false,
-        "updatedMinAgo": 9
-      }
-    },
-    {
-      "key": "minburi",
-      "name": {
-        "en": "Min Buri General Hospital",
-        "th": "โรงพยาบาลทั่วไปมีนบุรี"
-      },
-      "lat": 13.813,
-      "lng": 100.729,
-      "totalBeds": 120,
-      "nicuTotal": 0,
-      "typicalWaitMin": 25,
-      "departments": [
-        "ed",
-        "cardio",
-        "ortho",
-        "obstetrics"
-      ],
-      "equipment": [
-        "ct"
-      ],
-      "demo": "Injury, heart clinic and pregnancy care, but no cath lab or NICU and its ultrasound is under repair: its doctor refers heart attacks and preterm labour on. Has real staff accounts (doctor, General, admin, Cardiology, Surgery, Obstetrics).",
-      "status": {
-        "beds": 6,
-        "icu": 0,
-        "nicu": 0,
-        "depts": {
-          "ed": "open",
-          "cardio": "open",
-          "ortho": "open",
-          "obstetrics": "open"
-        },
-        "equip": {
-          "ct": true,
-          "lab": true,
-          "ecg": true,
-          "echo": true,
-          "xray": true,
-          "theatre": true,
-          "ultrasound": false,
-          "delivery": true
-        },
-        "oncall": {
           "er": true,
-          "cardiologist": true,
-          "orthopedist": true,
-          "obstetrician": true
+          "obstetrician": false,
+          "pediatrician": false
         },
         "rules": {
-          "minBeds": 1,
-          "visit": false
+          "minBeds": 2,
+          "visit": true,
+          "stroke": false,
+          "stemi": false,
+          "preterm": false,
+          "peds": false
         },
         "conflict": false,
-        "updatedMinAgo": 5
-      }
-    },
-    {
-      "key": "nonthaburi",
-      "name": {
-        "en": "Nonthaburi Community Hospital",
-        "th": "โรงพยาบาลชุมชนนนทบุรี"
-      },
-      "lat": 13.859,
-      "lng": 100.514,
-      "totalBeds": 90,
-      "nicuTotal": 0,
-      "typicalWaitMin": 20,
-      "departments": [
-        "ed",
-        "pediatrics",
-        "ortho"
-      ],
-      "equipment": [],
-      "demo": "Injury and children. Its children's ward is diverting with no paediatrician on duty, and nobody has confirmed its status for 48 minutes, so it shows \"may be outdated\"; the demo reply declines doctor referrals as busy.",
-      "status": {
-        "beds": 8,
-        "icu": 0,
-        "nicu": 0,
-        "depts": {
-          "ed": "open",
-          "pediatrics": "diverting",
-          "ortho": "open"
-        },
-        "equip": {
-          "lab": true,
-          "ecg": true,
-          "xray": true,
-          "theatre": true
-        },
-        "oncall": {
-          "er": true,
-          "pediatrician": false,
-          "orthopedist": true
-        },
-        "rules": {
-          "minBeds": 1,
-          "visit": true
-        },
-        "conflict": false,
-        "updatedMinAgo": 48
+        "updatedMinAgo": 18
       }
     }
   ]

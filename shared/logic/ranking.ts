@@ -46,6 +46,12 @@ export function traffic(at: Date): Traffic {
   return 'normal';
 }
 
+/**
+ * Patients see hospitals and specialists within this distance, which covers the Bangkok service area; a doctor's
+ * referral still sees every hospital, so a provincial hospital can refer to one far away.
+ */
+export const PATIENT_RADIUS_KM = 80;
+
 const SPEED_KMH: Record<Traffic, number> = { rush: 15, night: 40, normal: 25 };
 /** Roads are longer than the straight line. */
 const ROAD_FACTOR = 1.35;

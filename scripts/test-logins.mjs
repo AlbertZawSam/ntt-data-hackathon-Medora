@@ -34,9 +34,12 @@ const hospitalId = args.find((a) => !a.startsWith('--') && args[args.indexOf(a) 
 const profile = args.includes('--profile') ? args[args.indexOf('--profile') + 1] : process.env.AWS_PROFILE;
 /** `--departments`: only the department staff of the demo hospitals with all three departments (6 accounts). */
 const departmentsOnly = args.includes('--departments');
-if (!departmentsOnly && (!hospitalId || !/^H-[0-9a-f]{16}$/.test(hospitalId))) {
+/** `--team`: the team's demo accounts in scripts/data/demo-accounts.csv (names, units and demo use; no passwords). */
+const team = args.includes('--team');
+if (!departmentsOnly && !team && (!hospitalId || !/^H-[0-9a-f]{16}$/.test(hospitalId))) {
   console.error('Usage: npm run test-logins -- <hospitalId> [--profile <aws-profile>]');
   console.error('   or: npm run test-logins -- --departments   (department staff of the two demo hospitals)');
+  console.error('   or: npm run test-logins -- --team          (the team accounts in scripts/data/demo-accounts.csv)');
   console.error('Hospital ids are printed by `npm run seed` (for example Krungthep Central: H-8f54c2ee7fb7348e).');
   process.exit(1);
 }
@@ -101,6 +104,49 @@ if (departmentsOnly) {
   ]);
 }
 
+/** A small CSV reader for the team's account list: quoted fields may hold commas. */
+function readCsv(path) {
+  const text = readFileSync(path, 'utf8').replace(/^\uFEFF/, '');
+  const rows = [];
+  let row = [], field = '', quoted = false;
+  for (let i = 0; i < text.length; i += 1) {
+    const c = text[i];
+    if (quoted) {
+      if (c === '"' && text[i + 1] === '"') { field += '"'; i += 1; }
+      else if (c === '"') quoted = false;
+      else field += c;
+    } else if (c === '"') quoted = true;
+    else if (c === ',') { row.push(field); field = ''; }
+    else if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i += 1; row.push(field); rows.push(row); row = []; field = ''; }
+    else field += c;
+  }
+  if (field || row.length) { row.push(field); rows.push(row); }
+  const [head, ...body] = rows.filter((r) => r.some(Boolean));
+  return body.map((r) => Object.fromEntries(head.map((h, i) => [h, r[i] ?? ''])));
+}
+
+/** Patients from the team list: made in the public pool (no authenticator), shown on the page with their password. */
+let PATIENTS = [];
+if (team) {
+  const byTeamId = new Map(DEMO.filter((h) => h.teamId).map((h) => [h.teamId, h]));
+  const rows = readCsv(resolve(root, 'scripts', 'data', 'demo-accounts.csv'));
+  const STAFF_GROUPS = ['admins', 'hospital_staff', 'doctors'];
+  ACCOUNTS = rows
+    .filter((r) => STAFF_GROUPS.includes(r['Cognito group']) && byTeamId.has(r['Hospital ID']))
+    .map((r) => {
+      const h = byTeamId.get(r['Hospital ID']);
+      return {
+        email: r.Email.trim().toLowerCase(),
+        group: r['Cognito group'],
+        ...(r['custom:unit'] ? { unit: r['custom:unit'] } : {}),
+        role: `${r.Name} · ${r['Job title']}${r['Demo use'] ? ` · Demo: ${r['Demo use']}` : ''}`,
+        hospitalId: seedId(h.key),
+        section: `${r['Hospital ID']} ${h.name.en}`,
+      };
+    });
+  PATIENTS = rows.filter((r) => r['Cognito group'] === 'patients').map((r) => ({ email: r.Email.trim().toLowerCase(), role: `${r.Name} · Patient${r['Demo use'] ? ` · Demo: ${r['Demo use']}` : ''}` }));
+}
+
 const localDir = resolve(root, 'scripts', '.local');
 const storePath = resolve(localDir, 'test-logins.json');
 mkdirSync(localDir, { recursive: true });
@@ -152,7 +198,7 @@ async function finishSetup(email, temporary) {
   return { password: permanent, secret };
 }
 
-console.log(`Test accounts for ${departmentsOnly ? 'the demo departments' : hospitalId} in staff pool ${staff.userPoolId} (us-east-1)\n`);
+console.log(`Test accounts for ${team ? 'the team list' : departmentsOnly ? 'the demo departments' : hospitalId} in staff pool ${staff.userPoolId} (us-east-1)\n`);
 await signOut().catch(() => undefined);
 for (const account of ACCOUNTS) {
   if (saved[account.email]) {
@@ -193,6 +239,38 @@ for (const account of ACCOUNTS) {
   }
 }
 
+// Team patients: public pool, permanent password, the patients group (what the sign-up confirmation would add).
+const publicPool = outputs.auth?.user_pool_id;
+const patientStore = (store[`patients:${publicPool}`] ??= {});
+for (const patient of PATIENTS) {
+  if (patientStore[patient.email]) {
+    console.log(`${patient.email.padEnd(36)} ready (set up earlier)`);
+    continue;
+  }
+  const permanent = password();
+  try {
+    await cognito.send(
+      new AdminCreateUserCommand({
+        UserPoolId: publicPool,
+        Username: patient.email,
+        MessageAction: 'SUPPRESS',
+        UserAttributes: [
+          { Name: 'email', Value: patient.email },
+          { Name: 'email_verified', Value: 'true' },
+          { Name: 'custom:role', Value: 'patient' },
+        ],
+      }),
+    );
+  } catch (error) {
+    if (error.name !== 'UsernameExistsException') throw error;
+  }
+  await cognito.send(new AdminSetUserPasswordCommand({ UserPoolId: publicPool, Username: patient.email, Password: permanent, Permanent: true }));
+  await cognito.send(new AdminAddUserToGroupCommand({ UserPoolId: publicPool, Username: patient.email, GroupName: 'patients' }));
+  patientStore[patient.email] = { password: permanent };
+  writeFileSync(storePath, JSON.stringify(store, null, 2), { mode: 0o600 });
+  console.log(`${patient.email.padEnd(36)} ready (patient)`);
+}
+
 const escape = (text) => String(text).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const rows = ACCOUNTS.filter((account) => saved[account.email]).map((account, i, list) => {
   const s = saved[account.email];
@@ -203,9 +281,15 @@ const rows = ACCOUNTS.filter((account) => saved[account.email]).map((account, i,
 <div class="row"><span class="lab">Code</span><code class="code" id="c${i}" data-secret="${escape(s.secret)}">------</code><button onclick="cp('c${i}',this)">Copy</button></div></div>`;
 });
 
+const patientRows = PATIENTS.filter((p) => patientStore[p.email]).map((p, i) => `${i === 0 ? '<h2>Patients (Medora app)</h2>' : ''}<div class="card"><div class="role">${escape(p.role)}</div>
+<div class="row"><span class="lab">Email</span><code id="pe${i}">${escape(p.email)}</code><button onclick="cp('pe${i}',this)">Copy</button></div>
+<div class="row"><span class="lab">Password</span><code id="pp${i}">${escape(patientStore[p.email].password)}</code><button onclick="cp('pp${i}',this)">Copy</button></div></div>`);
+rows.push(...patientRows);
+const title = team ? 'Medora team demo logins' : departmentsOnly ? 'Medora department logins' : 'Medora test logins';
+
 const page = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${departmentsOnly ? 'Medora department logins' : 'Medora test logins'}</title>
+<title>${title}</title>
 <style>
 :root{--bg:#F6F8F7;--card:#fff;--ink:#0E2A23;--muted:#4F635D;--line:#D5DEDA;--green:#0B6E57}
 @media (prefers-color-scheme:dark){:root{--bg:#08191A;--card:#10282A;--ink:#E8F1EE;--muted:#A3B8B1;--line:#24423F;--green:#3FBF9B}}
@@ -218,8 +302,8 @@ button,a.btn{background:var(--green);color:#fff;border:0;border-radius:8px;paddi
 a.big{display:block;text-align:center;padding:14px;font-size:17px;margin-top:8px}#bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:8px}#fill{height:100%;background:var(--green)}
 ol{padding-left:20px;margin:6px 0}h2{font-size:19px;margin:28px 0 4px}
 </style></head><body><main>
-<h1>${departmentsOnly ? 'Medora department logins' : 'Medora test logins'}</h1>
-<p>${departmentsOnly ? 'Doctor and department staff of the two demo hospitals: a request sent to a department reaches that department.' : `Synthetic test accounts for hospital ${escape(hospitalId)}.`} In your own sandbox; keep this page on your laptop, don't share it.</p>
+<h1>${title}</h1>
+<p>${team ? 'The team demo accounts: every hospital, unit and doctor, and two patients (they sign in on the normal Medora sign-in, no code).' : departmentsOnly ? 'Doctor and department staff of the two demo hospitals: a request sent to a department reaches that department.' : `Synthetic test accounts for hospital ${escape(hospitalId)}.`} In your own sandbox; keep this page on your laptop, don't share it.</p>
 <div class="card"><ol>
 <li>Open the app (run <b>npm run web</b> first), then click <b>"Doctor or hospital staff? Sign in here"</b>.</li>
 <li>Copy the email and password of the account below, click <b>Sign In</b>.</li>
@@ -245,7 +329,7 @@ function tick(){for(const el of document.querySelectorAll("[data-secret]"))el.te
 tick();setInterval(tick,1000);
 </script></body></html>`;
 
-const pagePath = resolve(localDir, departmentsOnly ? 'department-logins.html' : 'test-logins.html');
+const pagePath = resolve(localDir, team ? 'team-logins.html' : departmentsOnly ? 'department-logins.html' : 'test-logins.html');
 writeFileSync(pagePath, page, { mode: 0o600 });
 console.log(`\nLogin page: ${pagePath}`);
 if (process.platform === 'darwin') execFile('open', [pagePath]);

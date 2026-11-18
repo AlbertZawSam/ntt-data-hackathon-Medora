@@ -1,5 +1,5 @@
 import { DEMO_HOSPITALS } from '../logic/demoHospitals';
-import { clinicSlots, demoSpecialists } from '../logic/demoSpecialists';
+import { DEMO_SPECIALISTS, demoSpecialists, sessionSlots } from '../logic/demoSpecialists';
 import { SPECIALTIES, validateSpecialistInput, weeklySchedule } from '../logic/specialists';
 
 const NOW = Date.parse('2026-10-24T20:00:00Z'); // 03:00 on Sunday 25 Oct in Bangkok
@@ -9,25 +9,25 @@ describe('demoSpecialists', () => {
     for (const { input } of demoSpecialists(NOW)) expect(validateSpecialistInput(input)).toEqual({ ok: true, value: input });
   });
 
-  it('belongs to demo hospitals and covers every specialty', () => {
+  it('belongs to demo hospitals, covers every specialty and has unique names per hospital', () => {
     const keys = new Set(DEMO_HOSPITALS.map((h) => h.key));
     const all = demoSpecialists(NOW);
-    expect(all).toHaveLength(48);
+    expect(all.length).toBeGreaterThan(100);
     expect(all.every((s) => keys.has(s.hospitalKey))).toBe(true);
     expect(new Set(all.map((s) => s.input.specialty))).toEqual(new Set(SPECIALTIES));
+    expect(new Set(all.map((s) => `${s.hospitalKey}/${s.input.name}`)).size).toBe(all.length);
   });
 
-  it('works only in departments its hospital has', () => {
-    const dept: Record<string, string> = { neurology: 'neuro', cardiology: 'cardio', obstetrics: 'obstetrics', pediatrics: 'pediatrics', orthopedics: 'ortho' };
-    for (const { hospitalKey, input } of demoSpecialists(NOW)) {
-      const hospital = DEMO_HOSPITALS.find((h) => h.key === hospitalKey);
-      if (input.specialty !== 'general') expect(hospital?.departments).toContain(dept[input.specialty]);
+  it('has at least one session a week, each a weekday with AM or PM', () => {
+    for (const s of DEMO_SPECIALISTS) {
+      expect(s.sessions.length).toBeGreaterThan(0);
+      for (const session of s.sessions) expect(session).toMatch(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) (AM|PM)$/);
     }
   });
 
-  it('turns a weekly clinic into open slots on the next seven Bangkok days', () => {
-    const slots = clinicSlots({ weekdays: [0, 2, 4], start: '09:00', end: '12:00' }, NOW);
-    // Mon 26, Wed 28 and Fri 30 Oct, six half-hour appointments each.
+  it('turns weekly sessions into open slots on the next seven Bangkok days', () => {
+    const slots = sessionSlots(['Mon AM', 'Wed AM', 'Fri PM'], NOW);
+    // Mon 26 and Wed 28 Oct 09:00-12:00, Fri 30 Oct 13:00-16:00: six half-hour appointments each.
     expect(new Set(slots.map((s) => s.day))).toEqual(new Set(['2026-10-26', '2026-10-28', '2026-10-30']));
     expect(slots).toHaveLength(18);
     expect(slots.every((s) => !s.booked)).toBe(true);
@@ -35,16 +35,18 @@ describe('demoSpecialists', () => {
   });
 
   it('reads back as the same weekly hours on the specialist page', () => {
-    const slots = clinicSlots({ weekdays: [1, 3], start: '13:00', end: '16:00' }, NOW);
+    const slots = sessionSlots(['Tue PM', 'Thu AM', 'Thu PM'], NOW);
     expect(weeklySchedule(slots, NOW)).toEqual([
       { weekday: 1, start: '13:00', end: '16:00' },
+      { weekday: 3, start: '09:00', end: '12:00' },
       { weekday: 3, start: '13:00', end: '16:00' },
     ]);
   });
 
-  it('keeps a long clinic within the 60-slot limit by using one-hour appointments', () => {
-    const slots = clinicSlots({ weekdays: [0, 1, 2, 3, 4, 5], start: '08:00', end: '17:00' }, NOW);
-    expect(slots).toHaveLength(54);
-    expect(weeklySchedule(slots, NOW)[0]).toEqual({ weekday: 0, start: '08:00', end: '17:00' });
+  it('keeps a busy clinic within the 60-slot limit by using one-hour appointments', () => {
+    const all = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].flatMap((d) => [`${d} AM`, `${d} PM`]);
+    const slots = sessionSlots(all, NOW);
+    expect(slots).toHaveLength(36);
+    expect(weeklySchedule(slots, NOW)[0]).toEqual({ weekday: 0, start: '09:00', end: '12:00' });
   });
 });

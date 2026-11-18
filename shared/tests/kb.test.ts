@@ -24,10 +24,10 @@ describe('knowledge base documents', () => {
 
   it('names stroke care only for hospitals with neurology and a CT scanner', () => {
     const stroke = (key: string) => docs.find((d) => d.path === `${key}/neuro.md`)?.text ?? '';
-    expect(stroke('ratchada')).toContain('stroke care');
-    expect(stroke('krungthep')).toContain('stroke care');
-    // The heart institute has a CT but no neurology, so it has no neurology document.
-    expect(docs.some((d) => d.path === 'sathorn/neuro.md')).toBe(false);
+    expect(stroke('rama9')).toContain('stroke care');
+    expect(stroke('bangna')).toContain('stroke care');
+    // The district hospital in Nan has no neurology, so it has no neurology document.
+    expect(docs.some((d) => d.path === 'nanhills/neuro.md')).toBe(false);
   });
 
   it('states registered capability only and never live counts', () => {

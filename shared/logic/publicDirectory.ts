@@ -6,7 +6,7 @@
  * Requirements: 4.2, 5.2 to 5.6, 9.2
  */
 import { pathwayForNeed, SCORING } from './pathways';
-import { driveEstimate, failsFor, freeBeds, haversineKm, type LatLng } from './ranking';
+import { driveEstimate, failsFor, freeBeds, haversineKm, PATIENT_RADIUS_KM, type LatLng } from './ranking';
 import type { Bi, Failure, HospitalStatus, NeedKey, ScoringWeights } from './types';
 
 export const NEED_KEYS: readonly NeedKey[] = ['maternity', 'child', 'injury', 'general'];
@@ -126,6 +126,7 @@ export function rankPublic(
 ): PublicRanked[] {
   const at = new Date(nowMs);
   return entries
+    .filter((entry) => haversineKm(origin, entry) <= PATIENT_RADIUS_KM)
     .map((entry): PublicRanked => {
       const needInfo = entry.needs[need] ?? { label: 'unavailable', reason: 'notNow', adjust: 0 };
       const distanceKm = haversineKm(origin, entry);

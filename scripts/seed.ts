@@ -21,8 +21,11 @@ import { publicEntry } from '@medora/shared/logic/publicDirectory';
 import { seedHospitalId, seedSpecialistId } from './seed-id';
 
 const REGION = 'us-east-1';
-/** The demo hospitals used until 18 Nov 2026, replaced by the team's new data set; seeding removes their rows. */
-const RETIRED_KEYS = ['rama9', 'siam', 'chaophraya', 'thonburi', 'ladprao', 'victory', 'bangna', 'chatuchak'];
+/** Earlier demo hospital sets (until 18 Nov 2026); seeding removes their rows unless a current hospital reuses the key. */
+const RETIRED_KEYS = [
+  ...['rama9', 'siam', 'chaophraya', 'thonburi', 'ladprao', 'victory', 'bangna', 'chatuchak'],
+  ...['krungthep', 'sathorn', 'phranakhon', 'bangkapi', 'ratchada', 'sukhumvit', 'thonglo', 'bangkhae', 'minburi', 'nonthaburi'],
+];
 
 async function findApiId(url: string): Promise<string> {
   const appsync = new AppSyncClient({ region: REGION });

@@ -4,7 +4,7 @@ import { referralDepartment } from '@medora/shared/logic/departments';
 import { DEMO_REPLY_AFTER_SEC, demoReply, hasDepartmentStaff } from '@medora/shared/logic/demoReplies';
 import { kbQueryForPathway, kbTraceDetail } from '@medora/shared/logic/kb';
 import { PATHWAYS } from '@medora/shared/logic/pathways';
-import { DEMO_REPLY_DELAY_SEC, assessReferral, delayExceedsWindow, demoReplyFor, nextHospitals, statedDelayMin, type ReferralAssessment } from '@medora/shared/logic/referral';
+import { DEMO_REPLY_DELAY_SEC, assessReferral, delayExceedsWindow, demoReplyFor, nextHospitals, soonestAccepted, statedDelayMin, type ReferralAssessment } from '@medora/shared/logic/referral';
 import { ruleAccepts } from '@medora/shared/logic/rules';
 import { MAX_WAIT_SECONDS } from '@medora/shared/logic/timeBudget';
 import type {
@@ -149,11 +149,9 @@ export class ReferralTools {
   private async nextStep(): Promise<string> {
     if (!this.state) return 'Call assess_case.';
     const requests = await this.store.requests(this.referral.id);
-    const accepted = this.state.assessment.ranked
-      .filter((row) => row.eligible)
-      .map((row) => requests.find((request) => request.hospitalId === row.hospital.id && request.status === 'accepted'))
-      .find((request): request is CareRequest => request !== undefined);
-    if (accepted) return `Hospital ${accepted.hospitalId} has accepted. Call recommend for it now, unless its staff note states a delay that breaks the treatment window.`;
+    // Soonest care first: drive time plus any delay the staff stated, so a busy closer hospital doesn't win by distance.
+    const accepted = soonestAccepted(this.state.assessment, requests);
+    if (accepted) return `Hospital ${accepted.hospitalId} has accepted and can start care soonest (drive time plus any stated delay). Call recommend for it now, unless its staff note states a delay that breaks the treatment window.`;
     if (requests.some((request) => request.status === 'waiting')) return 'Some replies are still pending. Call check_replies to wait for them.';
     if (this.asked.size === 0) return 'Call ask_hospitals for the hospitals assess_case returned as able to help.';
     if (this.rounds < 2 && nextHospitals(this.state.assessment, this.asked).length > 0) return 'No hospital has accepted yet. Call ask_hospitals for the next hospitals.';
@@ -211,8 +209,9 @@ export class ReferralTools {
   async searchKnowledgeBase(input: Record<string, unknown>): Promise<Record<string, unknown>> {
     const query = typeof input.query === 'string' ? input.query.trim().slice(0, 500) : '';
     if (!query) return toolError('query must be a non-empty string up to 500 characters.');
-    const matches = await this.store.knowledgeSearch(query);
     const hospitals = this.state?.hospitals ?? (await this.store.hospitals());
+    // Only documents of hospitals that still exist: the bucket can hold documents of removed demo hospitals.
+    const matches = (await this.store.knowledgeSearch(query)).filter((match) => hospitals.some((hospital) => hospital.id === match.hospitalId));
     await this.store.trace(
       'search_knowledge_base',
       { en: 'Capability sources checked', th: 'ตรวจสอบแหล่งข้อมูลความสามารถแล้ว' },
@@ -370,10 +369,7 @@ export class ReferralTools {
     // A hospital may already have accepted in a round the model asked before it stopped, so look first.
     const acceptedNow = async (): Promise<CareRequest | undefined> => {
       const requests = await this.store.requests(this.referral.id);
-      return this.state?.assessment.ranked
-        .filter((row) => row.eligible)
-        .map((row) => requests.find((request) => request.hospitalId === row.hospital.id && request.status === 'accepted'))
-        .find((request): request is CareRequest => request !== undefined);
+      return this.state ? soonestAccepted(this.state.assessment, requests) : undefined;
     };
     let accepted = await acceptedNow();
     while (this.rounds < 2 && !accepted) {
@@ -385,8 +381,8 @@ export class ReferralTools {
     const recommended = accepted
       ? await this.execute('recommend', {
           hospital_id: accepted.hospitalId,
-          reason_en: 'This hospital accepted and has the best eligible travel time.',
-          reason_th: 'โรงพยาบาลนี้ตอบรับและมีเวลาเดินทางที่เหมาะสมที่สุดในกลุ่มที่รับได้',
+          reason_en: 'This hospital accepted and can start care soonest (travel time plus any stated delay).',
+          reason_th: 'โรงพยาบาลนี้ตอบรับและเริ่มการรักษาได้เร็วที่สุด (เวลาเดินทางรวมเวลารอที่แจ้งไว้)',
         })
       : undefined;
     // No acceptance, or one the rules refuse (for example a stated delay that breaks the window): close the
@@ -433,7 +429,7 @@ export class ReferralTools {
     let replied = 0;
     for (const request of pending) {
       const key = this.store.demoHospitalKey(request.hospitalId);
-      // Hospitals with real staff accounts (Krungthep Central, Sukhumvit International, Min Buri) never get an automatic demo
+      // Hospitals with real staff accounts (all three departments and no preset reply) never get an automatic demo
       // reply: every referral there waits for a person to accept or decline it.
       if (!key || hasDepartmentStaff(key)) continue;
       const reply = demoReply(key, this.state.assessment.pathway);
