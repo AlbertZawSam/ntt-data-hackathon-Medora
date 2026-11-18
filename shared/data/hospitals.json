@@ -394,7 +394,7 @@
       "equipment": [],
       "demo": "Good for minor injuries; no CT or inpatient beds, so never suggested for stroke or serious cases.",
       "status": {
-        "beds": 0,
+        "beds": 4,
         "icu": 0,
         "nicu": 0,
         "depts": {
