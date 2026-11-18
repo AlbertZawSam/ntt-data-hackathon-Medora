@@ -65,7 +65,8 @@ async function main(): Promise<void> {
       totalBeds: hospital.totalBeds,
       nicuTotal: hospital.nicuTotal,
       typicalWaitMin: hospital.typicalWaitMin,
-      departments: hospital.departments,
+      // The tracked departments and the others the hospital has, so patients see every department it runs.
+      departments: [...hospital.departments, ...(hospital.extraDepartments ?? [])],
       equipment: hospital.equipment,
     };
     // The record id is the hospital id, as register-hospital does; update-status finds rows by it.

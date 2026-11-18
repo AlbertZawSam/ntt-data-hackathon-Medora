@@ -1,7 +1,7 @@
 /**
  * Hospital details a person opens from a Find care result to decide where to go, built to scan in a
- * glance: two status tiles (beds, emergency department), care chips for the kinds of care this hospital has (its
- * departments), with the person's own category active and the others stepped back, only the equipment that category needs, specialties on
+ * glance: two status tiles (beds, emergency department), the hospital's departments open now (the one matching the
+ * person's need active, the others stepped back), only the equipment that category needs, specialties on
  * duty as pills, one action to the matching specialists, and one line on wait and freshness. Symbols as well
  * as colour, so it reads without colour too. Free beds as the exact count and equipment as working or down
  * (AGENTS.md rule 6); never staff names. Without a `need` (a doctor's view) every category and item shows.
@@ -11,7 +11,7 @@ import { useRouter, type Href } from 'expo-router';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { equipmentForCase } from '@medora/shared/logic/equipment';
-import type { HospitalDetails } from '@medora/shared/logic/hospitalDetails';
+import { departmentForNeed, type HospitalDetails } from '@medora/shared/logic/hospitalDetails';
 import { NEED_KEYS } from '@medora/shared/logic/publicDirectory';
 import { specialtyForNeed } from '@medora/shared/logic/specialists';
 import type { NeedKey } from '@medora/shared/logic/types';
@@ -26,7 +26,6 @@ const STALE_MIN = 30;
 type Level = 'good' | 'some' | 'none';
 
 const SYMBOL: Record<Level, string> = { good: '✓', some: '!', none: '✕' };
-const careLevel = (label: string): Level => (label === 'available' ? 'good' : label === 'limited' ? 'some' : 'none');
 const bedLevel = (beds: HospitalDetails['beds']): Level => (beds === 'available' ? 'good' : beds === 'limited' ? 'some' : 'none');
 
 export function HospitalDetailsView({ details, nowMs, need, showBooking = true }: { details: HospitalDetails; nowMs: number; need?: NeedKey; showBooking?: boolean }): React.JSX.Element {
@@ -44,6 +43,9 @@ export function HospitalDetailsView({ details, nowMs, need, showBooking = true }
   // With the person's category known, only its equipment matters; a doctor comparing hospitals sees everything.
   const equipment = need ? equipmentForCase(details.equipment, need) : details.equipment;
   const wanted = need ? specialtyForNeed(need) : undefined;
+  // Older results (before departments were sent) fall back to none; the rest of the card still works.
+  const departments = details.departmentsNow ?? [];
+  const mineKey = need ? departmentForNeed(need, departments.map((d) => d.key)) : undefined;
 
   return (
     <View style={[styles.box, { borderColor: theme.border, backgroundColor: theme.background }]}>
@@ -52,27 +54,27 @@ export function HospitalDetailsView({ details, nowMs, need, showBooking = true }
         <Tile title={t('details.edTitle')} value={t(details.edOpen ? 'details.edOpen' : 'details.edClosed')} symbol={SYMBOL[ed]} color={color[ed]} tint={tint(ed)} />
       </View>
 
-      <Text style={[styles.heading, { color: theme.textMuted }]}>{t('details.careTitle')}</Text>
+      <Text style={[styles.heading, { color: theme.textMuted }]}>{t('details.departmentsTitle')}</Text>
       <View style={styles.chips}>
-        {/* Only the kinds of care this hospital has, plus the person's own when it lacks it (shown as "can't"). */}
-        {NEED_KEYS.filter((key) => !details.offered || details.offered.includes(key) || key === need).map((key) => {
-          const level = careLevel(details.care[key]);
-          const name = t(`details.needShort.${key}` as StringKey);
-          const mine = key === need;
-          // Every category shows what this hospital can do for it, so hospitals differ at a glance; only the person's own
-          // category is active (border, full colour, "your need"), the others step back but keep their symbol.
-          const other = Boolean(need) && !mine;
+        {/* The hospital's own departments: open now, or not taking patients now. The one that matches the person's
+            need is active; if the hospital doesn't have it, it shows as missing so the person sees why. */}
+        {[...departments, ...(mineKey && !departments.some((d) => d.key === mineKey) ? [{ key: mineKey, open: false, missing: true }] : [])].map((d) => {
+          const level: Level = d.open ? 'good' : 'none';
+          const name = t(`item.${d.key}` as StringKey);
+          const mine = d.key === mineKey;
+          const state = t(d.open ? 'details.deptOpen' : 'missing' in d ? 'details.deptMissing' : 'details.deptDiverting');
           return (
             <View
-              key={key}
+              key={d.key}
               accessible
-              accessibilityLabel={`${name}: ${t(`label.${details.care[key]}` as StringKey)}${mine ? `, ${t('details.yourNeed')}` : ''}`}
-              style={[styles.chip, other && styles.chipOff, { backgroundColor: tint(level), borderColor: mine ? color[level] : 'transparent' }]}
+              accessibilityLabel={`${name}: ${state}${mine ? `, ${t('details.yourNeed')}` : ''}`}
+              style={[styles.chip, Boolean(mineKey) && !mine && styles.chipOff, { backgroundColor: tint(level), borderColor: mine ? color[level] : 'transparent' }]}
             >
               <Text style={[styles.chipText, { color: color[level] }]}>
                 {SYMBOL[level]} {name}
               </Text>
               {mine ? <Text style={[styles.mine, { color: color[level] }]}>{t('details.yourNeed')}</Text> : null}
+              {!d.open && !mine ? <Text style={[styles.mine, { color: color[level] }]}>{state}</Text> : null}
             </View>
           );
         })}

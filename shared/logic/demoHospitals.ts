@@ -24,6 +24,8 @@ export interface DemoHospital {
   nicuTotal: number;
   typicalWaitMin: number;
   departments: string[];
+  /** Other departments shown to patients (internal medicine, surgery, eye, ENT…); not tracked live, so always open. */
+  extraDepartments?: string[];
   equipment: string[];
   /** District and hospital type, for the scenario notes. */
   area?: Bi;

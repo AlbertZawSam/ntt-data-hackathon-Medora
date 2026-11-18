@@ -28,7 +28,7 @@ interface Args {
 type Rec = Record<string, unknown>;
 interface Client {
   models: {
-    HospitalProfile: { list(i: Rec): Promise<{ data: Array<{ hospitalId: string; name: unknown; lat: number; lng: number; typicalWaitMin: number }>; errors?: unknown[] }> };
+    HospitalProfile: { list(i: Rec): Promise<{ data: Array<{ hospitalId: string; name: unknown; lat: number; lng: number; typicalWaitMin: number; departments?: Array<string | null> | null }>; errors?: unknown[] }> };
     HospitalStatus: { list(i: Rec): Promise<{ data: Array<{ hospitalId: string; status: unknown }>; errors?: unknown[] }> };
     Reservation: { list(i: Rec): Promise<{ data: Reservation[]; errors?: unknown[] }> };
     Specialist: { list(i: Rec): Promise<{ data: Array<Omit<SpecialistRecord, 'slots'> & { slots: unknown }>; errors?: unknown[] }> };
@@ -146,7 +146,8 @@ export const handler = async (event: AppSyncResolverEvent<Args>): Promise<string
     // Each card can open hospital details: labels, specialties on duty and bookable clinic specialists, never counts.
     hospitals: ranked.map((r) => {
       const h = r.hospital;
-      const profile = { hospitalId: h.id, name: h.name, lat: h.lat, lng: h.lng, typicalWaitMin: h.typicalWaitMin };
+      const departments = profiles.data.find((p) => p.hospitalId === h.id)?.departments?.filter((d): d is string => typeof d === 'string') ?? [];
+      const profile = { hospitalId: h.id, name: h.name, lat: h.lat, lng: h.lng, typicalWaitMin: h.typicalWaitMin, departments };
       return { ...toPublicHospital(r, pathway), details: hospitalDetails(profile, h.status, specialists, nowMs) };
     }),
   });

@@ -1,6 +1,6 @@
 import fc from 'fast-check';
 import { DEMO_HOSPITALS, demoStatus } from '../logic/demoHospitals';
-import { bedLabel, hospitalDetails } from '../logic/hospitalDetails';
+import { bedLabel, departmentForNeed, hospitalDetails } from '../logic/hospitalDetails';
 import type { SpecialistRecord } from '../logic/specialists';
 import { arbStatus, NOW_MS, openStatus } from './generators';
 
@@ -63,17 +63,29 @@ describe('hospitalDetails', () => {
     );
   });
 
-  it('offers only the kinds of care whose department the hospital has, even when it is diverting', () => {
-    const offered = (key: string) => {
+  it("lists the hospital's departments: tracked ones live (open or diverting), the others it registered as open", () => {
+    const of = (key: string) => {
       const h = DEMO_HOSPITALS.find((x) => x.key === key)!;
-      return hospitalDetails({ hospitalId: h.key, name: h.name, lat: h.lat, lng: h.lng, typicalWaitMin: h.typicalWaitMin }, demoStatus(h, NOW_MS), [], NOW_MS).offered;
+      const profile = { hospitalId: h.key, name: h.name, lat: h.lat, lng: h.lng, typicalWaitMin: h.typicalWaitMin, departments: [...h.departments, ...(h.extraDepartments ?? [])] };
+      return hospitalDetails(profile, demoStatus(h, NOW_MS), [], NOW_MS).departmentsNow;
     };
-    expect(offered('khlongsan')).toEqual(['injury', 'general']); // no maternity or children's department
-    expect(offered('chatuchak')).toEqual(['child', 'injury', 'general']);
-    expect(offered('chaophraya')).toEqual(['maternity', 'child', 'injury', 'general']);
-    // A department that is diverting is still the hospital's own: shown as "can't help now", not hidden.
-    const diverting = hospitalDetails(profile, openStatus({ depts: { ed: 'open', pediatrics: 'diverting' } }), [], NOW_MS);
-    expect(diverting.offered).toContain('child');
-    expect(diverting.care.child).toBe('unavailable');
+    expect(of('khlongsan')).toEqual([{ key: 'ed', open: true }, { key: 'ortho', open: true }, { key: 'surgery', open: true }, { key: 'rehabilitation', open: true }]);
+    expect(of('rama9').map((d) => d.key)).toEqual(['ed', 'cardio', 'neuro', 'internal', 'surgery', 'rehabilitation']);
+    // Lat Phrao's neurology is diverting: shown, but not open.
+    expect(of('latphrao').find((d) => d.key === 'neuro')).toEqual({ key: 'neuro', open: false });
+    // A hospital registered in the app with no extra list still shows its tracked departments.
+    expect(hospitalDetails(profile, openStatus({ depts: { ed: 'open', pediatrics: 'diverting' } }), [], NOW_MS).departmentsNow).toEqual([
+      { key: 'ed', open: true },
+      { key: 'pediatrics', open: false },
+    ]);
+  });
+
+  it('lights up the department that matches what the patient needs', () => {
+    expect(departmentForNeed('child', ['ed', 'pediatrics'])).toBe('pediatrics');
+    expect(departmentForNeed('maternity', ['ed'])).toBe('obstetrics');
+    expect(departmentForNeed('injury', ['ed', 'ortho'])).toBe('ortho');
+    expect(departmentForNeed('injury', ['ed'])).toBe('ed');
+    expect(departmentForNeed('general', ['ed', 'internal'])).toBe('internal');
+    expect(departmentForNeed('general', ['ed'])).toBe('ed');
   });
 });

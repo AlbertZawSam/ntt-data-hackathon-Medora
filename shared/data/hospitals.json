@@ -25,6 +25,14 @@
         "obstetrics",
         "pediatrics"
       ],
+      "extraDepartments": [
+        "internal",
+        "surgery",
+        "ophthalmology",
+        "ent",
+        "dermatology",
+        "rehabilitation"
+      ],
       "equipment": [
         "ct",
         "mri",
@@ -97,6 +105,11 @@
         "neuro",
         "cardio"
       ],
+      "extraDepartments": [
+        "internal",
+        "surgery",
+        "rehabilitation"
+      ],
       "equipment": [
         "ct",
         "mri",
@@ -168,6 +181,7 @@
         "obstetrics",
         "pediatrics"
       ],
+      "extraDepartments": [],
       "equipment": [
         "ct"
       ],
@@ -245,6 +259,14 @@
         "obstetrics",
         "pediatrics"
       ],
+      "extraDepartments": [
+        "internal",
+        "surgery",
+        "psychiatry",
+        "ophthalmology",
+        "ent",
+        "rehabilitation"
+      ],
       "equipment": [
         "ct",
         "mri"
@@ -312,6 +334,15 @@
         "ortho",
         "obstetrics",
         "pediatrics"
+      ],
+      "extraDepartments": [
+        "internal",
+        "surgery",
+        "psychiatry",
+        "ophthalmology",
+        "ent",
+        "dermatology",
+        "rehabilitation"
       ],
       "equipment": [
         "ct",
@@ -391,6 +422,10 @@
         "ed",
         "ortho"
       ],
+      "extraDepartments": [
+        "family",
+        "dermatology"
+      ],
       "equipment": [],
       "demo": "Good for minor injuries; no CT or inpatient beds, so never suggested for stroke or serious cases.",
       "status": {
@@ -451,6 +486,11 @@
         "ed",
         "neuro",
         "cardio"
+      ],
+      "extraDepartments": [
+        "internal",
+        "surgery",
+        "rehabilitation"
       ],
       "equipment": [
         "ct",
@@ -515,6 +555,10 @@
       "departments": [
         "ed",
         "pediatrics"
+      ],
+      "extraDepartments": [
+        "surgery",
+        "psychiatry"
       ],
       "equipment": [
         "ct",
@@ -581,6 +625,10 @@
       "departments": [
         "ed",
         "ortho"
+      ],
+      "extraDepartments": [
+        "surgery",
+        "rehabilitation"
       ],
       "equipment": [
         "ct",

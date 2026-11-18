@@ -9,7 +9,6 @@
 import { openDepartments, type Department } from './departments';
 import { equipmentList, type EquipmentKey } from './equipment';
 import { NEED_KEYS, publicEntry, type PublicLabel, type PublicProfile } from './publicDirectory';
-import { pathwayForNeed } from './pathways';
 import { freeBeds } from './ranking';
 import { openSlots, type SpecialistRecord, type Specialty } from './specialists';
 import type { HospitalStatus, NeedKey } from './types';
@@ -26,10 +25,11 @@ export interface HospitalDetails {
   /** Each kind of care, as the same label Find care uses. */
   care: Record<NeedKey, PublicLabel>;
   /**
-   * The kinds of care this hospital offers at all: those whose departments it has registered, open now or diverting.
-   * A children's ward that is diverting is offered but "can't help now"; a hospital without one doesn't offer it.
+   * The hospital's departments for patients: the tracked ones (emergency, neurology, cardiology, obstetrics,
+   * paediatrics, orthopaedics) open or diverting now, then the others it registered (internal medicine, surgery,
+   * eye, ENT…), which aren't tracked live and show as open. Department keys only, never staff or counts.
    */
-  offered: NeedKey[];
+  departmentsNow: Array<{ key: string; open: boolean }>;
   /** Specialties with a doctor on duty now and their department open: the specialty, never a name. */
   onDuty: Specialty[];
   /** Clinic specialists with an open slot; the name only when the doctor chose to show it. */
@@ -57,8 +57,25 @@ export function bedLabel(status: HospitalStatus): BedLabel {
   return free <= 0 ? 'full' : free <= 2 ? 'limited' : 'available';
 }
 
+/** Tracked departments first, in the order patients read them; their state is live. */
+const TRACKED = ['ed', 'cardio', 'neuro', 'obstetrics', 'pediatrics', 'ortho'];
+
+function departmentsNow(status: HospitalStatus, registered: readonly string[] = []): Array<{ key: string; open: boolean }> {
+  const tracked = TRACKED.filter((key) => key in status.depts).map((key) => ({ key, open: status.depts[key] === 'open' }));
+  const others = registered.filter((key) => !TRACKED.includes(key) && /^[a-z]{2,20}$/.test(key)).map((key) => ({ key, open: true }));
+  return [...tracked, ...others];
+}
+
+/** The department that matches what the patient needs, so the screen can light it up. */
+export function departmentForNeed(need: NeedKey, keys: readonly string[]): string {
+  if (need === 'maternity') return 'obstetrics';
+  if (need === 'child') return 'pediatrics';
+  if (need === 'injury') return keys.includes('ortho') ? 'ortho' : 'ed';
+  return keys.includes('internal') ? 'internal' : 'ed';
+}
+
 export function hospitalDetails(
-  profile: PublicProfile,
+  profile: PublicProfile & { departments?: readonly string[] | null },
   status: HospitalStatus,
   specialists: readonly SpecialistRecord[],
   nowMs: number,
@@ -75,7 +92,7 @@ export function hospitalDetails(
     equipment: equipmentList(status.equip),
     edOpen: entry.edOpen,
     care,
-    offered: NEED_KEYS.filter((need) => pathwayForNeed(need).departments.every((dept) => dept in status.depts)),
+    departmentsNow: departmentsNow(status, profile.departments ?? []),
     onDuty,
     clinic,
     departments: openDepartments(status),
