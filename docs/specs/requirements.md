@@ -173,7 +173,7 @@ Acceptance criteria use EARS notation (WHEN / WHILE / IF / WHERE ... THE SYSTEM 
 **User story:** As a presenter, I want a reliable demo, so that judges see the full flow even on poor Wi-Fi.
 
 1. WHERE the demo stage is used THE SYSTEM SHALL provide a "Reset demo data" action for staff and doctors.
-2. WHERE "demo replies" is enabled THE SYSTEM SHALL let hospitals without an auto-accept rule reply automatically after 8 seconds with preset notes, including Sathorn Heart's "cath lab busy, free in about 20 minutes" for a heart attack.
+2. WHERE "demo replies" is enabled THE SYSTEM SHALL let hospitals without an auto-accept rule reply automatically after 8 seconds with preset notes, including Rama Nine's "neurologist in surgery, free in about 40 minutes" for stroke.
 3. THE SYSTEM SHALL show the time to recommendation on each completed referral.
 
 ## Requirement 18: Security (trust)

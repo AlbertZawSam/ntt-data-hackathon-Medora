@@ -91,7 +91,7 @@ Never commit `amplify_outputs.json`, `.env`, `google-services.json` or AWS keys.
 
 ### Use the team's shared demo backend (recommended for testing)
 
-One backend, `demo`, is shared by the whole team, with the same hospitals and the same 18 accounts for everyone (Krungthep Central, Sukhumvit International and Min Buri: a doctor, General, admin, Cardiology, Surgery and Obstetrics each). No `npm run sandbox` needed:
+One backend, `demo`, is shared by the whole team, with the same 10 hospitals and the same accounts for everyone: the team's 76 staff and 2 patient accounts (`npm run team-logins`, from `scripts/data/demo-accounts.csv`) plus department accounts at Pathum Wan, Lat Phrao and Nan Valley (`npm run department-logins`). Demo stories: docs/demo-scenarios.md. No `npm run sandbox` needed:
 
 ```bash
 npm run login          # AWS SSO, once a day
@@ -107,14 +107,14 @@ Each teammate does this against their own sandbox (accounts are per sandbox):
 
 ```bash
 npm run sandbox                                  # leave it running
-npm run seed                                     # 10 synthetic hospitals and 48 specialists; prints their ids
-npm run test-logins -- H-8f54c2ee7fb7348e        # Krungthep Central: doctor, admin and one nurse per unit
+npm run seed                                     # 10 synthetic hospitals and 199 specialists; prints their ids
+npm run test-logins -- H-085524ac132c64b4        # Thonburi Riverside: doctor, admin and one nurse per unit
 npm run web
 ```
 
 `test-logins` opens a local page with every account: copy buttons for the email and password, and a live 6-digit code for the authenticator step, so no phone is needed. In the app, click **"Hospital staff? Sign in here"**. Use another hospital id from `npm run seed` for a second hospital. The page and its data stay in `scripts/.local/` (ignored by Git): never commit or share them. After `npm run sandbox:delete`, run it again to make new accounts.
 
-**Department staff only:** `npm run department-logins` creates 18 accounts at the three demo hospitals with all three departments: a doctor, General, admin and one per department (`cardiology.krungthep@medora.demo`, `surgery.minburi@medora.demo` and so on), on a page grouped by hospital. A patient request sent to a department reaches only that account.
+**Department staff only:** `npm run department-logins` creates accounts at the demo hospitals with all three departments (Pathum Wan, Lat Phrao, Nan Valley): a doctor, General, admin and one per department (`cardiology.pathumwan@medora.demo` and so on), on a page grouped by hospital. A patient request sent to a department reaches only that account.
 
 Doctors who sign up in the patient app wait for an admin's approval, which no screen offers yet; use the invited doctor account from `test-logins` instead.
 
