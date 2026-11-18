@@ -1,5 +1,5 @@
 {
-  "_note": "Synthetic demo hospitals for Medora (team data set, 18 Nov 2026). Fictional hospitals and doctors modelled on Thai hospital tiers; not real hospitals, people or availability. Converted from the team's medora-demo-hospitals.json: ready beds are the ward-owned beds, ICU beds the ICU-owned units (ICU, CCU, stroke unit), on-duty roles come from the doctors on duty now, and the typical wait is chosen by hospital type. `updatedMinAgo` is turned into a time when seeding.",
+  "_note": "Synthetic demo hospitals for Medora (team data set, 18 Nov 2026). Fictional Bangkok hospitals and doctors modelled on Thai hospital tiers (the Nan province pair was removed and Khlong San Bone and Trauma added on 18 Nov); not real hospitals, people or availability. Converted from the team's medora-demo-hospitals.json: ready beds are the ward-owned beds, ICU beds the ICU-owned units (ICU, CCU, stroke unit), on-duty roles come from the doctors on duty now, and the typical wait is chosen by hospital type. `updatedMinAgo` is turned into a time when seeding.",
   "hospitals": [
     {
       "key": "pathumwan",
@@ -171,7 +171,7 @@
       "equipment": [
         "ct"
       ],
-      "demo": "Pregnancy and preterm cases: obstetrics open, NICU cots free, accepts automatically.",
+      "demo": "Pregnancy and preterm cases: obstetrics open, NICU cots free, accepts automatically. Declines adult injury referrals (no orthopaedic surgeon), so a broken leg goes to the trauma hospital.",
       "status": {
         "beds": 15,
         "icu": 1,
@@ -205,6 +205,13 @@
         },
         "conflict": false,
         "updatedMinAgo": 6
+      },
+      "demoReply": {
+        "injury": {
+          "status": "declined",
+          "reason": "equip",
+          "note": "No adult orthopaedic surgeon on duty; please send fractures to a trauma centre."
+        }
       }
     },
     {
@@ -533,142 +540,62 @@
       }
     },
     {
-      "key": "nanvalley",
-      "teamId": "H09",
+      "key": "khlongsan",
+      "teamId": "H11",
       "name": {
-        "en": "Nan Valley Provincial Hospital",
-        "th": "โรงพยาบาลจังหวัดน่านวัลเลย์"
+        "en": "Khlong San Bone and Trauma Hospital",
+        "th": "โรงพยาบาลกระดูกและอุบัติเหตุคลองสาน"
       },
       "area": {
-        "en": "Mueang Nan, Nan province",
-        "th": "อำเภอเมืองน่าน จังหวัดน่าน"
+        "en": "Khlong San, Bangkok",
+        "th": "คลองสาน กรุงเทพฯ"
       },
-      "type": "Public provincial hospital",
-      "lat": 18.784,
-      "lng": 100.779,
-      "totalBeds": 481,
-      "nicuTotal": 12,
-      "typicalWaitMin": 40,
+      "type": "Private specialty hospital (bones and injuries)",
+      "lat": 13.728,
+      "lng": 100.505,
+      "totalBeds": 90,
+      "nicuTotal": 0,
+      "typicalWaitMin": 20,
       "departments": [
         "ed",
-        "neuro",
-        "cardio",
-        "ortho",
-        "obstetrics",
-        "pediatrics"
+        "ortho"
       ],
       "equipment": [
         "ct",
-        "mri",
-        "cathlab"
+        "mri"
       ],
-      "demo": "Rural referral: the provincial hospital that can treat the stroke patient from the district hospital, about an hour's drive away.",
+      "demo": "Injuries and fractures only: orthopaedic surgeons, X-ray, CT and operating theatres; accepts injury referrals and walk-in injuries automatically. No heart, stroke, pregnancy or children's care.",
       "status": {
-        "beds": 25,
-        "icu": 4,
-        "nicu": 2,
+        "beds": 7,
+        "icu": 1,
+        "nicu": 0,
         "depts": {
           "ed": "open",
-          "neuro": "open",
-          "cardio": "open",
-          "ortho": "open",
-          "obstetrics": "open",
-          "pediatrics": "open"
+          "ortho": "open"
         },
         "equip": {
           "ct": true,
           "mri": true,
-          "cathlab": true,
           "lab": true,
           "ecg": true,
-          "echo": true,
           "xray": true,
-          "theatre": true,
-          "ultrasound": true,
-          "delivery": true
+          "theatre": true
         },
         "oncall": {
           "er": true,
-          "neurologist": true,
-          "cardiologist": true,
-          "orthopedist": true,
-          "obstetrician": false,
-          "pediatrician": false
+          "orthopedist": true
         },
         "rules": {
           "minBeds": 1,
           "visit": true,
-          "stroke": true,
-          "stemi": false,
-          "preterm": false,
-          "peds": false
-        },
-        "conflict": false,
-        "updatedMinAgo": 11
-      },
-      "demoReply": {
-        "stroke": {
-          "status": "accepted",
-          "note": "Accepted. Stroke team ready; CT available on arrival."
-        }
-      }
-    },
-    {
-      "key": "nanhills",
-      "teamId": "H10",
-      "name": {
-        "en": "Nan Hills District Hospital",
-        "th": "โรงพยาบาลชุมชนน่านฮิลส์"
-      },
-      "area": {
-        "en": "A district of Nan province",
-        "th": "อำเภอหนึ่งในจังหวัดน่าน"
-      },
-      "type": "Public community (district) hospital",
-      "lat": 19.18,
-      "lng": 100.91,
-      "totalBeds": 56,
-      "nicuTotal": 0,
-      "typicalWaitMin": 15,
-      "departments": [
-        "ed",
-        "obstetrics",
-        "pediatrics"
-      ],
-      "equipment": [],
-      "demo": "Where the 2 a.m. story starts: no CT and no neurologist, so the doctor refers the stroke patient to Nan Valley Provincial Hospital.",
-      "status": {
-        "beds": 12,
-        "icu": 0,
-        "nicu": 0,
-        "depts": {
-          "ed": "open",
-          "obstetrics": "open",
-          "pediatrics": "open"
-        },
-        "equip": {
-          "lab": true,
-          "ecg": true,
-          "xray": true,
-          "theatre": true,
-          "ultrasound": true,
-          "delivery": true
-        },
-        "oncall": {
-          "er": true,
-          "obstetrician": false,
-          "pediatrician": false
-        },
-        "rules": {
-          "minBeds": 2,
-          "visit": true,
           "stroke": false,
           "stemi": false,
           "preterm": false,
-          "peds": false
+          "peds": false,
+          "injury": true
         },
         "conflict": false,
-        "updatedMinAgo": 18
+        "updatedMinAgo": 6
       }
     }
   ]

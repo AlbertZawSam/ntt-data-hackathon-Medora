@@ -25,6 +25,7 @@ const REGION = 'us-east-1';
 const RETIRED_KEYS = [
   ...['rama9', 'siam', 'chaophraya', 'thonburi', 'ladprao', 'victory', 'bangna', 'chatuchak'],
   ...['krungthep', 'sathorn', 'phranakhon', 'bangkapi', 'ratchada', 'sukhumvit', 'thonglo', 'bangkhae', 'minburi', 'nonthaburi'],
+  ...['nanvalley', 'nanhills'],
 ];
 
 async function findApiId(url: string): Promise<string> {

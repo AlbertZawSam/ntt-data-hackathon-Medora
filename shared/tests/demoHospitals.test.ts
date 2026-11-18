@@ -12,11 +12,8 @@ const siam = { lat: DEFAULT_PLACE.lat, lng: DEFAULT_PLACE.lng };
 
 describe('demo hospitals', () => {
   it('pass the same checks as a hospital registered in the app', () => {
-    // The two Nan province hospitals (the rural referral story) are outside the Bangkok area the app registers.
-    const nan = ['nanvalley', 'nanhills'];
     for (const h of DEMO_HOSPITALS) {
-      const check = validateHospitalInput({ nameEn: h.name.en, nameTh: h.name.th, lat: h.lat, lng: h.lng, totalBeds: h.totalBeds, nicuTotal: h.nicuTotal });
-      expect(check.ok ? 'ok' : check.issue).toBe(nan.includes(h.key) ? 'location' : 'ok');
+      expect(validateHospitalInput({ nameEn: h.name.en, nameTh: h.name.th, lat: h.lat, lng: h.lng, totalBeds: h.totalBeds, nicuTotal: h.nicuTotal }).ok).toBe(true);
     }
     expect(new Set(DEMO_HOSPITALS.map((h) => h.key)).size).toBe(DEMO_HOSPITALS.length);
   });
@@ -41,8 +38,8 @@ describe('demo hospitals', () => {
     // Lat Phrao's data is over two hours old; Pathum Wan's is marked unclear, so it shows as limited.
     expect(rankPublic(entries, 'injury', siam, NOW_MS).find((r) => r.entry.hospitalId === 'latphrao')?.stale).toBe(true);
     expect(entries.find((e) => e.hospitalId === 'pathumwan')?.needs.general.label).toBe('limited');
-    // The Nan province hospitals are never offered to a patient in Bangkok.
-    expect(rankPublic(entries, 'general', siam, NOW_MS).map((r) => r.entry.hospitalId)).not.toContain('nanvalley');
-    expect(nearestOpenEd(entries, siam, NOW_MS)?.entry.hospitalId).not.toBe('nanhills');
+    // A twisted ankle near Siam goes to urgent care first, then the trauma hospital.
+    expect(rankPublic(entries, 'injury', siam, NOW_MS).slice(0, 2).map((r) => r.entry.hospitalId)).toEqual(['asok', 'khlongsan']);
+    expect(nearestOpenEd(entries, siam, NOW_MS)?.entry.edOpen).toBe(true);
   });
 });
