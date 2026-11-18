@@ -14,13 +14,13 @@ Expected results come from the app's own ranking and referral logic. The deploye
 |---|---|---|---|---|
 | H01 | Pathum Wan Medical Center | Pathum Wan | Almost everything, including a cath lab | Data marked unclear: "limited", ranks lower; referrals wait for its department staff |
 | H02 | Rama Nine Neuro and Heart Hospital | Huai Khwang | Heart attack (cath lab ready) | Stroke: neurologist in surgery, free in about 40 minutes |
-| H03 | Chao Phraya Women's and Children's Hospital | Bang Rak | Pregnancy, preterm labour (NICU), children: accepts automatically | Declines adult fractures: no orthopaedic surgeon |
+| H03 | Chao Phraya Women's and Children's Hospital | Bang Rak | Pregnancy, preterm labour (NICU), children: accepts automatically | Declines adult cases: no orthopaedic surgeon, no adult general medicine |
 | H04 | Thonburi Riverside Hospital | Thon Buri | The referring hospital | No neurology, no cardiology: refers stroke and heart attack out |
 | H05 | Lat Phrao University Hospital | Lat Phrao | Largest teaching hospital | Neurology diverting, data over 2 hours old; declines referrals |
-| H06 | Asok Urgent Care Clinic | Watthana | Minor injuries and walk-ins | No beds, no CT: never for serious cases |
+| H06 | Asok Urgent Care Clinic | Watthana | Minor injuries and walk-ins | No beds, no CT: declines hospital referrals |
 | H07 | Bang Na Heart and Stroke Institute | Bang Na | Stroke and heart attack ready now: accepts automatically | Farther from the centre |
-| H08 | Chatuchak Children's Hospital | Chatuchak | Children: first for a child near Lat Phrao, accepts automatically | Children only |
-| H11 | Khlong San Bone and Trauma Hospital | Khlong San | Fractures and injuries: orthopaedic surgeons, X-ray, CT, theatres; accepts injuries automatically | No heart, stroke, pregnancy or children's care |
+| H08 | Chatuchak Children's Hospital | Chatuchak | Children: first for a child near Lat Phrao, accepts automatically | Children only: declines adult referrals |
+| H11 | Khlong San Bone and Trauma Hospital | Khlong San | Fractures and injuries: orthopaedic surgeons, X-ray, CT, theatres; accepts injuries automatically | Bones and injuries only: declines other referrals |
 
 ## Doctor referrals (AI agent), from Thonburi: `h04.doctor1`
 
@@ -31,6 +31,7 @@ Each case goes to a different hospital, for a different reason.
 | R01 | **Stroke** sample (50 min after onset) | **Bang Na**: Rama Nine is closer (21 vs 31 min) but its neurologist is free only in 40 minutes, so care starts sooner at Bang Na | Soonest care, not the shortest drive |
 | R02 | **Heart attack** sample | **Rama Nine**: closest hospital with a cath lab ready that accepted | A different case, a different hospital |
 | R03 | Type: *"Man, 35, motorbike accident, broken leg"* | **Khlong San Bone and Trauma**; Chao Phraya Women's and Children's is asked too and **declines** ("No adult orthopaedic surgeon on duty") | Hospitals decide; a decline with its reason |
+| R07 | Type: *"Woman, 45, severe stomach pain since this morning"* | **Rama Nine** (internal medicine and surgery); Khlong San, Chao Phraya and Asok are asked and **decline** (outside their specialty) | Specialty hospitals say no; the agent asks the next round |
 | R04 | **Preterm labour** sample | **Chao Phraya** accepts by rule (NICU cots, obstetrician on duty) | Hard requirements: NICU and obstetrician |
 | R05 | Stroke, Bang Na's CT set to down first (`radiology.bang-na`) | **Rama Nine**, with its 40-minute delay still inside the window | One unit's status switch changes the answer |
 | R06 | Stroke, 200 min after onset (70 min left) | **Bang Na**: Rama Nine's delay breaks the treatment window | The time window is a hard rule |

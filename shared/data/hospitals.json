@@ -207,10 +207,18 @@
         "updatedMinAgo": 6
       },
       "demoReply": {
+        "maternity": {
+          "status": "accepted"
+        },
         "injury": {
           "status": "declined",
           "reason": "equip",
           "note": "No adult orthopaedic surgeon on duty; please send fractures to a trauma centre."
+        },
+        "*": {
+          "status": "declined",
+          "reason": "equip",
+          "note": "Women's and children's hospital: no adult general medicine team."
         }
       }
     },
@@ -413,6 +421,13 @@
         },
         "conflict": false,
         "updatedMinAgo": 12
+      },
+      "demoReply": {
+        "*": {
+          "status": "declined",
+          "reason": "equip",
+          "note": "Urgent care clinic: no inpatient beds or CT for referrals."
+        }
       }
     },
     {
@@ -537,6 +552,13 @@
         },
         "conflict": false,
         "updatedMinAgo": 14
+      },
+      "demoReply": {
+        "*": {
+          "status": "declined",
+          "reason": "equip",
+          "note": "Children's hospital: we can't admit adult patients."
+        }
       }
     },
     {
@@ -596,6 +618,13 @@
         },
         "conflict": false,
         "updatedMinAgo": 6
+      },
+      "demoReply": {
+        "*": {
+          "status": "declined",
+          "reason": "equip",
+          "note": "Bone and trauma hospital only: no general medicine team for this case."
+        }
       }
     }
   ]
