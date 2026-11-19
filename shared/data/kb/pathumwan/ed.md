@@ -1,6 +1,6 @@
 # Pathum Wan Medical Center: Emergency department / ศูนย์การแพทย์ปทุมวัน: ห้องฉุกเฉิน
 
-Pathum Wan Medical Center has a emergency department department registered.
+Department registered at Pathum Wan Medical Center: Emergency department.
 Equipment on site: CT scanner, MRI scanner, cath lab.
 Care this hospital can support when the department is open and staffed: heart attack care, injury care, urgent care.
 Typical emergency department wait: about 30 minutes. Location: 13.7445, 100.53.

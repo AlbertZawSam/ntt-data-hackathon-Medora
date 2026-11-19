@@ -8,15 +8,32 @@
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import React from 'react';
-import { isCrossedOut, markerSize, routeGeoJson, visibleMarkers } from '@medora/shared/logic/mapLayers';
+import { HOSPITAL_MARKER_KINDS, isCrossedOut, markerSize, routeGeoJson, visibleMarkers } from '@medora/shared/logic/mapLayers';
 import { pathGeoJson } from '@medora/shared/logic/routePath';
 import { useRoutePath } from '../services/routePath';
 import { fetchMapStyleUrl } from '../services/data';
+import { markerColors } from './markerColors';
 import { SchematicMap, shortLabel, type MapMarker, type MapViewProps, type MarkerKind } from './SchematicMap';
+import type { StringKey } from '../i18n/t';
+import { useT } from '../state/AppProvider';
 import { fonts, radii, useTheme } from '../ui/theme';
 
 export { shortLabel };
 export type { MapMarker, MapViewProps, MarkerKind };
+
+/** The map's own button labels (zoom, attribution) in the reader's language. */
+function mapLocale(t: (key: StringKey) => string): Record<string, string> {
+  return {
+    'NavigationControl.ZoomIn': t('map.zoomIn'),
+    'NavigationControl.ZoomOut': t('map.zoomOut'),
+    'AttributionControl.ToggleAttribution': t('map.attribution'),
+    'Marker.Title': t('map.marker'),
+  };
+}
+
+const HOSPITAL_KINDS: ReadonlySet<MarkerKind> = new Set(HOSPITAL_MARKER_KINDS);
+/** A white medical cross for hospital markers. */
+export const HOSPITAL_CROSS = '<svg viewBox="0 0 24 24" width="62%" height="62%" aria-hidden="true"><path fill="#fff" d="M9.5 3h5v6.5H21v5h-6.5V21h-5v-6.5H3v-5h6.5z"/></svg>';
 
 /** Bangkok, until the markers say where to look. [longitude, latitude]. */
 const BANGKOK: [number, number] = [100.534, 13.7455];
@@ -46,6 +63,7 @@ export function MapView(props: MapViewProps): React.JSX.Element {
 }
 
 function TileMap({ markers, route, onPick, height = 240, accessibilityLabel, styleUrl, onFailed }: MapViewProps & { styleUrl: string; onFailed: () => void }): React.JSX.Element {
+  const t = useT();
   const theme = useTheme();
   const container = React.useRef<HTMLDivElement | null>(null);
   const mapRef = React.useRef<maplibregl.Map | null>(null);
@@ -62,24 +80,13 @@ function TileMap({ markers, route, onPick, height = 240, accessibilityLabel, sty
   const onFailedRef = React.useRef(onFailed);
   onFailedRef.current = onFailed;
 
-  const colors: Record<MarkerKind, string> = {
-    me: theme.primary,
-    ok: theme.success,
-    limited: theme.warning,
-    no: theme.textMuted,
-    asked: theme.warning,
-    accepted: theme.success,
-    declined: theme.emergency,
-    chosen: theme.primary,
-    vehicle: theme.accent,
-    place: theme.textMuted,
-  };
+  const colors = markerColors(theme);
 
   // Create the map once per style address.
   React.useEffect(() => {
     if (!container.current) return undefined;
     let loaded = false;
-    const map = new maplibregl.Map({ container: container.current, style: styleUrl, center: BANGKOK, zoom: 11, attributionControl: { compact: true } });
+    const map = new maplibregl.Map({ container: container.current, style: styleUrl, center: BANGKOK, zoom: 11, attributionControl: { compact: true }, locale: mapLocale(t) });
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
     map.on('load', () => {
@@ -113,13 +120,17 @@ function TileMap({ markers, route, onPick, height = 240, accessibilityLabel, sty
     const placed = shown.map((m) => {
       const element = document.createElement('div');
       element.style.cssText = 'display:flex;align-items:center;gap:4px;pointer-events:none;';
-      const size = markerSize(m.kind);
+      // Hospitals are a rounded square with a medical cross; you, places and the ambulance stay round.
+      const hospital = HOSPITAL_KINDS.has(m.kind);
+      const size = hospital ? markerSize(m.kind) + 8 : markerSize(m.kind);
       const dot = document.createElement('div');
-      dot.style.cssText = `width:${size}px;height:${size}px;border-radius:50%;background:${colors[m.kind]};border:2px solid ${theme.surface};box-shadow:0 1px 3px rgba(0,0,0,.4);flex:none;display:flex;align-items:center;justify-content:center;color:${theme.emergency};font:700 ${size}px/1 sans-serif;`;
+      dot.style.cssText = `width:${size}px;height:${size}px;border-radius:${hospital ? '7px' : '50%'};background:${colors[m.kind]};border:2px solid ${theme.surface};box-shadow:0 1px 3px rgba(0,0,0,.4);flex:none;display:flex;align-items:center;justify-content:center;color:${theme.emergency};font:700 ${size}px/1 sans-serif;`;
       if (isCrossedOut(m.kind)) {
         dot.textContent = '×';
         dot.style.background = theme.surface;
         dot.style.border = `2px solid ${theme.emergency}`;
+      } else if (hospital) {
+        dot.innerHTML = HOSPITAL_CROSS; // a fixed icon, never data
       }
       element.appendChild(dot);
       if (m.label) {

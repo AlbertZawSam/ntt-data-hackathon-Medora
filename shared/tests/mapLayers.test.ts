@@ -33,3 +33,14 @@ describe('routeGeoJson', () => {
     expect(routeGeoJson([{ lat: Number.NaN, lng: 1 }, { lat: 2, lng: 3 }]).features).toEqual([]);
   });
 });
+
+import { HOSPITAL_MARKER_KINDS } from '../logic/mapLayers';
+
+describe('hospital markers', () => {
+  it("draw every hospital, including the doctor's own, with the hospital sign; never you, places or the ambulance", () => {
+    expect(HOSPITAL_MARKER_KINDS).toContain('home');
+    expect(HOSPITAL_MARKER_KINDS).toContain('outdated');
+    for (const kind of ['me', 'vehicle', 'place'] as const) expect(HOSPITAL_MARKER_KINDS).not.toContain(kind);
+    expect(markerSize('home')).toBe(markerSize('chosen'));
+  });
+});

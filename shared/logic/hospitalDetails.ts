@@ -24,6 +24,12 @@ export interface HospitalDetails {
   edOpen: boolean;
   /** Each kind of care, as the same label Find care uses. */
   care: Record<NeedKey, PublicLabel>;
+  /**
+   * The hospital's departments for patients: the tracked ones (emergency, neurology, cardiology, obstetrics,
+   * paediatrics, orthopaedics) open or diverting now, then the others it registered (internal medicine, surgery,
+   * eye, ENT…), which aren't tracked live and show as open. Department keys only, never staff or counts.
+   */
+  departmentsNow: Array<{ key: string; open: boolean }>;
   /** Specialties with a doctor on duty now and their department open: the specialty, never a name. */
   onDuty: Specialty[];
   /** Clinic specialists with an open slot; the name only when the doctor chose to show it. */
@@ -51,8 +57,25 @@ export function bedLabel(status: HospitalStatus): BedLabel {
   return free <= 0 ? 'full' : free <= 2 ? 'limited' : 'available';
 }
 
+/** Tracked departments first, in the order patients read them; their state is live. */
+const TRACKED = ['ed', 'cardio', 'neuro', 'obstetrics', 'pediatrics', 'ortho'];
+
+function departmentsNow(status: HospitalStatus, registered: readonly string[] = []): Array<{ key: string; open: boolean }> {
+  const tracked = TRACKED.filter((key) => key in status.depts).map((key) => ({ key, open: status.depts[key] === 'open' }));
+  const others = registered.filter((key) => !TRACKED.includes(key) && /^[a-z]{2,20}$/.test(key)).map((key) => ({ key, open: true }));
+  return [...tracked, ...others];
+}
+
+/** The department that matches what the patient needs, so the screen can light it up. */
+export function departmentForNeed(need: NeedKey, keys: readonly string[]): string {
+  if (need === 'maternity') return 'obstetrics';
+  if (need === 'child') return 'pediatrics';
+  if (need === 'injury') return keys.includes('ortho') ? 'ortho' : 'ed';
+  return keys.includes('internal') ? 'internal' : 'ed';
+}
+
 export function hospitalDetails(
-  profile: PublicProfile,
+  profile: PublicProfile & { departments?: readonly string[] | null },
   status: HospitalStatus,
   specialists: readonly SpecialistRecord[],
   nowMs: number,
@@ -69,6 +92,7 @@ export function hospitalDetails(
     equipment: equipmentList(status.equip),
     edOpen: entry.edOpen,
     care,
+    departmentsNow: departmentsNow(status, profile.departments ?? []),
     onDuty,
     clinic,
     departments: openDepartments(status),

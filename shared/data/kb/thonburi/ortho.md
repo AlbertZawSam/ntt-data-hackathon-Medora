@@ -1,6 +1,6 @@
 # Thonburi Riverside Hospital: Orthopedics / โรงพยาบาลธนบุรีริมน้ำ: ศัลยกรรมกระดูกและข้อ
 
-Thonburi Riverside Hospital has a orthopedics department registered.
+Department registered at Thonburi Riverside Hospital: Orthopedics.
 Equipment on site: CT scanner, MRI scanner.
 Care this hospital can support when the department is open and staffed: general care in this department.
 Typical emergency department wait: about 45 minutes. Location: 13.722, 100.485.

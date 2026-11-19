@@ -42,3 +42,31 @@ describe('checkDirectReferral', () => {
     }
   });
 });
+
+import { isReferablePatient, REFERABLE_FOR_MS } from '../logic/directReferral';
+
+describe('isReferablePatient', () => {
+  const now = Date.parse('2026-11-20T10:00:00Z');
+  const request = (over: Record<string, unknown> = {}) => ({ hospitalId: 'A', type: 'visit', status: 'accepted', createdAtMs: now - 60_000, ...over });
+
+  it("lists a patient who has arrived, so the doctor can refer them when the hospital lacks what they need", () => {
+    for (const status of ['waiting', 'accepted', 'completed']) expect(isReferablePatient(request({ status }), 'A', now)).toBe(true);
+  });
+
+  it('never lists another hospital\'s patient, a booking, a referral, a closed request or an old one', () => {
+    expect(isReferablePatient(request(), 'B', now)).toBe(false);
+    expect(isReferablePatient(request({ type: 'booking' }), 'A', now)).toBe(false);
+    expect(isReferablePatient(request({ referralId: 'ref1' }), 'A', now)).toBe(false);
+    for (const status of ['declined', 'cancelled', 'no_reply']) expect(isReferablePatient(request({ status }), 'A', now)).toBe(false);
+    expect(isReferablePatient(request({ createdAtMs: now - REFERABLE_FOR_MS - 1 }), 'A', now)).toBe(false);
+  });
+
+  it('lists exactly the requests the server accepts for a referral', () => {
+    const open = { ed: 'open' } as const;
+    for (const status of ['waiting', 'accepted', 'completed', 'declined', 'cancelled']) {
+      const listed = isReferablePatient(request({ status }), 'A', now);
+      const allowed = checkDirectReferral('A', { hospitalId: 'A', type: 'visit', status }, 'B', openStatus({ depts: open }), undefined).ok;
+      expect(listed).toBe(allowed);
+    }
+  });
+});

@@ -8,6 +8,7 @@ import React from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import Svg, { Circle, G, Line, Polyline, Rect, Text as SvgText } from 'react-native-svg';
 import type { MarkerKind } from '@medora/shared/logic/mapLayers';
+import { markerColors } from './markerColors';
 import type { LatLng } from '@medora/shared/logic/ranking';
 import { boundsOf, project, unproject, type Box } from '@medora/shared/logic/mapView';
 import { useRoutePath } from '../services/routePath';
@@ -47,18 +48,7 @@ export function SchematicMap({ markers, route, onPick, height = 240, accessibili
   const road = useRoutePath(route);
   const bounds = React.useMemo(() => boundsOf([...markers.map((m) => m.point), ...(road ?? route ?? [])]), [markers, route, road]);
 
-  const colors: Record<MarkerKind, string> = {
-    me: theme.primary,
-    ok: theme.success,
-    limited: theme.warning,
-    no: theme.textMuted,
-    asked: theme.warning,
-    accepted: theme.success,
-    declined: theme.emergency,
-    chosen: theme.primary,
-    vehicle: theme.accent,
-    place: theme.textMuted,
-  };
+  const colors = markerColors(theme);
 
   return (
     <View

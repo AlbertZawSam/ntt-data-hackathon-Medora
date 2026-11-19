@@ -13,6 +13,9 @@ export interface DemoReply {
   note?: string;
 }
 
+/** A preset as stored with the hospital: the note in English and Thai, written in the referring doctor's language. */
+export type DemoReplyPreset = Omit<DemoReply, 'note'> & { note?: Bi };
+
 export interface DemoHospital {
   key: string;
   /** The team data set's id (H01 to H10), used by the demo account list. */
@@ -24,6 +27,8 @@ export interface DemoHospital {
   nicuTotal: number;
   typicalWaitMin: number;
   departments: string[];
+  /** Other departments shown to patients (internal medicine, surgery, eye, ENT…); not tracked live, so always open. */
+  extraDepartments?: string[];
   equipment: string[];
   /** District and hospital type, for the scenario notes. */
   area?: Bi;
@@ -31,7 +36,7 @@ export interface DemoHospital {
   /** What this hospital shows in the demo. */
   demo: string;
   /** Preset replies to doctor referrals by pathway; `*` is any pathway. */
-  demoReply?: Partial<Record<PathwayKey | '*', DemoReply>>;
+  demoReply?: Partial<Record<PathwayKey | '*', DemoReplyPreset>>;
   status: Omit<HospitalStatus, 'updatedAt'> & { updatedMinAgo: number };
 }
 

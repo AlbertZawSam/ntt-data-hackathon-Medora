@@ -1,6 +1,6 @@
 # Pathum Wan Medical Center: Obstetrics / ศูนย์การแพทย์ปทุมวัน: สูติกรรม
 
-Pathum Wan Medical Center has a obstetrics department registered.
+Department registered at Pathum Wan Medical Center: Obstetrics.
 Equipment on site: CT scanner, MRI scanner, cath lab.
 Care this hospital can support when the department is open and staffed: preterm birth care, pregnancy care.
 Typical emergency department wait: about 30 minutes. Location: 13.7445, 100.53.

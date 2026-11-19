@@ -7,8 +7,10 @@ import { useRouter, type Href } from 'expo-router';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { DECLINE_REASONS } from '@medora/shared/logic/care';
+import { isReferablePatient } from '@medora/shared/logic/directReferral';
 import { parseDecisionRows, type DecisionRow } from '@medora/shared/logic/decisionTable';
 import type { CareRequest, Referral } from '@medora/shared/logic/types';
+import { MapLegend } from '../../src/components/MapLegend';
 import { MapView, shortLabel, type MapMarker, type MarkerKind } from '../../src/components/MapView';
 import { MessageThread } from '../../src/components/MessageThread';
 import { ReferPanel } from '../../src/components/ReferPanel';
@@ -101,11 +103,12 @@ export default function DoctorReferScreen(): React.JSX.Element {
         .sort((a, b) => (a.status === b.status ? b.createdAtMs - a.createdAtMs : a.status === 'waiting' ? -1 : 1)),
     [data.careRequests, session?.hospitalId, session?.userId],
   );
-  // Patients' own requests that reached this hospital and are still active (last 24 hours): the doctor can refer one.
+  // Patients' own requests at this hospital (last 24 hours), the same ones the server lets a doctor refer: waiting,
+  // accepted, or already arrived, for when this hospital turns out to lack the equipment or specialist they need.
   const patients = React.useMemo(
     () =>
       data.careRequests
-        .filter((r) => r.hospitalId === session?.hospitalId && !r.referralId && r.type !== 'booking' && (r.status === 'waiting' || r.status === 'accepted') && Date.now() - r.createdAtMs < 24 * 60 * 60_000)
+        .filter((r) => isReferablePatient(r, session?.hospitalId, Date.now()))
         .sort((a, b) => b.createdAtMs - a.createdAtMs),
     [data.careRequests, session?.hospitalId],
   );
@@ -385,7 +388,7 @@ export default function DoctorReferScreen(): React.JSX.Element {
             markers={markers}
             route={origin && chosenRow ? [origin, { lat: chosenRow.lat!, lng: chosenRow.lng! }] : undefined}
           />
-          <Text style={[styles.muted, { color: theme.textMuted }]}>{t('doctor.refer.mapLegend')}</Text>
+          <MapLegend kinds={['home', 'chosen', 'accepted', 'asked', 'declined', 'outdated', 'no']} labels={{ outdated: 'map.key.notAsked' }} />
         </Card>
       ) : null}
 
@@ -504,6 +507,8 @@ export default function DoctorReferScreen(): React.JSX.Element {
                 <Text style={[styles.itemTitle, { color: theme.text }]}>{patientLabel(t, r.patient.name, r.id)}</Text>
                 {index === 0 ? <Badge tone="primary" label={t('doctor.patients.latest')} /> : null}
                 {r.status === 'waiting' ? <Badge tone="warning" label={t('staff.inbox.status.waiting')} /> : null}
+                {r.status === 'accepted' ? <Badge tone="success" label={t('request.status.accepted')} /> : null}
+                {r.status === 'completed' ? <Badge tone="neutral" icon="location" label={t('doctor.patients.arrived')} /> : null}
               </View>
               {/* Patient text is data, shown as plain text and never interpreted. */}
               <Text numberOfLines={1} style={[styles.body, { color: theme.text }]}>{r.patient.description}</Text>
@@ -601,8 +606,9 @@ function DoctorNote({ text }: { text: string }): React.JSX.Element {
   );
 }
 
+// Green means accepted, nothing else: a hospital that could help but wasn't asked is grey.
 const ROW_KIND: Record<DecisionRow['reply'], MarkerKind> = {
-  notAsked: 'ok',
+  notAsked: 'outdated',
   waiting: 'asked',
   accepted: 'accepted',
   acceptedByRule: 'accepted',
@@ -613,7 +619,7 @@ const ROW_KIND: Record<DecisionRow['reply'], MarkerKind> = {
 
 /** The doctor's map: their hospital, then every hospital in the table that has a known position. */
 function referralMarkers(rows: DecisionRow[], origin: { lat: number; lng: number } | undefined, youLabel: string, lang: 'en' | 'th'): MapMarker[] {
-  const markers: MapMarker[] = origin ? [{ id: 'origin', point: { lat: origin.lat, lng: origin.lng }, kind: 'me', label: youLabel }] : [];
+  const markers: MapMarker[] = origin ? [{ id: 'origin', point: { lat: origin.lat, lng: origin.lng }, kind: 'home', label: youLabel }] : [];
   for (const row of rows) {
     if (row.lat === undefined || row.lng === undefined) continue;
     const kind: MarkerKind = row.chosen ? 'chosen' : !row.canHelp && row.reply === 'notAsked' ? 'no' : ROW_KIND[row.reply];

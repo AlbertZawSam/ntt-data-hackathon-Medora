@@ -1,6 +1,6 @@
 # Lat Phrao University Hospital: Obstetrics / โรงพยาบาลมหาวิทยาลัยลาดพร้าว: สูติกรรม
 
-Lat Phrao University Hospital has a obstetrics department registered.
+Department registered at Lat Phrao University Hospital: Obstetrics.
 Equipment on site: CT scanner, MRI scanner, cath lab.
 Care this hospital can support when the department is open and staffed: preterm birth care, pregnancy care.
 Typical emergency department wait: about 60 minutes. Location: 13.8065, 100.576.

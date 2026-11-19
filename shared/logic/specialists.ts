@@ -22,6 +22,8 @@ export interface Slot {
 
 export interface SpecialistInput {
   name: string;
+  /** The name in Thai (นพ./พญ.), when the doctor has one; screens in Thai show it instead. */
+  nameTh?: string;
   specialty: Specialty;
   languages: string[];
   namePublic: boolean;
@@ -55,13 +57,15 @@ export function validateSpecialistInput(raw: Partial<Record<keyof SpecialistInpu
     seen.add(key);
     clean.push({ id: typeof s.id === 'string' && s.id ? s.id.slice(0, 64) : key.replace(/[^0-9]/g, ''), day: s.day, time: s.time, booked: s.booked === true });
   }
-  return { ok: true, value: { name, specialty: raw.specialty as Specialty, languages: languages as string[], namePublic: raw.namePublic === true, slots: clean } };
+  const nameTh = typeof raw.nameTh === 'string' ? raw.nameTh.trim().replace(/\s+/g, ' ').slice(0, 120) : '';
+  return { ok: true, value: { name, ...(nameTh ? { nameTh } : {}), specialty: raw.specialty as Specialty, languages: languages as string[], namePublic: raw.namePublic === true, slots: clean } };
 }
 
 export interface SpecialistRecord {
   id: string;
   hospitalId: string;
   name: string;
+  nameTh?: string | null;
   specialty: string;
   languages: string[];
   namePublic: boolean;
@@ -79,6 +83,8 @@ export interface PublicSpecialist {
   languages: string[];
   /** Null until booked when the doctor chose not to show their name (requirement 8.5). */
   name: string | null;
+  /** The Thai name, under the same rule as `name`. */
+  nameTh: string | null;
   slots: Slot[];
 }
 
@@ -124,6 +130,7 @@ export function listSpecialists(
       specialty: r.specialty,
       languages: r.languages,
       name: r.namePublic ? r.name : null,
+      nameTh: r.namePublic && r.nameTh ? r.nameTh : null,
       slots,
     });
   }
@@ -272,10 +279,10 @@ const wordMatches = (word: string, haystack: string): boolean => haystack.includ
  * "doctor" or "need" is ignored) appears in the specialty's name or everyday words, the doctor's name (only when
  * shown), the hospital's name, or a language. Empty text, or only filler, matches all.
  */
-export function matchesSpecialistQuery(specialist: Pick<PublicSpecialist, 'specialty' | 'name' | 'hospitalName' | 'languages'>, query: string, specialtyLabels: readonly string[] = []): boolean {
+export function matchesSpecialistQuery(specialist: Pick<PublicSpecialist, 'specialty' | 'name' | 'hospitalName' | 'languages'> & { nameTh?: string | null }, query: string, specialtyLabels: readonly string[] = []): boolean {
   const words = meaningfulWords(query);
   if (words.length === 0) return true;
   const keywords = SPECIALTY_KEYWORDS[specialist.specialty as (typeof SPECIALTIES)[number]] ?? [specialist.specialty];
-  const haystack = norm([specialist.specialty, ...keywords, ...specialtyLabels, specialist.name ?? '', specialist.hospitalName.en, specialist.hospitalName.th, ...specialist.languages].join(' | '));
+  const haystack = norm([specialist.specialty, ...keywords, ...specialtyLabels, specialist.name ?? '', specialist.nameTh ?? '', specialist.hospitalName.en, specialist.hospitalName.th, ...specialist.languages].join(' | '));
   return words.some((word) => wordMatches(word, haystack));
 }

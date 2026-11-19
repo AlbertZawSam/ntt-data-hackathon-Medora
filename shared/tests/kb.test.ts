@@ -26,8 +26,8 @@ describe('knowledge base documents', () => {
     const stroke = (key: string) => docs.find((d) => d.path === `${key}/neuro.md`)?.text ?? '';
     expect(stroke('rama9')).toContain('stroke care');
     expect(stroke('bangna')).toContain('stroke care');
-    // The district hospital in Nan has no neurology, so it has no neurology document.
-    expect(docs.some((d) => d.path === 'nanhills/neuro.md')).toBe(false);
+    // The trauma hospital has a CT but no neurology, so it has no neurology document.
+    expect(docs.some((d) => d.path === 'khlongsan/neuro.md')).toBe(false);
   });
 
   it('states registered capability only and never live counts', () => {
@@ -51,8 +51,8 @@ describe('kbTraceDetail', () => {
       ],
       nameOf,
     );
-    expect(detail.en).toBe('2 source document(s): Rama Nine (rama9/neuro.md), Siam (siam/neuro.md).');
-    expect(detail.th).toContain('พระรามเก้า (rama9/neuro.md)');
+    expect(detail.en).toBe('2 source document(s): Rama Nine: Neurology, Siam: Neurology.');
+    expect(detail.th).toContain('พระรามเก้า: ประสาทวิทยา');
   });
 
   it('says so when no knowledge base is set up, and when nothing matches', () => {

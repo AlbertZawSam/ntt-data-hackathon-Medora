@@ -23,6 +23,7 @@ import { fonts, fontSizes, spacing, useTheme } from '../../src/ui/theme';
 interface Row {
   id: string;
   name: string;
+  nameTh?: string | null;
   specialty: string;
   languages?: string[] | null;
   slots: unknown;
@@ -51,7 +52,7 @@ const parseSlots = (text: string): Slot[] =>
 export default function AdminSpecialistsScreen(): React.JSX.Element {
   const t = useT();
   const theme = useTheme();
-  const { data, session } = useApp();
+  const { data, session, lang } = useApp();
   const rows = (data.specialists as unknown as Row[]).filter((r) => (r as unknown as { hospitalId: string }).hospitalId === session?.hospitalId);
   const [name, setName] = React.useState('');
   const [specialty, setSpecialty] = React.useState<string>(SPECIALTIES[0]);
@@ -104,7 +105,7 @@ export default function AdminSpecialistsScreen(): React.JSX.Element {
       {rows.map((r) => (
         <Card key={r.id} padding="lg">
           <View style={styles.list}>
-            <Text style={[styles.name, { color: theme.text }]}>{r.name}</Text>
+            <Text style={[styles.name, { color: theme.text }]}>{(lang === 'th' && r.nameTh) || r.name}</Text>
             <View style={styles.wrap}>
               <Badge tone="primary" label={t(`specialty.${r.specialty}` as StringKey)} />
               {(r.languages ?? []).map((l) => (
@@ -114,7 +115,7 @@ export default function AdminSpecialistsScreen(): React.JSX.Element {
             </View>
             {confirmId === r.id ? (
               <ConfirmPanel
-                title={t('admin.specialists.deleteConfirm', { name: r.name })}
+                title={t('admin.specialists.deleteConfirm', { name: (lang === 'th' && r.nameTh) || r.name })}
                 body={t('admin.specialists.deleteBody')}
                 confirmLabel={t('admin.specialists.deleteButton')}
                 cancelLabel={t('common.keep')}

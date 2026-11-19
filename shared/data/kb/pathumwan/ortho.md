@@ -1,6 +1,6 @@
 # Pathum Wan Medical Center: Orthopedics / ศูนย์การแพทย์ปทุมวัน: ศัลยกรรมกระดูกและข้อ
 
-Pathum Wan Medical Center has a orthopedics department registered.
+Department registered at Pathum Wan Medical Center: Orthopedics.
 Equipment on site: CT scanner, MRI scanner, cath lab.
 Care this hospital can support when the department is open and staffed: general care in this department.
 Typical emergency department wait: about 30 minutes. Location: 13.7445, 100.53.

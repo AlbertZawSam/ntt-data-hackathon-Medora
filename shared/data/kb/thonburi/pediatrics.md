@@ -1,6 +1,6 @@
 # Thonburi Riverside Hospital: Pediatrics / โรงพยาบาลธนบุรีริมน้ำ: กุมารเวชศาสตร์
 
-Thonburi Riverside Hospital has a pediatrics department registered.
+Department registered at Thonburi Riverside Hospital: Pediatrics.
 Equipment on site: CT scanner, MRI scanner.
 Care this hospital can support when the department is open and staffed: children's admission.
 Typical emergency department wait: about 45 minutes. Location: 13.722, 100.485.

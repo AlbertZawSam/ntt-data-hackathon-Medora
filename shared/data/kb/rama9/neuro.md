@@ -1,12 +1,12 @@
-# Rama Nine Neuro and Heart Hospital: Neurology / โรงพยาบาลประสาทและหัวใจพระรามเก้า: ประสาทวิทยา
+# Rama Nine City Hospital: Neurology / โรงพยาบาลพระรามเก้าซิตี้: ประสาทวิทยา
 
-Rama Nine Neuro and Heart Hospital has a neurology department registered.
+Department registered at Rama Nine City Hospital: Neurology.
 Equipment on site: CT scanner, MRI scanner, cath lab.
 Care this hospital can support when the department is open and staffed: stroke care.
 Typical emergency department wait: about 20 minutes. Location: 13.757, 100.566.
 This document lists registered capability only. Whether a bed, device or doctor is available now comes from live status.
 
-โรงพยาบาลประสาทและหัวใจพระรามเก้า มีแผนกประสาทวิทยา (Neurology)ที่ลงทะเบียนไว้
+โรงพยาบาลพระรามเก้าซิตี้ มีแผนกประสาทวิทยา (Neurology)ที่ลงทะเบียนไว้
 อุปกรณ์ในโรงพยาบาล: เครื่อง CT (CT scanner), เครื่อง MRI (MRI scanner), ห้องสวนหัวใจ (cath lab)
 การดูแลที่โรงพยาบาลรองรับได้เมื่อแผนกเปิดและมีบุคลากร: การรักษาโรคหลอดเลือดสมอง (stroke care)
 เวลารอห้องฉุกเฉินโดยทั่วไปประมาณ 20 นาที

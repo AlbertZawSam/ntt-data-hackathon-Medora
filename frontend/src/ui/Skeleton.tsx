@@ -1,8 +1,8 @@
 import React from 'react';
 import { Animated, Easing, Platform, StyleSheet, View, type DimensionValue } from 'react-native';
+import { useT } from '../state/AppProvider';
 import { Card } from './Card';
 import { useReducedMotion } from './Reveal';
-import { useT } from '../state/AppProvider';
 import { radii, spacing, useTheme } from './theme';
 
 /** A grey placeholder bar that gently pulses while real content loads, so a screen never looks empty or jumps. */
