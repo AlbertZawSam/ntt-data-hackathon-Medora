@@ -30,6 +30,7 @@ import { Notice } from '../../src/ui/Notice';
 import { Page } from '../../src/ui/Page';
 import { Reveal } from '../../src/ui/Reveal';
 import { Segmented } from '../../src/ui/Segmented';
+import { call1669 } from '../../src/services/emergency';
 import { SectionHeader } from '../../src/ui/SectionHeader';
 import { SkeletonCard } from '../../src/ui/Skeleton';
 import { fonts, fontSizes, spacing, useBreakpoint, useTheme } from '../../src/ui/theme';
@@ -368,6 +369,11 @@ export default function PatientCareScreen(): React.JSX.Element {
                       onChange={setMode}
                       options={ARRIVAL_MODES.map((m) => ({ value: m, label: t(`mode.${m}` as StringKey), icon: MODE_ICON[m] }))}
                     />
+                    {mode === 'ambulance' ? (
+                      <Notice tone="warning" actionLabel={t('emergency.call1669')} onAction={() => void call1669()}>
+                        {t('patient.care.ambulanceHint')}
+                      </Notice>
+                    ) : null}
                     <Field label={t('patient.care.namePlaceholder')} icon="person-outline" value={name} onChangeText={setName} maxLength={MAX_NAME} />
                     <Field label={t('patient.care.phonePlaceholder')} icon="call-outline" value={phone} onChangeText={setPhone} keyboardType="phone-pad" maxLength={20} />
                     <View style={styles.buttons}>

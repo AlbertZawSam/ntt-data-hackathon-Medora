@@ -734,5 +734,11 @@
   "timeline.state.done": "เสร็จแล้ว",
   "timeline.state.active": "กำลังดำเนินการ",
   "timeline.state.pending": "ยังไม่เริ่ม",
-  "timeline.state.error": "ไม่สำเร็จ"
+  "timeline.state.error": "ไม่สำเร็จ",
+  "common.clearSearch": "ล้างคำค้นหา",
+  "common.closeMenu": "ปิดเมนู",
+  "profile.hospitalIs": "โรงพยาบาล: {{name}}",
+  "activity.sub": "สิ่งที่เกิดขึ้นที่โรงพยาบาลของคุณ ล่าสุดก่อน",
+  "activity.listTitle": "กิจกรรมล่าสุด",
+  "patient.care.ambulanceHint": "ต้องการรถพยาบาลใช่ไหม โทร 1669 เพื่อให้ส่งรถพยาบาลมารับคุณ"
 }

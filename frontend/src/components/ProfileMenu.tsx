@@ -36,18 +36,18 @@ export function ProfileMenu(): React.JSX.Element | null {
         <Text style={[styles.initial, { color: theme.onPrimary }]}>{initial}</Text>
       </Pressable>
       <Modal transparent visible={open} animationType="fade" onRequestClose={() => setOpen(false)}>
-        <Pressable accessibilityLabel={t('common.back')} onPress={() => setOpen(false)} style={[styles.backdrop, { backgroundColor: theme.overlay, paddingTop: insets.top + 56 }]}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('common.closeMenu')} onPress={() => setOpen(false)} style={[styles.backdrop, { backgroundColor: theme.overlay, paddingTop: insets.top + 56 }]}>
           <Pressable onPress={() => undefined} style={styles.sheet}>
             <Card elevation={2} padding="lg">
               <Text style={[styles.small, { color: theme.textMuted }]}>{t('profile.signedInAs')}</Text>
               <Text numberOfLines={1} style={[styles.email, { color: theme.text }]}>{session.email}</Text>
               <View style={styles.badges}>
                 {role ? <Badge tone="primary" icon="shield-checkmark" label={t(`role.${role}` as StringKey)} /> : null}
-                {session.unit ? <Badge tone="info" label={session.unit.toUpperCase()} /> : null}
+                {session.unit ? <Badge tone="info" label={t(`unit.name.${session.unit}` as StringKey)} /> : null}
               </View>
               {hospital ? (
                 <Text style={[styles.small, { color: theme.text }]}>
-                  {t('profile.hospital')}: {pick(hospital.name, lang)}
+                  {t('profile.hospitalIs', { name: pick(hospital.name, lang) })}
                 </Text>
               ) : null}
               <Button variant="secondary" icon="log-out-outline" label={t('common.signOut')} onPress={() => { setOpen(false); void signOut(); }} />

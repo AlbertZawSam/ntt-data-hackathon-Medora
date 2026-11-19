@@ -17,10 +17,11 @@ import { Button } from '../../src/ui/Button';
 import { Card, type Tone } from '../../src/ui/Card';
 import { ConfirmPanel } from '../../src/ui/ConfirmPanel';
 import { EmptyState } from '../../src/ui/EmptyState';
-import type { IconName } from '../../src/ui/Icon';
 import { Notice } from '../../src/ui/Notice';
 import { Page } from '../../src/ui/Page';
+import { Icon, type IconName } from '../../src/ui/Icon';
 import { Reveal } from '../../src/ui/Reveal';
+import { SkeletonCard } from '../../src/ui/Skeleton';
 import { fonts, fontSizes, spacing, useTheme } from '../../src/ui/theme';
 
 const STATUS_LOOK: Record<CareRequest['status'], { tone: Tone; icon: IconName }> = {
@@ -66,6 +67,14 @@ export default function PatientRequestsScreen(): React.JSX.Element {
   const statusOf = (r: CareRequest): CareRequest['status'] => (r.status === 'waiting' && now - r.createdAtMs >= NO_REPLY_MS ? 'no_reply' : r.status);
 
   /** Where the request stands, as three steps: sent, the hospital looking at it, and its answer. */
+  const stepsOf = (status: CareRequest['status']): Array<{ key: StringKey; state: StepState }> => {
+    const answered = status === 'accepted' || status === 'completed' || status === 'declined';
+    return [
+      { key: 'patient.requests.stepSent', state: 'done' },
+      { key: 'patient.requests.stepReview', state: answered ? 'done' : 'active' },
+      { key: 'patient.requests.stepAnswer', state: status === 'declined' ? 'error' : answered ? 'done' : 'pending' },
+    ];
+  };
 
   const minutesAgo = (ms: number): string => {
     return t('patient.requests.sentAgo', { ago: agoText(t, ms, now) });
@@ -73,7 +82,13 @@ export default function PatientRequestsScreen(): React.JSX.Element {
 
   return (
     <Page title={t('patient.requests.title')} subtitle={t('patient.requests.sub')} width="readable">
-      {mine.length === 0 ? (
+      {mine.length === 0 && !data.isSynced ? (
+        <>
+          <SkeletonCard lines={3} />
+          <SkeletonCard lines={3} />
+        </>
+      ) : null}
+      {mine.length === 0 && data.isSynced ? (
         <Card padding="lg">
           <EmptyState icon="chatbubbles-outline" title={t('patient.requests.emptyTitle')} text={t('patient.requests.empty')} actionLabel={t('patient.requests.emptyAction')} onAction={() => router.push('/(patient)/care' as Href)} />
         </Card>
@@ -102,6 +117,8 @@ export default function PatientRequestsScreen(): React.JSX.Element {
                 </View>
               </View>
 
+
+              {status !== 'cancelled' ? <Steps steps={stepsOf(status)} /> : null}
 
               {r.referredTo && status !== 'cancelled' ? (
                 <Notice
@@ -163,7 +180,38 @@ export default function PatientRequestsScreen(): React.JSX.Element {
   );
 }
 
+type StepState = 'done' | 'active' | 'pending' | 'error';
+
+/** Three steps in a row, each with an icon and a word for its state, so progress never depends on colour alone. */
+function Steps({ steps }: { steps: Array<{ key: StringKey; state: StepState }> }): React.JSX.Element {
+  const t = useT();
+  const theme = useTheme();
+  const look: Record<StepState, { icon: IconName; color: string }> = {
+    done: { icon: 'checkmark-circle', color: theme.success },
+    active: { icon: 'time', color: theme.primary },
+    pending: { icon: 'ellipse-outline', color: theme.textMuted },
+    error: { icon: 'close-circle', color: theme.emergency },
+  };
+  return (
+    <View accessibilityRole="list" style={styles.steps}>
+      {steps.map((step, index) => (
+        <React.Fragment key={step.key}>
+          {index > 0 ? <View style={[styles.stepLine, { backgroundColor: step.state === 'pending' ? theme.border : look.done.color }]} /> : null}
+          <View accessible accessibilityLabel={`${t(step.key)}, ${t(`timeline.state.${step.state}`)}`} style={styles.step}>
+            <Icon name={look[step.state].icon} size={22} color={look[step.state].color} />
+            <Text style={[styles.stepText, { color: step.state === 'pending' ? theme.textMuted : theme.text }]}>{t(step.key)}</Text>
+          </View>
+        </React.Fragment>
+      ))}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  steps: { flexDirection: 'row', alignItems: 'flex-start' },
+  step: { flex: 1, alignItems: 'center', gap: spacing.xs },
+  stepLine: { height: 2, flex: 0.4, marginTop: 10 },
+  stepText: { fontSize: fontSizes.sm, lineHeight: 20, fontFamily: fonts.medium, textAlign: 'center' },
   flex: { flex: 1 },
   head: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.sm },
   name: { fontSize: fontSizes.lg, fontFamily: fonts.bold },

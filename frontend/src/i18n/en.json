@@ -734,5 +734,11 @@
   "timeline.state.done": "done",
   "timeline.state.active": "in progress",
   "timeline.state.pending": "not started",
-  "timeline.state.error": "failed"
+  "timeline.state.error": "failed",
+  "common.clearSearch": "Clear search",
+  "common.closeMenu": "Close menu",
+  "profile.hospitalIs": "Hospital: {{name}}",
+  "activity.sub": "What happened at your hospital, newest first",
+  "activity.listTitle": "Recent activity",
+  "patient.care.ambulanceHint": "Need an ambulance? Call 1669 to have one sent to you."
 }

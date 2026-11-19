@@ -219,7 +219,11 @@ export default function PatientHomeScreen(): React.JSX.Element {
                 returnKeyType="search"
                 style={[styles.searchInput, { color: theme.text }]}
               />
-              {query ? <Pressable accessibilityRole="button" accessibilityLabel={t('common.back')} onPress={() => setQuery('')} hitSlop={8}><Icon name="close-circle" size={20} color={theme.textMuted} /></Pressable> : null}
+              {query ? (
+                <Pressable accessibilityRole="button" accessibilityLabel={t('common.clearSearch')} onPress={() => setQuery('')} style={[styles.clear, pointer]}>
+                  <Icon name="close-circle" size={22} color={theme.textMuted} />
+                </Pressable>
+              ) : null}
             </View>
         {searching ? (
           <View accessibilityLiveRegion="polite" style={[styles.results, styles.dropdown, shadow(2, dark), { maxHeight: (wide ? 280 : 220) - 72 }, { borderColor: theme.border, backgroundColor: theme.surface }]}>
@@ -285,9 +289,10 @@ export default function PatientHomeScreen(): React.JSX.Element {
         </View>
       ) : (
         <View style={styles.stack}>
+          {/* On a phone the main task comes right after emergency; the map can wait below it. */}
           {emergency}
-          {locationCard}
           {actions}
+          {locationCard}
         </View>
       )}
       <Notice tone="neutral">{t('patient.care.disclaimer')}</Notice>
@@ -298,6 +303,7 @@ export default function PatientHomeScreen(): React.JSX.Element {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   stack: { gap: spacing.md },
+  clear: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginRight: -spacing.sm },
   columns: { flexDirection: 'row', gap: spacing.lg, alignItems: 'flex-start' },
   column: { flex: 1 },
   actionRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },

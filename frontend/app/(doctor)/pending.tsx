@@ -1,21 +1,22 @@
 import React from 'react';
-import { StyleSheet, Text } from 'react-native';
-import { ScreenStub } from '../../src/components/ScreenStub';
 import { useApp, useT } from '../../src/state/AppProvider';
 import { Button } from '../../src/ui/Button';
-import { fonts, fontSizes, useTheme } from '../../src/ui/theme';
+import { FormScreen } from '../../src/ui/FormScreen';
+import { Notice } from '../../src/ui/Notice';
 
-/** Doctors wait here until an admin of their hospital approves them. Requirements: 18.6 */
+/**
+ * Doctors wait here until an admin of their hospital approves them: what is happening, what to do, and a way to
+ * check again or sign out. It has no tab bar, so it uses the same centred card as sign-in. Requirements: 18.6
+ */
 export default function DoctorPendingScreen(): React.JSX.Element {
   const t = useT();
-  const theme = useTheme();
-  const { refreshSession } = useApp();
+  const { refreshSession, signOut } = useApp();
   const [busy, setBusy] = React.useState(false);
   return (
-    <ScreenStub titleKey="doctor.pending.title">
-      <Text style={[styles.message, { color: theme.textMuted }]}>{t('doctor.pending.message')}</Text>
+    <FormScreen title={t('doctor.pending.title')}>
+      <Notice tone="info">{t('doctor.pending.message')}</Notice>
       <Button
-        variant="secondary"
+        icon="refresh"
         label={t('doctor.pending.checkAgain')}
         busy={busy}
         onPress={() => {
@@ -24,10 +25,7 @@ export default function DoctorPendingScreen(): React.JSX.Element {
           void refreshSession(true).finally(() => setBusy(false));
         }}
       />
-    </ScreenStub>
+      <Button variant="link" label={t('common.signOut')} onPress={() => void signOut()} />
+    </FormScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  message: { fontSize: fontSizes.md, fontFamily: fonts.regular, textAlign: 'center' },
-});
