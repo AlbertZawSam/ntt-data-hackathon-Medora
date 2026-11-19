@@ -1,6 +1,6 @@
 # Lat Phrao University Hospital: Cardiology / โรงพยาบาลมหาวิทยาลัยลาดพร้าว: อายุรกรรมหัวใจ
 
-Lat Phrao University Hospital has a cardiology department registered.
+Department registered at Lat Phrao University Hospital: Cardiology.
 Equipment on site: CT scanner, MRI scanner, cath lab.
 Care this hospital can support when the department is open and staffed: heart attack care.
 Typical emergency department wait: about 60 minutes. Location: 13.8065, 100.576.

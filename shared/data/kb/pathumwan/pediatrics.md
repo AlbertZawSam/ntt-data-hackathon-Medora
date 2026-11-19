@@ -1,6 +1,6 @@
 # Pathum Wan Medical Center: Pediatrics / ศูนย์การแพทย์ปทุมวัน: กุมารเวชศาสตร์
 
-Pathum Wan Medical Center has a pediatrics department registered.
+Department registered at Pathum Wan Medical Center: Pediatrics.
 Equipment on site: CT scanner, MRI scanner, cath lab.
 Care this hospital can support when the department is open and staffed: children's admission.
 Typical emergency department wait: about 30 minutes. Location: 13.7445, 100.53.

@@ -460,3 +460,38 @@ describe('demo replies in a short wait', () => {
     }
   });
 });
+
+describe('a broken leg referred from Thonburi', () => {
+  it('goes to the trauma hospital, after the women\'s and children\'s hospital declines adult fractures', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(NOW);
+    try {
+      const { store, updates } = makeStore(null);
+      store.demoHospitalKey = (id) => id;
+      // Like the real table: a request keeps the status it was created with (accepted by rule) and saves replies.
+      const created: CareRequest[] = [];
+      const replies: Record<string, string | undefined> = {};
+      store.createRequest = async (request) => {
+        const row = { ...request, id: `r${created.length + 1}` } as CareRequest;
+        created.push(row);
+        return row;
+      };
+      store.requests = async () => created;
+      store.updateRequest = async (id, changes) => {
+        replies[id] = changes.status;
+        Object.assign(created.find((r) => r.id === id)!, changes);
+      };
+      // Real distances (the offline estimate), not the flat 10 minutes the other tests use.
+      store.routeMinutes = async () => ({});
+      const tools = new ReferralTools({ id: 'ref1', ownerId: 'd1', fromHospitalId: 'thonburi', text: 'case', lang: 'en', requestIds: [], startedAtMs: Date.now() }, store);
+      await tools.execute('assess_case', { pathway: 'injury' });
+      const backup = tools.ruleBasedBackup();
+      await jest.advanceTimersByTimeAsync(60_000);
+      await backup;
+      expect(replies[created.find((r) => r.hospitalId === 'chaophraya')!.id]).toBe('declined');
+      expect(updates.filter((u) => u.status).at(-1)).toMatchObject({ status: 'awaiting', chosenId: 'khlongsan' });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+});

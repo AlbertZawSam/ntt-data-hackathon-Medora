@@ -46,7 +46,29 @@ export function referralTargets(
 export type DirectReferralCheck = { ok: true } | { ok: false; reason: 'not-your-patient' | 'bad-state' | 'same-hospital' | 'no-hospital' | 'bad-department' };
 
 /** Patients a doctor can refer: a visit or referral still open or arrived, never a booking or a withdrawn request. */
-const REFERABLE_STATUSES = ['waiting', 'accepted', 'completed'];
+export const REFERABLE_STATUSES: readonly string[] = ['waiting', 'accepted', 'completed'];
+
+/** How long a patient's own request stays in the doctor's list to refer. */
+export const REFERABLE_FOR_MS = 24 * 60 * 60_000;
+
+/**
+ * The patients a doctor sees under "Patients" to refer: patients' own requests at the doctor's hospital, from the
+ * last 24 hours, that the server would accept for a referral, including a patient who has already arrived and turns
+ * out to need equipment or a specialist this hospital doesn't have right now.
+ */
+export function isReferablePatient(
+  request: { hospitalId: string; type?: string; status?: string; referralId?: string | null; createdAtMs: number },
+  doctorHospitalId: string | undefined,
+  nowMs: number,
+): boolean {
+  return (
+    request.hospitalId === doctorHospitalId &&
+    !request.referralId &&
+    request.type !== 'booking' &&
+    REFERABLE_STATUSES.includes(request.status ?? '') &&
+    nowMs - request.createdAtMs < REFERABLE_FOR_MS
+  );
+}
 
 /**
  * The doctor may refer only a patient whose request is at their own hospital, to another hospital that

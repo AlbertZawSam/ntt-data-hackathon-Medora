@@ -1,6 +1,6 @@
 # Thonburi Riverside Hospital: Emergency department / โรงพยาบาลธนบุรีริมน้ำ: ห้องฉุกเฉิน
 
-Thonburi Riverside Hospital has a emergency department department registered.
+Department registered at Thonburi Riverside Hospital: Emergency department.
 Equipment on site: CT scanner, MRI scanner.
 Care this hospital can support when the department is open and staffed: injury care, urgent care.
 Typical emergency department wait: about 45 minutes. Location: 13.722, 100.485.

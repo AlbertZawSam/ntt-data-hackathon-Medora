@@ -1,5 +1,5 @@
 {
-  "_note": "Synthetic demo hospitals for Medora (team data set, 18 Nov 2026). Fictional hospitals and doctors modelled on Thai hospital tiers; not real hospitals, people or availability. Converted from the team's medora-demo-hospitals.json: ready beds are the ward-owned beds, ICU beds the ICU-owned units (ICU, CCU, stroke unit), on-duty roles come from the doctors on duty now, and the typical wait is chosen by hospital type. `updatedMinAgo` is turned into a time when seeding.",
+  "_note": "Synthetic demo hospitals for Medora (team data set, 18 Nov 2026). Fictional Bangkok hospitals and doctors modelled on Thai hospital tiers (the Nan province pair was removed, Khlong San added, and specialty names made general on 18 Nov); not real hospitals, people or availability. Converted from the team's medora-demo-hospitals.json: ready beds are the ward-owned beds, ICU beds the ICU-owned units (ICU, CCU, stroke unit), on-duty roles come from the doctors on duty now, and the typical wait is chosen by hospital type. `updatedMinAgo` is turned into a time when seeding.",
   "hospitals": [
     {
       "key": "pathumwan",
@@ -24,6 +24,14 @@
         "ortho",
         "obstetrics",
         "pediatrics"
+      ],
+      "extraDepartments": [
+        "internal",
+        "surgery",
+        "ophthalmology",
+        "ent",
+        "dermatology",
+        "rehabilitation"
       ],
       "equipment": [
         "ct",
@@ -79,8 +87,8 @@
       "key": "rama9",
       "teamId": "H02",
       "name": {
-        "en": "Rama Nine Neuro and Heart Hospital",
-        "th": "โรงพยาบาลประสาทและหัวใจพระรามเก้า"
+        "en": "Rama Nine City Hospital",
+        "th": "โรงพยาบาลพระรามเก้าซิตี้"
       },
       "area": {
         "en": "Huai Khwang, Bangkok",
@@ -96,6 +104,11 @@
         "ed",
         "neuro",
         "cardio"
+      ],
+      "extraDepartments": [
+        "internal",
+        "surgery",
+        "rehabilitation"
       ],
       "equipment": [
         "ct",
@@ -150,8 +163,8 @@
       "key": "chaophraya",
       "teamId": "H03",
       "name": {
-        "en": "Chao Phraya Women's and Children's Hospital",
-        "th": "โรงพยาบาลแม่และเด็กเจ้าพระยา"
+        "en": "Chao Phraya Central Hospital",
+        "th": "โรงพยาบาลเจ้าพระยาเซ็นทรัล"
       },
       "area": {
         "en": "Bang Rak, Bangkok",
@@ -168,10 +181,11 @@
         "obstetrics",
         "pediatrics"
       ],
+      "extraDepartments": [],
       "equipment": [
         "ct"
       ],
-      "demo": "Pregnancy and preterm cases: obstetrics open, NICU cots free, accepts automatically.",
+      "demo": "Pregnancy and preterm cases: obstetrics open, NICU cots free, accepts automatically. Declines adult injury referrals (no orthopaedic surgeon), so a broken leg goes to the trauma hospital.",
       "status": {
         "beds": 15,
         "icu": 1,
@@ -205,6 +219,21 @@
         },
         "conflict": false,
         "updatedMinAgo": 6
+      },
+      "demoReply": {
+        "maternity": {
+          "status": "accepted"
+        },
+        "injury": {
+          "status": "declined",
+          "reason": "equip",
+          "note": "No adult orthopaedic surgeon on duty; please send fractures to a trauma centre."
+        },
+        "*": {
+          "status": "declined",
+          "reason": "equip",
+          "note": "We take pregnancy, newborn and children's cases; no adult general medicine team on duty."
+        }
       }
     },
     {
@@ -229,6 +258,14 @@
         "ortho",
         "obstetrics",
         "pediatrics"
+      ],
+      "extraDepartments": [
+        "internal",
+        "surgery",
+        "psychiatry",
+        "ophthalmology",
+        "ent",
+        "rehabilitation"
       ],
       "equipment": [
         "ct",
@@ -298,6 +335,15 @@
         "obstetrics",
         "pediatrics"
       ],
+      "extraDepartments": [
+        "internal",
+        "surgery",
+        "psychiatry",
+        "ophthalmology",
+        "ent",
+        "dermatology",
+        "rehabilitation"
+      ],
       "equipment": [
         "ct",
         "mri",
@@ -359,8 +405,8 @@
       "key": "asok",
       "teamId": "H06",
       "name": {
-        "en": "Asok Urgent Care Clinic",
-        "th": "คลินิกเร่งด่วนอโศก"
+        "en": "Asok Medical Clinic",
+        "th": "คลินิกเวชกรรมอโศก"
       },
       "area": {
         "en": "Watthana, Bangkok",
@@ -376,10 +422,14 @@
         "ed",
         "ortho"
       ],
+      "extraDepartments": [
+        "family",
+        "dermatology"
+      ],
       "equipment": [],
       "demo": "Good for minor injuries; no CT or inpatient beds, so never suggested for stroke or serious cases.",
       "status": {
-        "beds": 0,
+        "beds": 4,
         "icu": 0,
         "nicu": 0,
         "depts": {
@@ -406,14 +456,21 @@
         },
         "conflict": false,
         "updatedMinAgo": 12
+      },
+      "demoReply": {
+        "*": {
+          "status": "declined",
+          "reason": "equip",
+          "note": "We are a clinic with no CT and only observation beds; we can't take referrals."
+        }
       }
     },
     {
       "key": "bangna",
       "teamId": "H07",
       "name": {
-        "en": "Bang Na Heart and Stroke Institute",
-        "th": "สถาบันหัวใจและหลอดเลือดสมองบางนา"
+        "en": "Bang Na City Hospital",
+        "th": "โรงพยาบาลบางนาซิตี้"
       },
       "area": {
         "en": "Bang Na, Bangkok",
@@ -429,6 +486,11 @@
         "ed",
         "neuro",
         "cardio"
+      ],
+      "extraDepartments": [
+        "internal",
+        "surgery",
+        "rehabilitation"
       ],
       "equipment": [
         "ct",
@@ -477,8 +539,8 @@
       "key": "chatuchak",
       "teamId": "H08",
       "name": {
-        "en": "Chatuchak Children's Hospital",
-        "th": "โรงพยาบาลเด็กจตุจักร"
+        "en": "Chatuchak Park Hospital",
+        "th": "โรงพยาบาลจตุจักรพาร์ค"
       },
       "area": {
         "en": "Chatuchak, Bangkok",
@@ -493,6 +555,10 @@
       "departments": [
         "ed",
         "pediatrics"
+      ],
+      "extraDepartments": [
+        "surgery",
+        "psychiatry"
       ],
       "equipment": [
         "ct",
@@ -530,145 +596,83 @@
         },
         "conflict": false,
         "updatedMinAgo": 14
-      }
-    },
-    {
-      "key": "nanvalley",
-      "teamId": "H09",
-      "name": {
-        "en": "Nan Valley Provincial Hospital",
-        "th": "โรงพยาบาลจังหวัดน่านวัลเลย์"
-      },
-      "area": {
-        "en": "Mueang Nan, Nan province",
-        "th": "อำเภอเมืองน่าน จังหวัดน่าน"
-      },
-      "type": "Public provincial hospital",
-      "lat": 18.784,
-      "lng": 100.779,
-      "totalBeds": 481,
-      "nicuTotal": 12,
-      "typicalWaitMin": 40,
-      "departments": [
-        "ed",
-        "neuro",
-        "cardio",
-        "ortho",
-        "obstetrics",
-        "pediatrics"
-      ],
-      "equipment": [
-        "ct",
-        "mri",
-        "cathlab"
-      ],
-      "demo": "Rural referral: the provincial hospital that can treat the stroke patient from the district hospital, about an hour's drive away.",
-      "status": {
-        "beds": 25,
-        "icu": 4,
-        "nicu": 2,
-        "depts": {
-          "ed": "open",
-          "neuro": "open",
-          "cardio": "open",
-          "ortho": "open",
-          "obstetrics": "open",
-          "pediatrics": "open"
-        },
-        "equip": {
-          "ct": true,
-          "mri": true,
-          "cathlab": true,
-          "lab": true,
-          "ecg": true,
-          "echo": true,
-          "xray": true,
-          "theatre": true,
-          "ultrasound": true,
-          "delivery": true
-        },
-        "oncall": {
-          "er": true,
-          "neurologist": true,
-          "cardiologist": true,
-          "orthopedist": true,
-          "obstetrician": false,
-          "pediatrician": false
-        },
-        "rules": {
-          "minBeds": 1,
-          "visit": true,
-          "stroke": true,
-          "stemi": false,
-          "preterm": false,
-          "peds": false
-        },
-        "conflict": false,
-        "updatedMinAgo": 11
       },
       "demoReply": {
-        "stroke": {
-          "status": "accepted",
-          "note": "Accepted. Stroke team ready; CT available on arrival."
+        "*": {
+          "status": "declined",
+          "reason": "equip",
+          "note": "We treat children only; we can't admit adult patients."
         }
       }
     },
     {
-      "key": "nanhills",
-      "teamId": "H10",
+      "key": "khlongsan",
+      "teamId": "H11",
       "name": {
-        "en": "Nan Hills District Hospital",
-        "th": "โรงพยาบาลชุมชนน่านฮิลส์"
+        "en": "Khlong San City Hospital",
+        "th": "โรงพยาบาลคลองสานซิตี้"
       },
       "area": {
-        "en": "A district of Nan province",
-        "th": "อำเภอหนึ่งในจังหวัดน่าน"
+        "en": "Khlong San, Bangkok",
+        "th": "คลองสาน กรุงเทพฯ"
       },
-      "type": "Public community (district) hospital",
-      "lat": 19.18,
-      "lng": 100.91,
-      "totalBeds": 56,
+      "type": "Private specialty hospital (bones and injuries)",
+      "lat": 13.728,
+      "lng": 100.505,
+      "totalBeds": 90,
       "nicuTotal": 0,
-      "typicalWaitMin": 15,
+      "typicalWaitMin": 20,
       "departments": [
         "ed",
-        "obstetrics",
-        "pediatrics"
+        "ortho"
       ],
-      "equipment": [],
-      "demo": "Where the 2 a.m. story starts: no CT and no neurologist, so the doctor refers the stroke patient to Nan Valley Provincial Hospital.",
+      "extraDepartments": [
+        "surgery",
+        "rehabilitation"
+      ],
+      "equipment": [
+        "ct",
+        "mri"
+      ],
+      "demo": "Injuries and fractures only: orthopaedic surgeons, X-ray, CT and operating theatres; accepts injury referrals and walk-in injuries automatically. No heart, stroke, pregnancy or children's care.",
       "status": {
-        "beds": 12,
-        "icu": 0,
+        "beds": 7,
+        "icu": 1,
         "nicu": 0,
         "depts": {
           "ed": "open",
-          "obstetrics": "open",
-          "pediatrics": "open"
+          "ortho": "open"
         },
         "equip": {
+          "ct": true,
+          "mri": true,
           "lab": true,
           "ecg": true,
           "xray": true,
-          "theatre": true,
-          "ultrasound": true,
-          "delivery": true
+          "theatre": true
         },
         "oncall": {
           "er": true,
-          "obstetrician": false,
-          "pediatrician": false
+          "orthopedist": true
         },
         "rules": {
-          "minBeds": 2,
+          "minBeds": 1,
           "visit": true,
           "stroke": false,
           "stemi": false,
           "preterm": false,
-          "peds": false
+          "peds": false,
+          "injury": true
         },
         "conflict": false,
-        "updatedMinAgo": 18
+        "updatedMinAgo": 6
+      },
+      "demoReply": {
+        "*": {
+          "status": "declined",
+          "reason": "equip",
+          "note": "We treat bone and injury cases only; no general medicine team for this case."
+        }
       }
     }
   ]

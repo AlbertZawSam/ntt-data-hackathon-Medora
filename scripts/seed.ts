@@ -25,6 +25,7 @@ const REGION = 'us-east-1';
 const RETIRED_KEYS = [
   ...['rama9', 'siam', 'chaophraya', 'thonburi', 'ladprao', 'victory', 'bangna', 'chatuchak'],
   ...['krungthep', 'sathorn', 'phranakhon', 'bangkapi', 'ratchada', 'sukhumvit', 'thonglo', 'bangkhae', 'minburi', 'nonthaburi'],
+  ...['nanvalley', 'nanhills'],
 ];
 
 async function findApiId(url: string): Promise<string> {
@@ -64,7 +65,8 @@ async function main(): Promise<void> {
       totalBeds: hospital.totalBeds,
       nicuTotal: hospital.nicuTotal,
       typicalWaitMin: hospital.typicalWaitMin,
-      departments: hospital.departments,
+      // The tracked departments and the others the hospital has, so patients see every department it runs.
+      departments: [...hospital.departments, ...(hospital.extraDepartments ?? [])],
       equipment: hospital.equipment,
     };
     // The record id is the hospital id, as register-hospital does; update-status finds rows by it.

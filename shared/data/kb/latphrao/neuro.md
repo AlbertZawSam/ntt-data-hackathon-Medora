@@ -1,6 +1,6 @@
 # Lat Phrao University Hospital: Neurology / โรงพยาบาลมหาวิทยาลัยลาดพร้าว: ประสาทวิทยา
 
-Lat Phrao University Hospital has a neurology department registered.
+Department registered at Lat Phrao University Hospital: Neurology.
 Equipment on site: CT scanner, MRI scanner, cath lab.
 Care this hospital can support when the department is open and staffed: stroke care.
 Typical emergency department wait: about 60 minutes. Location: 13.8065, 100.576.

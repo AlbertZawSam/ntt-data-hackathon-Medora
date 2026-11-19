@@ -1,6 +1,6 @@
 # Lat Phrao University Hospital: Orthopedics / โรงพยาบาลมหาวิทยาลัยลาดพร้าว: ศัลยกรรมกระดูกและข้อ
 
-Lat Phrao University Hospital has a orthopedics department registered.
+Department registered at Lat Phrao University Hospital: Orthopedics.
 Equipment on site: CT scanner, MRI scanner, cath lab.
 Care this hospital can support when the department is open and staffed: general care in this department.
 Typical emergency department wait: about 60 minutes. Location: 13.8065, 100.576.

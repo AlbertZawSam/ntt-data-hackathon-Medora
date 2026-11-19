@@ -12,7 +12,16 @@ describe('demoReply', () => {
   it('accepts by default and uses per-hospital presets', () => {
     expect(demoReply('rama9', 'stemi')).toEqual({ status: 'accepted' });
     expect(demoReply('latphrao', 'stroke')).toMatchObject({ status: 'declined', reason: 'divert' });
-    expect(demoReply('nanvalley', 'stroke').status).toBe('accepted');
+    // The women's and children's hospital declines adult fractures, so the trauma hospital takes a broken leg.
+    expect(demoReply('chaophraya', 'injury')).toMatchObject({ status: 'declined', reason: 'equip' });
+    expect(demoReply('chaophraya', 'maternity')).toEqual({ status: 'accepted' });
+  });
+
+  it('lets specialty hospitals decline cases outside their specialty', () => {
+    // A stomach pain ("general") referral: the bone, women's and children's, children's and urgent-care hospitals decline.
+    for (const key of ['khlongsan', 'chaophraya', 'chatuchak', 'asok']) expect(demoReply(key, 'general')).toMatchObject({ status: 'declined', reason: 'equip' });
+    // Hospitals with internal medicine accept it.
+    expect(demoReply('rama9', 'general')).toEqual({ status: 'accepted' });
     expect(demoReply('unknown', 'stroke')).toEqual({ status: 'accepted' });
   });
 
