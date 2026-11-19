@@ -15,6 +15,7 @@ import { useApp, useT } from '../../src/state/AppProvider';
 import { Badge } from '../../src/ui/Badge';
 import { Button } from '../../src/ui/Button';
 import { Card, type Tone } from '../../src/ui/Card';
+import { ConfirmPanel } from '../../src/ui/ConfirmPanel';
 import { EmptyState } from '../../src/ui/EmptyState';
 import type { IconName } from '../../src/ui/Icon';
 import { Notice } from '../../src/ui/Notice';
@@ -49,6 +50,8 @@ export default function PatientRequestsScreen(): React.JSX.Element {
   const [now, setNow] = React.useState(Date.now());
   const [busyId, setBusyId] = React.useState<string | null>(null);
   const [openId, setOpenId] = React.useState<string | null>(null);
+  // The request whose cancel the patient tapped, waiting for "Yes, cancel request".
+  const [confirmId, setConfirmId] = React.useState<string | null>(null);
   React.useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 5_000);
     return () => clearInterval(timer);
@@ -112,26 +115,37 @@ export default function PatientRequestsScreen(): React.JSX.Element {
               {status === 'declined' && isDeclineReason(r.reason) ? (
                 <Notice tone="warning">{t(`request.reason.${r.reason}` as StringKey)}</Notice>
               ) : null}
-              {status === 'no_reply' && !referred ? <Notice tone="warning">{t('patient.requests.noReply')}</Notice> : null}
+              {status === 'no_reply' && !referred ? (
+                <Notice tone="warning" actionLabel={open && confirmId !== r.id ? t('patient.requests.cancel') : undefined} onAction={() => setConfirmId(r.id)}>
+                  {t('patient.requests.noReply')}
+                </Notice>
+              ) : null}
 
+              {open && confirmId === r.id ? (
+                <ConfirmPanel
+                  title={t('patient.requests.cancelAsk', { hospital: r.hospitalName ? pick(r.hospitalName, lang) : r.hospitalId })}
+                  body={t('patient.requests.cancelBody')}
+                  confirmLabel={t('patient.requests.cancelYes')}
+                  cancelLabel={t('patient.requests.cancelKeep')}
+                  busy={busyId === r.id}
+                  onCancel={() => setConfirmId(null)}
+                  onConfirm={() => {
+                    setBusyId(r.id);
+                    void cancelRequest(r.id).finally(() => {
+                      setBusyId(null);
+                      setConfirmId(null);
+                    });
+                  }}
+                />
+              ) : null}
               <View style={styles.buttons}>
                 {chat ? (
                   <View style={styles.flex}>
                     <Button variant={expanded ? 'ghost' : 'secondary'} icon={expanded ? 'chevron-up' : 'chatbubbles'} label={expanded ? t('patient.requests.hide') : t('patient.requests.open')} onPress={() => setOpenId(expanded ? null : r.id)} />
                   </View>
                 ) : null}
-                {open ? (
-                  <Button
-                    variant="ghost"
-                    icon="close-circle-outline"
-                    fullWidth={false}
-                    label={t('patient.requests.cancel')}
-                    busy={busyId === r.id}
-                    onPress={() => {
-                      setBusyId(r.id);
-                      void cancelRequest(r.id).finally(() => setBusyId(null));
-                    }}
-                  />
+                {open && confirmId !== r.id ? (
+                  <Button variant="ghost" icon="close-circle-outline" fullWidth={false} label={t('patient.requests.cancel')} onPress={() => setConfirmId(r.id)} />
                 ) : null}
               </View>
 

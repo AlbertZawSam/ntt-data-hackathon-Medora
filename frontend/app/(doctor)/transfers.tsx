@@ -18,6 +18,7 @@ import { useApp, useT } from '../../src/state/AppProvider';
 import { Badge } from '../../src/ui/Badge';
 import { Button } from '../../src/ui/Button';
 import { Card } from '../../src/ui/Card';
+import { ConfirmPanel } from '../../src/ui/ConfirmPanel';
 import { EmptyState } from '../../src/ui/EmptyState';
 import { Icon } from '../../src/ui/Icon';
 import { Notice } from '../../src/ui/Notice';
@@ -76,6 +77,7 @@ function TransferCard({ transfer, now }: { transfer: Transfer; now: number }): R
   const [error, setError] = React.useState(false);
   // Shown as soon as the server accepts the click: a transfer changed by the server doesn't always arrive live.
   const [markedArrived, setMarkedArrived] = React.useState(false);
+  const [asking, setAsking] = React.useState(false);
   const referral = data.referrals.find((item) => item.id === transfer.referralId);
   // Doctors read only their own hospital's profile; every hospital's name and position is in the public directory.
   const toProfile = data.hospitalProfiles.find((profile) => profile.hospitalId === transfer.toHospitalId) ?? data.publicDirectory.find((entry) => entry.hospitalId === transfer.toHospitalId);
@@ -126,19 +128,26 @@ function TransferCard({ transfer, now }: { transfer: Transfer; now: number }): R
         <View style={[styles.fill, { width: `${Math.round(progress.fraction * 100)}%`, backgroundColor: arrived ? theme.success : theme.primary }]} />
       </View>
       {error ? <Notice tone="danger">{t('doctor.transfers.error')}</Notice> : null}
-      {!arrived ? (
-        <Button
-          variant="secondary"
-          icon="flag"
-          label={t('doctor.transfers.markArrived')}
+      {!arrived && !asking ? <Button variant="secondary" icon="flag" label={t('doctor.transfers.markArrived')} onPress={() => setAsking(true)} /> : null}
+      {!arrived && asking ? (
+        <ConfirmPanel
+          tone="primary"
+          title={t('doctor.transfers.arrivedConfirm', { hospital: name })}
+          body={t('doctor.transfers.arrivedBody')}
+          confirmLabel={t('doctor.transfers.markArrived')}
+          cancelLabel={t('common.notYet')}
           busy={busy}
-          onPress={() => {
+          onCancel={() => setAsking(false)}
+          onConfirm={() => {
             setBusy(true);
             setError(false);
             void markTransferArrived(transfer)
               .then(() => setMarkedArrived(true))
               .catch(() => setError(true))
-              .finally(() => setBusy(false));
+              .finally(() => {
+                setBusy(false);
+                setAsking(false);
+              });
           }}
         />
       ) : null}

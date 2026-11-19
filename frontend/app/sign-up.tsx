@@ -99,7 +99,7 @@ export default function SignUpScreen(): React.JSX.Element {
   }
 
   return (
-    <FormScreen title={t('signUp.title')} message={shown}>
+    <FormScreen title={t('signUp.title')} message={shown} emergency>
       <Text style={[styles.roleHint, { color: theme.textMuted }]}>{t('signUp.staffNote')}</Text>
       <Field
         label={t('signIn.emailPlaceholder')}
@@ -134,5 +134,5 @@ export default function SignUpScreen(): React.JSX.Element {
 }
 
 const styles = StyleSheet.create({
-  roleHint: { fontSize: fontSizes.xs, fontFamily: fonts.regular },
+  roleHint: { fontSize: fontSizes.sm, fontFamily: fonts.regular, lineHeight: 20 },
 });
