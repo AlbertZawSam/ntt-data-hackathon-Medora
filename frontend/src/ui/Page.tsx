@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppHeader } from '../components/AppHeader';
 import { Button } from './Button';
 import { Reveal } from './Reveal';
-import { fonts, fontSizes, layout, spacing, useBreakpoint, useTheme } from './theme';
+import { fonts, fontSizes, layout, lineHeights, spacing, useBreakpoint, useTheme } from './theme';
 
 interface Props {
   title: string;
@@ -45,7 +45,7 @@ export function Page({ title, subtitle, actions, onBack, backLabel, width = 'con
               {onBack ? <Button variant="ghost" size="sm" icon="chevron-back" fullWidth={false} label={backLabel ?? ''} onPress={onBack} /> : null}
               <View style={styles.titleRow}>
                 <View style={styles.titleText}>
-                  <Text accessibilityRole="header" style={[styles.title, { color: theme.text, fontSize: expanded ? fontSizes.xxl + 4 : fontSizes.xxl }]}>{title}</Text>
+                  <Text accessibilityRole="header" style={[styles.title, { color: theme.text, fontSize: expanded ? fontSizes.xxl + 4 : fontSizes.xxl, lineHeight: expanded ? lineHeights.xxl + 4 : lineHeights.xxl }]}>{title}</Text>
                   {subtitle ? <Text style={[styles.subtitle, { color: theme.textMuted }]}>{subtitle}</Text> : null}
                 </View>
                 {actions ? <View style={styles.actions}>{actions}</View> : null}
@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md, flexWrap: 'wrap' },
   titleText: { flex: 1, minWidth: 220, gap: 4 },
   title: { fontFamily: fonts.bold, letterSpacing: -0.4 },
-  subtitle: { fontSize: fontSizes.md, fontFamily: fonts.regular, lineHeight: 22 },
+  subtitle: { fontSize: fontSizes.md, fontFamily: fonts.regular, lineHeight: lineHeights.md },
   actions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   body: { gap: spacing.md },
 });

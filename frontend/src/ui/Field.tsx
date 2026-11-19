@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, TextInput, View, type StyleProp, type TextInputProps, type TextStyle } from 'react-native';
 import { Icon, type IconName } from './Icon';
-import { fonts, fontSizes, radii, spacing, useTheme } from './theme';
+import { fonts, fontSizes, lineHeights, radii, spacing, useTheme } from './theme';
 import { webTransition } from './web';
 
 interface Props extends Omit<TextInputProps, 'style' | 'placeholder'> {
@@ -18,7 +18,7 @@ interface Props extends Omit<TextInputProps, 'style' | 'placeholder'> {
 export function Field({ label, hint, error, icon, inputStyle, onFocus, onBlur, multiline, ...input }: Props): React.JSX.Element {
   const theme = useTheme();
   const [focused, setFocused] = React.useState(false);
-  const border = error ? theme.emergency : focused ? theme.primary : theme.border;
+  const border = error ? theme.emergency : focused ? theme.primary : theme.borderStrong;
   return (
     <View style={styles.wrap}>
       <Text style={[styles.label, { color: theme.text }]}>{label}</Text>
@@ -27,8 +27,10 @@ export function Field({ label, hint, error, icon, inputStyle, onFocus, onBlur, m
         <TextInput
           {...input}
           multiline={multiline}
-          accessibilityLabel={label}
-          accessibilityHint={error ?? hint}
+          // The error goes into the label, which every screen reader reads; hints are often read late or skipped.
+          accessibilityLabel={error ? `${label}, ${error}` : label}
+          accessibilityHint={error ? undefined : hint}
+          {...(error ? ({ 'aria-invalid': true } as object) : {})}
           placeholderTextColor={theme.textMuted}
           onFocus={(event) => {
             setFocused(true);
@@ -43,7 +45,7 @@ export function Field({ label, hint, error, icon, inputStyle, onFocus, onBlur, m
       </View>
       {error ? (
         <View accessibilityLiveRegion="assertive" style={styles.errorRow}>
-          <Icon name="alert-circle" size={15} color={theme.emergency} />
+          <Icon name="alert-circle" size={16} color={theme.emergency} />
           <Text style={[styles.hint, { color: theme.emergency }]}>{error}</Text>
         </View>
       ) : hint ? (
@@ -57,12 +59,12 @@ export function Field({ label, hint, error, icon, inputStyle, onFocus, onBlur, m
 const webOutline = { outlineStyle: 'none' } as unknown as TextStyle;
 
 const styles = StyleSheet.create({
-  wrap: { gap: spacing.xs + 2 },
-  label: { fontSize: fontSizes.sm, fontFamily: fonts.semibold },
+  wrap: { gap: spacing.xs + spacing.xxs },
+  label: { fontSize: fontSizes.sm, lineHeight: lineHeights.sm, fontFamily: fonts.semibold },
   box: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: 52, borderRadius: radii.lg, paddingHorizontal: spacing.md },
   boxMultiline: { alignItems: 'flex-start', paddingVertical: spacing.sm },
   iconTop: { marginTop: spacing.sm },
   input: { flex: 1, minHeight: 48, fontSize: fontSizes.md, fontFamily: fonts.regular },
-  errorRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  hint: { fontSize: fontSizes.xs, fontFamily: fonts.regular, lineHeight: 17 },
+  errorRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  hint: { flexShrink: 1, fontSize: fontSizes.sm, fontFamily: fonts.regular, lineHeight: lineHeights.sm },
 });

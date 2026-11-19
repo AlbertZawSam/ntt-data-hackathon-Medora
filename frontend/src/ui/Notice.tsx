@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Button } from './Button';
 import { toneColors, type Tone } from './Card';
 import { Icon, type IconName } from './Icon';
-import { fonts, fontSizes, radii, spacing, useTheme } from './theme';
+import { fonts, fontSizes, lineHeights, radii, spacing, useTheme } from './theme';
 
 const ICONS: Record<Tone, IconName> = {
   neutral: 'information-circle',
@@ -31,8 +31,8 @@ export function Notice({ tone = 'info', title, children, actionLabel, onAction }
 }
 
 const styles = StyleSheet.create({
-  notice: { flexDirection: 'row', gap: spacing.sm + 2, padding: spacing.md, borderRadius: radii.lg, borderWidth: 1, alignItems: 'flex-start' },
-  body: { flex: 1, gap: 2 },
-  title: { fontSize: fontSizes.md, fontFamily: fonts.semibold },
-  text: { fontSize: fontSizes.sm, fontFamily: fonts.regular, lineHeight: 20 },
+  notice: { flexDirection: 'row', gap: spacing.sm + spacing.xxs, padding: spacing.md, borderRadius: radii.lg, borderWidth: 1, alignItems: 'flex-start' },
+  body: { flex: 1, gap: spacing.xxs },
+  title: { fontSize: fontSizes.md, lineHeight: lineHeights.md, fontFamily: fonts.semibold },
+  text: { fontSize: fontSizes.md, fontFamily: fonts.regular, lineHeight: lineHeights.md },
 });

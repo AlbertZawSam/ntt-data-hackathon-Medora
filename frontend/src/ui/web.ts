@@ -7,9 +7,18 @@ import { motion } from './theme';
 
 const web = Platform.OS === 'web';
 
+/**
+ * True when the browser asks for less motion. Read synchronously, so the very first render already respects it
+ * (the async accessibility API answers only after the first animation has started).
+ */
+export function webPrefersReducedMotion(): boolean {
+  if (!web || typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
 /** Animate these properties when they change (hover, press, selection). */
 export function webTransition(properties = 'background-color, border-color, box-shadow, transform, opacity'): ViewStyle {
-  return web ? ({ transitionProperty: properties, transitionDuration: `${motion.fast + 40}ms`, transitionTimingFunction: 'ease-out' } as unknown as ViewStyle) : {};
+  return web && !webPrefersReducedMotion() ? ({ transitionProperty: properties, transitionDuration: `${motion.fast + 40}ms`, transitionTimingFunction: 'ease-out' } as unknown as ViewStyle) : {};
 }
 
 /** A ring around the control that has keyboard focus, so people using a keyboard can see where they are. */

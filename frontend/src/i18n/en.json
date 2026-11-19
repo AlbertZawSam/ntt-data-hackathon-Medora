@@ -728,5 +728,11 @@
   "doctor.refer.confirmAsk": "Transfer your patient to {{hospital}}?",
   "doctor.refer.confirmBody": "The receiving team is told at once and the transfer starts.",
   "doctor.transfers.arrivedConfirm": "Mark the patient as arrived at {{hospital}}?",
-  "doctor.transfers.arrivedBody": "This closes the transfer."
+  "doctor.transfers.arrivedBody": "This closes the transfer.",
+  "common.loading": "Loading",
+  "nav.withCount": "{{label}}, {{n}} new",
+  "timeline.state.done": "done",
+  "timeline.state.active": "in progress",
+  "timeline.state.pending": "not started",
+  "timeline.state.error": "failed"
 }

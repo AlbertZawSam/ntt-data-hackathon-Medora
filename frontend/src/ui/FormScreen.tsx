@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
   brandLogo: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 2 },
   logoImage: { width: 56, height: 56, borderRadius: 16, borderWidth: 2 },
   brandName: { fontSize: fontSizes.xxl, fontFamily: fonts.bold, letterSpacing: -0.4 },
-  tagline: { fontSize: 40, lineHeight: 48, fontFamily: fonts.bold, letterSpacing: -0.8 },
+  tagline: { fontSize: 40, lineHeight: 56, fontFamily: fonts.bold, letterSpacing: -0.8 },
   points: { gap: spacing.md },
   point: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   pointIcon: { width: 40, height: 40, borderRadius: radii.md, alignItems: 'center', justifyContent: 'center' },

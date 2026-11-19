@@ -14,7 +14,7 @@ import { Chip } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Field } from '../ui/Field';
 import { Notice } from '../ui/Notice';
-import { fonts, fontSizes, radii, spacing, useTheme } from '../ui/theme';
+import { fonts, fontSizes, lineHeights, radii, spacing, useTheme } from '../ui/theme';
 
 interface Props {
   requestId: string;
@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
   bubble: { borderWidth: 1, borderRadius: radii.lg, paddingVertical: spacing.sm, paddingHorizontal: spacing.md - 2, maxWidth: '88%', gap: 2 },
   mine: { alignSelf: 'flex-end', borderBottomRightRadius: radii.sm },
   theirs: { alignSelf: 'flex-start', borderBottomLeftRadius: radii.sm },
-  who: { fontFamily: fonts.medium, fontSize: fontSizes.xs },
+  who: { fontFamily: fonts.medium, fontSize: fontSizes.sm, lineHeight: lineHeights.sm },
   body: { fontFamily: fonts.regular, fontSize: fontSizes.md, lineHeight: 22 },
   quick: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
 });

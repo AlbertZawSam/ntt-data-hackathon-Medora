@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Button } from './Button';
-import { fonts, fontSizes, spacing, useTheme } from './theme';
+import { fonts, fontSizes, lineHeights, spacing, useTheme } from './theme';
 
 /** A heading for a group of cards, with an optional line under it and one quiet action on the right. */
 export function SectionHeader({ title, subtitle, actionLabel, onAction }: { title: string; subtitle?: string; actionLabel?: string; onAction?: () => void }): React.JSX.Element {
@@ -20,6 +20,6 @@ export function SectionHeader({ title, subtitle, actionLabel, onAction }: { titl
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: spacing.sm, marginTop: spacing.sm },
   text: { flex: 1, gap: 2 },
-  title: { fontSize: fontSizes.lg, fontFamily: fonts.bold },
-  subtitle: { fontSize: fontSizes.sm, fontFamily: fonts.regular },
+  title: { fontSize: fontSizes.lg, lineHeight: lineHeights.lg, fontFamily: fonts.bold },
+  subtitle: { fontSize: fontSizes.sm, lineHeight: lineHeights.sm, fontFamily: fonts.regular },
 });

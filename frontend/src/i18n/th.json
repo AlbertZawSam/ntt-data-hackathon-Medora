@@ -728,5 +728,11 @@
   "doctor.refer.confirmAsk": "ส่งต่อผู้ป่วยไปที่ {{hospital}} ใช่ไหม",
   "doctor.refer.confirmBody": "ทีมที่รับจะได้รับแจ้งทันทีและเริ่มการส่งต่อ",
   "doctor.transfers.arrivedConfirm": "บันทึกว่าผู้ป่วยถึง {{hospital}} แล้วใช่ไหม",
-  "doctor.transfers.arrivedBody": "การส่งต่อนี้จะปิด"
+  "doctor.transfers.arrivedBody": "การส่งต่อนี้จะปิด",
+  "common.loading": "กำลังโหลด",
+  "nav.withCount": "{{label}} ใหม่ {{n}} รายการ",
+  "timeline.state.done": "เสร็จแล้ว",
+  "timeline.state.active": "กำลังดำเนินการ",
+  "timeline.state.pending": "ยังไม่เริ่ม",
+  "timeline.state.error": "ไม่สำเร็จ"
 }

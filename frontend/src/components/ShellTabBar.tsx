@@ -58,7 +58,7 @@ export function ShellTabBar({ state, descriptors, navigation }: BottomTabBarProp
               key={item.key}
               onPress={item.press}
               accessibilityRole="tab"
-              accessibilityLabel={item.label}
+              accessibilityLabel={item.badge !== undefined ? t('nav.withCount', { label: item.label, n: item.badge }) : item.label}
               accessibilityState={{ selected: item.focused }}
               style={(s) => [
                 styles.sideItem,
@@ -71,7 +71,7 @@ export function ShellTabBar({ state, descriptors, navigation }: BottomTabBarProp
               <View style={[styles.accent, { backgroundColor: item.focused ? theme.primary : 'transparent' }]} />
               {item.icon}
               <Text style={[styles.sideLabel, { color: item.focused ? theme.primary : theme.text, fontFamily: item.focused ? fonts.bold : fonts.medium }]}>{item.label}</Text>
-              {item.badge !== undefined ? <View style={[styles.badge, { backgroundColor: theme.emergency }]}><Text style={styles.badgeText}>{item.badge}</Text></View> : null}
+              {item.badge !== undefined ? <View style={[styles.badge, { backgroundColor: theme.emergency }]}><Text style={[styles.badgeText, { color: theme.onEmergency }]}>{item.badge}</Text></View> : null}
             </Pressable>
           ))}
         </ScrollView>
@@ -90,13 +90,13 @@ export function ShellTabBar({ state, descriptors, navigation }: BottomTabBarProp
           key={item.key}
           onPress={item.press}
           accessibilityRole="tab"
-          accessibilityLabel={item.label}
+          accessibilityLabel={item.badge !== undefined ? t('nav.withCount', { label: item.label, n: item.badge }) : item.label}
           accessibilityState={{ selected: item.focused }}
           style={(s) => [styles.barItem, pointer, focusRing(theme.primary, (s as { focused?: boolean }).focused === true)]}
         >
           <View style={[styles.pill, { backgroundColor: item.focused ? theme.primarySoft : 'transparent' }, webTransition()]}>
             {item.icon}
-            {item.badge !== undefined ? <View style={[styles.dot, { backgroundColor: theme.emergency }]}><Text style={styles.badgeText}>{item.badge}</Text></View> : null}
+            {item.badge !== undefined ? <View style={[styles.dot, { backgroundColor: theme.emergency }]}><Text style={[styles.badgeText, { color: theme.onEmergency }]}>{item.badge}</Text></View> : null}
           </View>
           <Text numberOfLines={1} style={[styles.barLabel, { color: item.focused ? theme.primary : theme.textMuted, fontFamily: item.focused ? fonts.bold : fonts.medium }]}>{item.label}</Text>
         </Pressable>
@@ -109,10 +109,10 @@ const styles = StyleSheet.create({
   bar: { flexDirection: 'row', borderTopWidth: StyleSheet.hairlineWidth, paddingTop: spacing.sm - 2 },
   barItem: { flex: 1, alignItems: 'center', gap: 2, minHeight: 52 },
   pill: { minWidth: 56, height: 32, borderRadius: radii.pill, alignItems: 'center', justifyContent: 'center' },
-  barLabel: { fontSize: 11 },
+  barLabel: { fontSize: 12, lineHeight: 16 },
   dot: { position: 'absolute', top: -2, right: 4, minWidth: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
   badge: { minWidth: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5, marginLeft: 'auto' },
-  badgeText: { color: '#FFFFFF', fontSize: 11, fontFamily: fonts.bold },
+  badgeText: { fontSize: 12, fontFamily: fonts.bold },
   sidebar: { borderRightWidth: StyleSheet.hairlineWidth, paddingTop: spacing.lg },
   sidebarBrand: { paddingHorizontal: spacing.lg, paddingBottom: spacing.lg },
   sidebarItems: { paddingHorizontal: spacing.md, gap: 4 },
