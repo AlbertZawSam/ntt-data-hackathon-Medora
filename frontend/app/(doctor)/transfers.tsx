@@ -9,6 +9,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { parseDecisionRows } from '@medora/shared/logic/decisionTable';
 import { positionAlong, transferProgress } from '@medora/shared/logic/transfer';
 import type { Transfer } from '@medora/shared/logic/types';
+import { MapLegend } from '../../src/components/MapLegend';
 import { MapView, shortLabel } from '../../src/components/MapView';
 import { agoText } from '../../src/i18n/ago';
 import { patientLabel } from '../../src/i18n/patientLabel';
@@ -115,12 +116,13 @@ function TransferCard({ transfer, now }: { transfer: Transfer; now: number }): R
           accessibilityLabel={t('map.alt.transfer')}
           route={[from, toPoint]}
           markers={[
-            { id: 'from', point: { lat: from.lat, lng: from.lng }, kind: 'me', label: shortLabel(fromName) },
+            { id: 'from', point: { lat: from.lat, lng: from.lng }, kind: 'home', label: shortLabel(fromName) },
             { id: 'to', point: toPoint, kind: 'chosen', label: shortLabel(name) },
             ...(arrived ? [] : [{ id: 'ambulance', point: positionAlong(from, toPoint, progress.fraction), kind: 'vehicle' as const }]),
           ]}
         />
       ) : null}
+      {from && toPoint ? <MapLegend kinds={arrived ? ['home', 'chosen'] : ['home', 'chosen', 'vehicle']} labels={{ chosen: 'map.key.destination' }} /> : null}
       {from && toPoint && !arrived ? <Text style={[styles.muted, { color: theme.textMuted }]}>{t('doctor.transfers.ambulance')}</Text> : null}
       <View style={[styles.track, { backgroundColor: theme.border }]} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(progress.fraction * 100) }}>
         <View style={[styles.fill, { width: `${Math.round(progress.fraction * 100)}%`, backgroundColor: arrived ? theme.success : theme.primary }]} />

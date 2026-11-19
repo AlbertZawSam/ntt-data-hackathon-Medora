@@ -10,6 +10,7 @@ import { DECLINE_REASONS } from '@medora/shared/logic/care';
 import { isReferablePatient } from '@medora/shared/logic/directReferral';
 import { parseDecisionRows, type DecisionRow } from '@medora/shared/logic/decisionTable';
 import type { CareRequest, Referral } from '@medora/shared/logic/types';
+import { MapLegend } from '../../src/components/MapLegend';
 import { MapView, shortLabel, type MapMarker, type MarkerKind } from '../../src/components/MapView';
 import { MessageThread } from '../../src/components/MessageThread';
 import { ReferPanel } from '../../src/components/ReferPanel';
@@ -371,7 +372,7 @@ export default function DoctorReferScreen(): React.JSX.Element {
             markers={markers}
             route={origin && chosenRow ? [origin, { lat: chosenRow.lat!, lng: chosenRow.lng! }] : undefined}
           />
-          <Text style={[styles.muted, { color: theme.textMuted }]}>{t('doctor.refer.mapLegend')}</Text>
+          <MapLegend kinds={['home', 'chosen', 'accepted', 'asked', 'declined', 'outdated', 'no']} labels={{ outdated: 'map.key.notAsked' }} />
         </Card>
       ) : null}
 
@@ -589,8 +590,9 @@ function DoctorNote({ text }: { text: string }): React.JSX.Element {
   );
 }
 
+// Green means accepted, nothing else: a hospital that could help but wasn't asked is grey.
 const ROW_KIND: Record<DecisionRow['reply'], MarkerKind> = {
-  notAsked: 'ok',
+  notAsked: 'outdated',
   waiting: 'asked',
   accepted: 'accepted',
   acceptedByRule: 'accepted',
@@ -601,7 +603,7 @@ const ROW_KIND: Record<DecisionRow['reply'], MarkerKind> = {
 
 /** The doctor's map: their hospital, then every hospital in the table that has a known position. */
 function referralMarkers(rows: DecisionRow[], origin: { lat: number; lng: number } | undefined, youLabel: string, lang: 'en' | 'th'): MapMarker[] {
-  const markers: MapMarker[] = origin ? [{ id: 'origin', point: { lat: origin.lat, lng: origin.lng }, kind: 'me', label: youLabel }] : [];
+  const markers: MapMarker[] = origin ? [{ id: 'origin', point: { lat: origin.lat, lng: origin.lng }, kind: 'home', label: youLabel }] : [];
   for (const row of rows) {
     if (row.lat === undefined || row.lng === undefined) continue;
     const kind: MarkerKind = row.chosen ? 'chosen' : !row.canHelp && row.reply === 'notAsked' ? 'no' : ROW_KIND[row.reply];

@@ -14,6 +14,7 @@ import { pick, type StringKey } from '../../src/i18n/t';
 import { suggestedDepartment, type Department } from '@medora/shared/logic/departments';
 import { HospitalDetailsView } from '../../src/components/HospitalDetailsView';
 import { LocationChip } from '../../src/components/LocationChip';
+import { MapLegend } from '../../src/components/MapLegend';
 import { MapView, type MapMarker } from '../../src/components/MapView';
 import { findCare, submitRequest } from '../../src/services/data';
 import { setLastResults } from '../../src/services/lastResults';
@@ -215,7 +216,7 @@ export default function PatientCareScreen(): React.JSX.Element {
   const best = hospitals.find((h) => h.label !== 'notAvailable');
   const markers: MapMarker[] = [
     { id: 'me', point: location, kind: 'me', label: t('map.you') },
-    ...hospitals.map((h): MapMarker => ({ id: h.id, point: h, kind: h.label === 'available' ? 'ok' : h.label === 'notAvailable' ? 'no' : 'limited', label: pick(h.name, lang) })),
+    ...hospitals.map((h): MapMarker => ({ id: h.id, point: h, kind: h.label === 'available' ? 'ok' : h.label === 'notAvailable' ? 'no' : h.label === 'outdated' ? 'outdated' : 'limited', label: pick(h.name, lang) })),
   ];
 
   if (consented === false) {
@@ -449,13 +450,13 @@ export default function PatientCareScreen(): React.JSX.Element {
           <View style={styles.listColumn}>{list}</View>
           <View style={styles.mapColumn}>
             <MapView accessibilityLabel={t('map.alt.results')} height={520} markers={markers} route={best ? [location, best] : undefined} />
-            <Text style={[styles.legend, { color: theme.textMuted }]}>{t('map.legend')}</Text>
+            <MapLegend kinds={['me', 'ok', 'limited', 'outdated', 'no']} />
           </View>
         </View>
       ) : (
         <View style={styles.stack}>
           <MapView accessibilityLabel={t('map.alt.results')} height={240} markers={markers} route={best ? [location, best] : undefined} />
-          <Text style={[styles.legend, { color: theme.textMuted }]}>{t('map.legend')}</Text>
+          <MapLegend kinds={['me', 'ok', 'limited', 'outdated', 'no']} />
           <SectionHeader title={t('patient.care.canHelp')} />
           {list}
         </View>

@@ -8,20 +8,20 @@
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import React from 'react';
-import { isCrossedOut, markerSize, routeGeoJson, visibleMarkers } from '@medora/shared/logic/mapLayers';
+import { HOSPITAL_MARKER_KINDS, isCrossedOut, markerSize, routeGeoJson, visibleMarkers } from '@medora/shared/logic/mapLayers';
 import { pathGeoJson } from '@medora/shared/logic/routePath';
 import { useRoutePath } from '../services/routePath';
 import { fetchMapStyleUrl } from '../services/data';
+import { markerColors } from './markerColors';
 import { SchematicMap, shortLabel, type MapMarker, type MapViewProps, type MarkerKind } from './SchematicMap';
 import { fonts, radii, useTheme } from '../ui/theme';
 
 export { shortLabel };
 export type { MapMarker, MapViewProps, MarkerKind };
 
-/** Marker kinds that stand for a hospital. */
-const HOSPITAL_KINDS: ReadonlySet<MarkerKind> = new Set<MarkerKind>(['ok', 'limited', 'no', 'asked', 'accepted', 'declined', 'chosen']);
+const HOSPITAL_KINDS: ReadonlySet<MarkerKind> = new Set(HOSPITAL_MARKER_KINDS);
 /** A white medical cross for hospital markers. */
-const HOSPITAL_CROSS = '<svg viewBox="0 0 24 24" width="62%" height="62%" aria-hidden="true"><path fill="#fff" d="M9.5 3h5v6.5H21v5h-6.5V21h-5v-6.5H3v-5h6.5z"/></svg>';
+export const HOSPITAL_CROSS = '<svg viewBox="0 0 24 24" width="62%" height="62%" aria-hidden="true"><path fill="#fff" d="M9.5 3h5v6.5H21v5h-6.5V21h-5v-6.5H3v-5h6.5z"/></svg>';
 
 /** Bangkok, until the markers say where to look. [longitude, latitude]. */
 const BANGKOK: [number, number] = [100.534, 13.7455];
@@ -67,18 +67,7 @@ function TileMap({ markers, route, onPick, height = 240, accessibilityLabel, sty
   const onFailedRef = React.useRef(onFailed);
   onFailedRef.current = onFailed;
 
-  const colors: Record<MarkerKind, string> = {
-    me: theme.primary,
-    ok: theme.success,
-    limited: theme.warning,
-    no: theme.textMuted,
-    asked: theme.warning,
-    accepted: theme.success,
-    declined: theme.emergency,
-    chosen: theme.primary,
-    vehicle: theme.accent,
-    place: theme.textMuted,
-  };
+  const colors = markerColors(theme);
 
   // Create the map once per style address.
   React.useEffect(() => {

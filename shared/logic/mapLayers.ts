@@ -5,8 +5,11 @@
  */
 import type { LatLng } from './ranking';
 
-export const MARKER_KINDS = ['me', 'ok', 'limited', 'no', 'asked', 'accepted', 'declined', 'chosen', 'vehicle', 'place'] as const;
+export const MARKER_KINDS = ['me', 'home', 'ok', 'limited', 'outdated', 'no', 'asked', 'accepted', 'declined', 'chosen', 'vehicle', 'place'] as const;
 export type MarkerKind = (typeof MARKER_KINDS)[number];
+
+/** Markers that stand for a hospital (drawn with the hospital sign); `home` is the doctor's own hospital. */
+export const HOSPITAL_MARKER_KINDS: readonly MarkerKind[] = ['home', 'ok', 'limited', 'outdated', 'no', 'asked', 'accepted', 'declined', 'chosen'];
 
 export interface MarkerLike {
   id: string;
@@ -17,7 +20,7 @@ export interface MarkerLike {
 
 /** Diameter in pixels: the person and the chosen hospital stand out, the rest are smaller. */
 export function markerSize(kind: MarkerKind): number {
-  return kind === 'me' || kind === 'chosen' ? 20 : kind === 'place' ? 8 : 16;
+  return kind === 'me' || kind === 'chosen' || kind === 'home' ? 20 : kind === 'place' ? 8 : 16;
 }
 
 /** Hospitals that cannot help, and ones that declined, are crossed out. */
