@@ -9,12 +9,12 @@ import { MAX_MESSAGE, QUICK_REPLY_KEYS, type QuickReplyKey } from '@medora/share
 import type { Message } from '@medora/shared/logic/types';
 import type { StringKey } from '../i18n/t';
 import { refreshMessages, sendMessage } from '../services/data';
-import { useT } from '../state/AppProvider';
+import { useApp, useT } from '../state/AppProvider';
 import { Chip } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Field } from '../ui/Field';
 import { Notice } from '../ui/Notice';
-import { fonts, fontSizes, radii, spacing, useTheme } from '../ui/theme';
+import { fonts, fontSizes, lineHeights, radii, spacing, useTheme } from '../ui/theme';
 
 interface Props {
   requestId: string;
@@ -31,11 +31,13 @@ interface Props {
 /** How often an open thread reads its messages again. */
 const REFRESH_MS = 5_000;
 
-const clock = (ms: number): string => new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+/** The time in the app's language (not the device's), so Thai readers see Thai digits and order. */
+const clock = (ms: number, lang: string): string => new Date(ms).toLocaleTimeString(lang === 'th' ? 'th-TH' : 'en-GB', { hour: '2-digit', minute: '2-digit' });
 
 export function MessageThread({ requestId, messages, me, disabled, quickKeys = QUICK_REPLY_KEYS, other = 'patient' }: Props): React.JSX.Element {
   const t = useT();
   const theme = useTheme();
+  const { lang } = useApp();
   const [text, setText] = React.useState('');
   const [busy, setBusy] = React.useState(false);
   const [failed, setFailed] = React.useState(false);
@@ -74,7 +76,7 @@ export function MessageThread({ requestId, messages, me, disabled, quickKeys = Q
               <Text style={[styles.who, { color: mine ? theme.onPrimary : theme.textMuted }]}>
                 {t(mine ? 'patient.requests.fromYou' : me === 'patient' ? 'patient.requests.fromHospital' : other === 'doctor' ? 'patient.requests.fromDoctor' : 'patient.requests.fromPatient')}
                 {'  ·  '}
-                {clock(m.createdAtMs)}
+                {clock(m.createdAtMs, lang)}
               </Text>
               <Text style={[styles.body, { color: mine ? theme.onPrimary : theme.text }]}>{m.key ? t(`message.quickReply.${m.key}` as StringKey) : m.text}</Text>
             </View>
@@ -106,7 +108,7 @@ const styles = StyleSheet.create({
   bubble: { borderWidth: 1, borderRadius: radii.lg, paddingVertical: spacing.sm, paddingHorizontal: spacing.md - 2, maxWidth: '88%', gap: 2 },
   mine: { alignSelf: 'flex-end', borderBottomRightRadius: radii.sm },
   theirs: { alignSelf: 'flex-start', borderBottomLeftRadius: radii.sm },
-  who: { fontFamily: fonts.medium, fontSize: fontSizes.xs },
+  who: { fontFamily: fonts.medium, fontSize: fontSizes.sm, lineHeight: lineHeights.sm },
   body: { fontFamily: fonts.regular, fontSize: fontSizes.md, lineHeight: 22 },
   quick: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
 });

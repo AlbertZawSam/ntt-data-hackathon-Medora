@@ -6,7 +6,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
 import { useApp, useT } from '../state/AppProvider';
 import { Icon } from '../ui/Icon';
-import { fonts, radii, spacing, useTheme } from '../ui/theme';
+import { fonts, fontSizes, radii, spacing, useTheme } from '../ui/theme';
 import { focusRing, pointer, webTransition } from '../ui/web';
 
 export function LanguageToggle(): React.JSX.Element {
@@ -18,7 +18,7 @@ export function LanguageToggle(): React.JSX.Element {
       onPress={() => setLang(lang === 'en' ? 'th' : 'en')}
       style={(state) => [
         styles.button,
-        { borderColor: theme.border, backgroundColor: (state as { hovered?: boolean }).hovered === true ? theme.primarySoft : theme.surface },
+        { borderColor: theme.borderStrong, backgroundColor: (state as { hovered?: boolean }).hovered === true ? theme.primarySoft : theme.surface },
         pointer,
         webTransition(),
         focusRing(theme.primary, (state as { focused?: boolean }).focused === true),
@@ -34,6 +34,6 @@ export function LanguageToggle(): React.JSX.Element {
 }
 
 const styles = StyleSheet.create({
-  button: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: spacing.md - 2, minHeight: 40, borderRadius: radii.pill, borderWidth: 1 },
-  label: { fontSize: 14, fontFamily: fonts.semibold },
+  button: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs + spacing.xxs, paddingHorizontal: spacing.md, minHeight: 44, borderRadius: radii.pill, borderWidth: 1 },
+  label: { fontSize: fontSizes.sm, fontFamily: fonts.semibold },
 });

@@ -6,7 +6,7 @@
 import { useRouter, type Href } from 'expo-router';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { ARRIVAL_MODES, MAX_DESCRIPTION, MAX_NAME, NEED_KEYS, type ArrivalMode, type PublicHospital } from '@medora/shared/logic/care';
+import { ARRIVAL_MODES, MAX_DESCRIPTION, MAX_NAME, type ArrivalMode, type PublicHospital } from '@medora/shared/logic/care';
 import type { Bi, NeedKey } from '@medora/shared/logic/types';
 import { bedsText, bedsTone } from '../../src/i18n/beds';
 import { careProgress, careReasoning, PROGRESS_STEP_MS } from '../../src/i18n/careReasoning';
@@ -32,6 +32,7 @@ import { Notice } from '../../src/ui/Notice';
 import { Page } from '../../src/ui/Page';
 import { Reveal } from '../../src/ui/Reveal';
 import { Segmented } from '../../src/ui/Segmented';
+import { call1669 } from '../../src/services/emergency';
 import { SectionHeader } from '../../src/ui/SectionHeader';
 import { SkeletonCard } from '../../src/ui/Skeleton';
 import { Timeline } from '../../src/ui/Timeline';
@@ -221,7 +222,7 @@ export default function PatientCareScreen(): React.JSX.Element {
 
   if (consented === false) {
     return (
-      <Page title={t('patient.care.title')} width="readable">
+      <Page title={t('patient.care.title')} subtitle={t('patient.care.subtitle')} width="readable">
         <Reveal>
           <Card padding="lg">
             <Text accessibilityRole="header" style={[styles.consentTitle, { color: theme.text }]}>{t('consent.title')}</Text>
@@ -240,7 +241,7 @@ export default function PatientCareScreen(): React.JSX.Element {
 
   if (phase !== 'results') {
     return (
-      <Page title={t('patient.care.title')} width="readable">
+      <Page title={t('patient.care.title')} subtitle={t('patient.care.subtitle')} width="readable">
         <Reveal>
           <Card padding="lg">
             <LocationChip />
@@ -340,7 +341,7 @@ export default function PatientCareScreen(): React.JSX.Element {
               ) : null}
               {h.details && detailsFor === h.id ? <HospitalDetailsView details={h.details} nowMs={Date.now()} need={need} /> : null}
               {unavailable ? (
-                <Text style={[styles.meta, { color: theme.textMuted }]}>{t('patient.care.skippedBecause', { reason: t('failure.simple') })}</Text>
+                <Text style={[styles.meta, { color: theme.textMuted }]}>{t('failure.simple')}</Text>
               ) : selected?.id === h.id ? null : (
                 <Button
                   variant={isBest ? 'primary' : 'secondary'}
@@ -389,6 +390,11 @@ export default function PatientCareScreen(): React.JSX.Element {
                       onChange={setMode}
                       options={ARRIVAL_MODES.map((m) => ({ value: m, label: t(`mode.${m}` as StringKey), icon: MODE_ICON[m] }))}
                     />
+                    {mode === 'ambulance' ? (
+                      <Notice tone="warning" actionLabel={t('emergency.call1669')} onAction={() => void call1669()}>
+                        {t('patient.care.ambulanceHint')}
+                      </Notice>
+                    ) : null}
                     <Field label={t('patient.care.namePlaceholder')} icon="person-outline" value={name} onChangeText={setName} maxLength={MAX_NAME} />
                     <Field label={t('patient.care.phonePlaceholder')} icon="call-outline" value={phone} onChangeText={setPhone} keyboardType="phone-pad" maxLength={20} />
                     <View style={styles.buttons}>
@@ -408,31 +414,16 @@ export default function PatientCareScreen(): React.JSX.Element {
   );
 
   return (
-    <Page title={t('patient.care.nearbyTitle')} onBack={() => { forget('care'); setPhase('describe'); }} backLabel={t('patient.care.newSearch')}>
+    <Page title={t('patient.care.nearbyTitle')} subtitle={t('patient.care.resultsSub')} onBack={() => { forget('care'); setPhase('describe'); }} backLabel={t('patient.care.newSearch')}>
       <Card padding="md">
-        {/* How the description was categorised: the matched category stands out, the others step back. */}
-        <Text style={[styles.meta, { color: theme.textMuted }]}>{t('patient.care.categoryTitle')}</Text>
+        {/* How the description was categorised: only the matched type, with who suggested it. */}
         <View style={styles.row}>
-          {NEED_KEYS.map((key) => {
-            const label = t(`details.needShort.${key}` as StringKey);
-            return key === need ? (
-              <View key={key} accessible accessibilityLabel={t('patient.care.categoryMine', { need: label })}>
-                <Badge tone="primary" icon="checkmark-circle" label={label} />
-              </View>
-            ) : (
-              <View
-                key={key}
-                accessible
-                accessibilityLabel={t('patient.care.categoryOther', { need: label })}
-                accessibilityState={{ disabled: true }}
-                style={[styles.offChip, { borderColor: theme.border }]}
-              >
-                <Text style={[styles.offChipText, { color: theme.textMuted }]}>{label}</Text>
-              </View>
-            );
-          })}
-          {!aiUsed ? <Badge tone="warning" icon="information-circle" label={t('patient.care.aiUnavailable')} /> : null}
+          <Text style={[styles.meta, { color: theme.textMuted }]}>{t('patient.care.categoryTitle')}</Text>
+          <View accessible accessibilityLabel={t('patient.care.categoryMine', { need: t(`details.needShort.${need}` as StringKey) })}>
+            <Badge tone="primary" icon="checkmark-circle" label={t(`details.needShort.${need}` as StringKey)} />
+          </View>
         </View>
+        <Text style={[styles.meta, { color: theme.textMuted }]}>{aiUsed ? t('patient.care.byAi') : t('patient.care.aiUnavailable')}</Text>
         {summary ? <Text style={[styles.meta, { color: theme.textMuted }]}>{t('patient.care.understood', { summary: pick(summary, lang) })}</Text> : null}
         {/* How the list was made, step by step, like the doctor's AI reasoning; only what the patient already sees. */}
         <Button variant="ghost" icon={showAi ? 'chevron-up' : 'sparkles-outline'} label={t(showAi ? 'patient.care.hideAi' : 'patient.care.showAi')} onPress={() => setShowAi(!showAi)} />
@@ -486,8 +477,6 @@ const styles = StyleSheet.create({
   meta: { fontSize: fontSizes.sm, fontFamily: fonts.regular, lineHeight: 20 },
   legend: { fontSize: fontSizes.xs, fontFamily: fonts.regular },
   dim: { opacity: 0.7 },
-  offChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, opacity: 0.6 },
-  offChipText: { fontSize: fontSizes.xs, fontFamily: fonts.medium },
   form: { gap: spacing.md, paddingTop: spacing.md, marginTop: spacing.xs, borderTopWidth: 1 },
   formTitle: { fontSize: fontSizes.lg, fontFamily: fonts.bold },
   buttons: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },

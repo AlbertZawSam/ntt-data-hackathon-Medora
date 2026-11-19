@@ -76,6 +76,8 @@ const schema = a.schema({
     .model({
       hospitalId: a.string().required(),
       name: a.string().required(),
+      // The name in Thai, shown on Thai screens when present (synthetic demo doctors).
+      nameTh: a.string(),
       specialty: a.string().required(),
       languages: a.string().array().required(),
       namePublic: a.boolean().required(),

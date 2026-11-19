@@ -5,7 +5,7 @@
  */
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import React from 'react';
-import { Animated, Easing, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { nearestOpenEd } from '@medora/shared/logic/publicDirectory';
 import { RED_FLAGS } from '@medora/shared/logic/redFlags';
@@ -18,6 +18,7 @@ import { Button } from '../../src/ui/Button';
 import { Card } from '../../src/ui/Card';
 import { Icon } from '../../src/ui/Icon';
 import { Notice } from '../../src/ui/Notice';
+import { pointer } from '../../src/ui/web';
 import { useReducedMotion } from '../../src/ui/Reveal';
 import { fonts, fontSizes, radii, spacing, useTheme } from '../../src/ui/theme';
 
@@ -67,7 +68,10 @@ export default function EmergencyScreen(): React.JSX.Element {
     <ScrollView style={{ backgroundColor: theme.background }} contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.lg, paddingBottom: insets.bottom + spacing.xl }]}>
       <View style={styles.column}>
         <View accessibilityRole="alert" style={[styles.banner, { backgroundColor: theme.emergency }]}>
-          <PulsingCall />
+          {/* The pulsing phone looks like a button, so it is one: it calls 1669 like the button below. */}
+          <Pressable accessibilityRole="button" accessibilityLabel={t('emergency.call1669')} onPress={() => void call1669()} style={[pointer]}>
+            <PulsingCall />
+          </Pressable>
           <Text accessibilityRole="header" style={[styles.title, { color: theme.onEmergency }]}>{t('emergency.title')}</Text>
           {rule ? <Text style={[styles.flag, { color: theme.onEmergency }]}>{pick(rule.label, lang)}</Text> : null}
           <Text style={[styles.instructions, { color: theme.onEmergency }]}>{t('emergency.instructions')}</Text>

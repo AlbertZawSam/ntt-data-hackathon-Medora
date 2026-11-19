@@ -432,7 +432,7 @@ export class ReferralTools {
       // Hospitals with real staff accounts (all three departments and no preset reply) never get an automatic demo
       // reply: every referral there waits for a person to accept or decline it.
       if (!key || hasDepartmentStaff(key)) continue;
-      const reply = demoReply(key, this.state.assessment.pathway);
+      const reply = demoReply(key, this.state.assessment.pathway, this.referral.lang);
       if (reply.status === 'accepted') await this.store.holdBed?.(request);
       await this.store.updateRequest(request.id, {
         status: reply.status,

@@ -30,7 +30,12 @@ import { fonts, fontSizes, radii, spacing, useBreakpoint, useTheme } from '../..
 
 const STEP_MIN = 5;
 
-export type Send = (change: ReturnType<typeof changeFor> | { kind: 'confirm' } | { kind: 'cathlabBusy'; minutes: number | null }) => void;
+type Change = ReturnType<typeof changeFor> | { kind: 'confirm' } | { kind: 'cathlabBusy'; minutes: number | null };
+/** Sends one change. `undo` is the change that puts the item back, offered for a few seconds after saving. */
+export type Send = (change: Change, undo?: { change: Change; label: string }) => void;
+
+/** How long "Saved · Undo" stays after a change. */
+const UNDO_SHOW_MS = 10_000;
 
 export const ITEM_ICON: Record<string, IconName> = {
   beds: 'bed',
@@ -64,11 +69,19 @@ export default function StaffStatusScreen(): React.JSX.Element {
   const [note, setNote] = React.useState('');
   const [busy, setBusy] = React.useState(false);
   const [failed, setFailed] = React.useState(false);
+  // The last saved change and how to put it back: shown as "Saved · Undo" for a few seconds.
+  const [lastSaved, setLastSaved] = React.useState<{ change: Change; label: string } | null>(null);
 
   React.useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(timer);
   }, []);
+
+  React.useEffect(() => {
+    if (!lastSaved) return;
+    const timer = setTimeout(() => setLastSaved(null), UNDO_SHOW_MS);
+    return () => clearTimeout(timer);
+  }, [lastSaved]);
 
   const unit = session?.unit;
   const stored: HospitalStatus | undefined = data.hospitalStatuses.find((s) => s.hospitalId === session?.hospitalId)?.status;
@@ -79,13 +92,14 @@ export default function StaffStatusScreen(): React.JSX.Element {
   const status: HospitalStatus | undefined = stored ? withHolds(stored, holds) : undefined;
   const conflict = stored ? contradictsHolds(stored, holds) : { beds: false, nicu: false };
 
-  const send: Send = async (change) => {
+  const send: Send = async (change, undo) => {
     if (!change || busy) return;
     setBusy(true);
     setFailed(false);
     try {
       await updateStatus(change, change.kind === 'confirm' ? undefined : note);
       setNote('');
+      setLastSaved(undo ?? null);
     } catch {
       setFailed(true);
     } finally {
@@ -141,17 +155,25 @@ export default function StaffStatusScreen(): React.JSX.Element {
 
           {conflict.beds || conflict.nicu ? <Notice tone="warning">{t('staff.status.holdConflict')}</Notice> : null}
 
+          {/* The note goes with the next change, so it sits above the items it describes. */}
+          <Card padding="lg">
+            <Field label={t('staff.status.noteLabel')} hint={t('staff.status.noteHint')} icon="create-outline" value={note} onChangeText={setNote} maxLength={MAX_NOTE} />
+          </Card>
+
+          {lastSaved ? (
+            <Notice tone="success" actionLabel={t('staff.status.undo')} onAction={() => { const back = lastSaved; setLastSaved(null); void send(back.change); }}>
+              {t('staff.status.savedItem', { item: lastSaved.label })}
+            </Notice>
+          ) : null}
+
           <View style={[styles.grid, wide && styles.gridWide]}>
             {controls.map((control, index) => (
               <Reveal key={control.id} index={index} style={wide ? styles.cell : undefined}>
-                <ControlCard control={control} status={status} busy={busy} onSend={(change) => void send(change)} />
+                <ControlCard control={control} status={status} busy={busy} onSend={(change, undo) => void send(change, undo)} />
               </Reveal>
             ))}
           </View>
 
-          <Card padding="lg">
-            <Field label={t('staff.status.noteLabel')} hint={t('staff.status.noteHint')} icon="create-outline" value={note} onChangeText={setNote} maxLength={MAX_NOTE} />
-          </Card>
           {failed ? <Notice tone="danger">{t('staff.status.saveError')}</Notice> : null}
         </>
       )}
@@ -173,9 +195,9 @@ export function ControlCard({ control, status, busy, onSend }: { control: UnitCo
     body = (
       <View style={styles.gap}>
         <View style={styles.stepper}>
-          <IconButton size="lg" icon="remove" label={`${label} −`} disabled={busy || value <= 0} onPress={() => onSend(changeFor(control, value - 1))} />
+          <IconButton size="lg" icon="remove" label={t('staff.status.decrease', { item: label })} disabled={busy || value <= 0} onPress={() => onSend(changeFor(control, value - 1), { change: changeFor(control, value), label })} />
           <Text style={[styles.bigNumber, { color: theme.text }]} accessibilityLabel={`${label}: ${value}`}>{value}</Text>
-          <IconButton size="lg" variant="filled" icon="add" label={`${label} +`} disabled={busy} onPress={() => onSend(changeFor(control, value + 1))} />
+          <IconButton size="lg" variant="filled" icon="add" label={t('staff.status.increase', { item: label })} disabled={busy} onPress={() => onSend(changeFor(control, value + 1), { change: changeFor(control, value), label })} />
         </View>
         {/* Patients see ready minus held, so the two numbers always add up. */}
         {reserved > 0 ? <Badge tone="info" icon="lock-closed" label={t('staff.status.reserved', { n: reserved, free: Math.max(0, value - reserved) })} /> : null}
@@ -192,9 +214,17 @@ export function ControlCard({ control, status, busy, onSend }: { control: UnitCo
           value={state}
           onChange={(next) => {
             if (busy || next === state) return;
-            if (next === 'ready') onSend(changeFor(control, true));
-            else if (next === 'down') onSend(changeFor(control, false));
-            else onSend({ kind: 'cathlabBusy', minutes: busyMin ?? 15 });
+            // Putting it back: ready or down is the equipment switch; busy is the busy minutes it had (only reachable in
+            // one change from ready, since a down lab must be switched on first, so busy → down offers no undo).
+            const undo =
+              state !== 'busy'
+                ? { label, change: changeFor(control, state === 'ready') }
+                : next === 'ready'
+                  ? { label, change: { kind: 'cathlabBusy', minutes: busyMin ?? null } as const }
+                  : undefined;
+            if (next === 'ready') onSend(changeFor(control, true), undo);
+            else if (next === 'down') onSend(changeFor(control, false), undo);
+            else onSend({ kind: 'cathlabBusy', minutes: busyMin ?? 15 }, undo);
           }}
           options={[
             { value: 'ready', label: t('staff.status.cathReady'), icon: 'checkmark-circle' },
@@ -204,9 +234,9 @@ export function ControlCard({ control, status, busy, onSend }: { control: UnitCo
         />
         {state === 'busy' && busyMin !== undefined ? (
           <View style={styles.stepper}>
-            <IconButton icon="remove" label={`${label} −`} disabled={busy || busyMin <= 0} onPress={() => onSend({ kind: 'cathlabBusy', minutes: Math.max(0, busyMin - STEP_MIN) })} />
+            <IconButton icon="remove" label={t('staff.status.decreaseMin', { item: label })} disabled={busy || busyMin <= 0} onPress={() => onSend({ kind: 'cathlabBusy', minutes: Math.max(0, busyMin - STEP_MIN) })} />
             <Text style={[styles.mid, { color: theme.text }]}>{t('staff.status.freeInAbout', { min: busyMin })}</Text>
-            <IconButton variant="filled" icon="add" label={`${label} +`} disabled={busy} onPress={() => onSend({ kind: 'cathlabBusy', minutes: busyMin + STEP_MIN })} />
+            <IconButton variant="filled" icon="add" label={t('staff.status.increaseMin', { item: label })} disabled={busy} onPress={() => onSend({ kind: 'cathlabBusy', minutes: busyMin + STEP_MIN })} />
           </View>
         ) : null}
       </View>
@@ -223,7 +253,10 @@ export function ControlCard({ control, status, busy, onSend }: { control: UnitCo
           accessibilityLabel={label}
           trackColor={{ false: theme.border, true: theme.primary }}
           thumbColor="#FFFFFF"
-          onValueChange={(next) => onSend(changeFor(control, control.kind === 'dept' ? (next ? 'open' : 'diverting') : next))}
+          onValueChange={(next) => {
+            const value = (v: boolean): boolean | 'open' | 'diverting' => (control.kind === 'dept' ? (v ? 'open' : 'diverting') : v);
+            onSend(changeFor(control, value(next)), { change: changeFor(control, value(on)), label });
+          }}
         />
       </View>
     );

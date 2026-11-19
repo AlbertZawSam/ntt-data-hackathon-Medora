@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Card, toneColors, type Tone } from './Card';
 import { Icon, type IconName } from './Icon';
-import { fonts, fontSizes, radii, spacing, useTheme } from './theme';
+import { fonts, fontSizes, lineHeights, radii, spacing, useTheme } from './theme';
 
 /** A number with a label and an icon, for dashboards: how many beds are ready, how many requests are waiting. */
 export function Stat({ label, value, icon, tone = 'primary', hint }: { label: string; value: string; icon: IconName; tone?: Tone; hint?: string }): React.JSX.Element {
@@ -29,6 +29,6 @@ const styles = StyleSheet.create({
   icon: { width: 48, height: 48, borderRadius: radii.lg, alignItems: 'center', justifyContent: 'center' },
   text: { flex: 1, gap: 1 },
   value: { fontSize: fontSizes.xxl, fontFamily: fonts.bold },
-  label: { fontSize: fontSizes.sm, fontFamily: fonts.medium },
-  hint: { fontSize: fontSizes.xs, fontFamily: fonts.regular },
+  label: { fontSize: fontSizes.sm, lineHeight: lineHeights.sm, fontFamily: fonts.medium },
+  hint: { fontSize: fontSizes.xs, lineHeight: lineHeights.xs, fontFamily: fonts.regular },
 });

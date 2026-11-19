@@ -6,14 +6,15 @@
 import React from 'react';
 import { validateHospitalInput, type HospitalInputIssue } from '@medora/shared/logic/hospital';
 import { DEFAULT_PLACE, PLACES, type Place } from '@medora/shared/logic/places';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { pick, type StringKey } from '../../src/i18n/t';
 import { registerHospital } from '../../src/services/data';
 import { useApp, useT } from '../../src/state/AppProvider';
+import { Chip } from '../../src/ui/Badge';
 import { Button } from '../../src/ui/Button';
 import { Field } from '../../src/ui/Field';
 import { FormScreen } from '../../src/ui/FormScreen';
-import { fonts, fontSizes, radii, spacing, useTheme } from '../../src/ui/theme';
+import { fonts, fontSizes, spacing, useTheme } from '../../src/ui/theme';
 
 const ISSUE_KEYS: Record<HospitalInputIssue, StringKey> = {
   name: 'admin.hospitalSetup.error.name',
@@ -82,14 +83,7 @@ export default function AdminHospitalSetupScreen(): React.JSX.Element {
         <Text style={[styles.placesLabel, { color: theme.text }]}>{t('admin.hospitalSetup.nearLabel')}</Text>
         <View style={styles.chips}>
           {PLACES.map((place) => (
-            <Pressable
-              key={place.key}
-              accessibilityRole="button"
-              onPress={() => pickPlace(place)}
-              style={[styles.chip, { borderColor: theme.border, backgroundColor: theme.surface }]}
-            >
-              <Text style={[styles.chipText, { color: theme.text }]}>{pick(place.name, lang)}</Text>
-            </Pressable>
+            <Chip key={place.key} icon="location-outline" label={pick(place.name, lang)} selected={false} onPress={() => pickPlace(place)} />
           ))}
         </View>
       </View>
@@ -106,8 +100,6 @@ export default function AdminHospitalSetupScreen(): React.JSX.Element {
 
 const styles = StyleSheet.create({
   places: { gap: spacing.xs },
-  placesLabel: { fontSize: fontSizes.sm, fontFamily: fonts.medium },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  chip: { borderWidth: 1, borderRadius: radii.lg, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
-  chipText: { fontSize: fontSizes.xs, fontFamily: fonts.regular },
+  placesLabel: { fontSize: fontSizes.sm, fontFamily: fonts.semibold },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
 });

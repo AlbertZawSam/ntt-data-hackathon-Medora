@@ -11,6 +11,8 @@ import type { Slot, SpecialistInput, Specialty } from './specialists';
 interface DemoSpecialist {
   hospitalKey: string;
   name: string;
+  /** The name in Thai, when the doctor has one. */
+  nameTh?: string;
   specialty: Specialty;
   /** The doctor's own field ("Interventional cardiology"); Find a specialist groups by `specialty`. */
   focus: string;

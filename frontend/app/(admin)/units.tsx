@@ -13,6 +13,7 @@ import { updateStatus } from '../../src/services/data';
 import { useApp, useT } from '../../src/state/AppProvider';
 import { Badge, Chip } from '../../src/ui/Badge';
 import { Card } from '../../src/ui/Card';
+import { ConfirmPanel } from '../../src/ui/ConfirmPanel';
 import { EmptyState } from '../../src/ui/EmptyState';
 import { Icon } from '../../src/ui/Icon';
 import { Notice } from '../../src/ui/Notice';
@@ -28,6 +29,8 @@ export default function AdminUnitsScreen(): React.JSX.Element {
   const [open, setOpen] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [failed, setFailed] = React.useState(false);
+  // A move the admin picked, waiting for confirmation: the old unit's staff lose control of the item.
+  const [move, setMove] = React.useState<{ item: string; unit: Unit } | null>(null);
   const status: HospitalStatus | undefined = data.hospitalStatuses.find((s) => s.hospitalId === session?.hospitalId)?.status;
 
   const assign = async (item: string, unit: Unit): Promise<void> => {
@@ -36,6 +39,7 @@ export default function AdminUnitsScreen(): React.JSX.Element {
     try {
       await updateStatus({ kind: 'owner', item, unit });
       setOpen(null);
+      setMove(null);
     } catch {
       setFailed(true);
     } finally {
@@ -61,8 +65,8 @@ export default function AdminUnitsScreen(): React.JSX.Element {
                 <Pressable
                   accessibilityRole="button"
                   accessibilityState={{ expanded }}
-                  accessibilityLabel={`${t(control.labelKey as StringKey)}: ${owner ? t(`unit.name.${owner}` as StringKey) : '-'}`}
-                  onPress={() => setOpen(expanded ? null : item)}
+                  accessibilityLabel={`${t(control.labelKey as StringKey)}: ${owner ? t(`unit.name.${owner}` as StringKey) : t('admin.units.noOwner')}`}
+                  onPress={() => { setMove(null); setOpen(expanded ? null : item); }}
                   style={(state) => [styles.line, pointer, focusRing(theme.primary, (state as { focused?: boolean }).focused === true)]}
                 >
                   <Icon name={ITEM_ICON[control.item] ?? 'ellipse'} size={20} color={theme.primary} />
@@ -73,9 +77,21 @@ export default function AdminUnitsScreen(): React.JSX.Element {
                 {expanded ? (
                   <View style={styles.chips}>
                     {UNITS.map((unit) => (
-                      <Chip key={unit} label={t(`unit.name.${unit}` as StringKey)} selected={unit === owner} onPress={() => { if (!busy && unit !== owner) void assign(item, unit); }} />
+                      <Chip key={unit} label={t(`unit.name.${unit}` as StringKey)} selected={unit === owner || (move?.item === item && move.unit === unit)} onPress={() => { if (!busy && unit !== owner) setMove({ item, unit }); }} />
                     ))}
                   </View>
+                ) : null}
+                {expanded && move?.item === item ? (
+                  <ConfirmPanel
+                    tone="primary"
+                    title={t('admin.units.moveConfirm', { item: t(control.labelKey as StringKey), unit: t(`unit.name.${move.unit}` as StringKey) })}
+                    body={owner ? t('admin.units.moveBody', { old: t(`unit.name.${owner}` as StringKey) }) : undefined}
+                    confirmLabel={t('admin.units.moveYes')}
+                    cancelLabel={t('common.keep')}
+                    busy={busy}
+                    onConfirm={() => void assign(move.item, move.unit)}
+                    onCancel={() => setMove(null)}
+                  />
                 ) : null}
               </View>
             );

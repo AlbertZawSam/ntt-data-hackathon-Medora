@@ -51,8 +51,8 @@ describe('kbTraceDetail', () => {
       ],
       nameOf,
     );
-    expect(detail.en).toBe('2 source document(s): Rama Nine (rama9/neuro.md), Siam (siam/neuro.md).');
-    expect(detail.th).toContain('พระรามเก้า (rama9/neuro.md)');
+    expect(detail.en).toBe('2 source document(s): Rama Nine: Neurology, Siam: Neurology.');
+    expect(detail.th).toContain('พระรามเก้า: ประสาทวิทยา');
   });
 
   it('says so when no knowledge base is set up, and when nothing matches', () => {

@@ -12,10 +12,13 @@ export type { DemoReply };
 /** Seconds before a demo hospital replies (requirement 17.2). */
 export const DEMO_REPLY_AFTER_SEC = 8;
 
-/** The preset reply for a demo hospital; demo hospitals with no preset accept with no note. */
-export function demoReply(hospitalKey: string, pathway: PathwayKey): DemoReply {
-  const preset = DEMO_HOSPITALS.find((h) => h.key === hospitalKey)?.demoReply;
-  return preset?.[pathway] ?? preset?.['*'] ?? { status: 'accepted' };
+/** The preset reply for a demo hospital, its note in the doctor's language; hospitals with no preset accept with no note. */
+export function demoReply(hospitalKey: string, pathway: PathwayKey, lang: 'en' | 'th' = 'en'): DemoReply {
+  const presets = DEMO_HOSPITALS.find((h) => h.key === hospitalKey)?.demoReply;
+  const preset = presets?.[pathway] ?? presets?.['*'];
+  if (!preset) return { status: 'accepted' };
+  const { note, ...rest } = preset;
+  return { ...rest, ...(note ? { note: note[lang] || note.en } : {}) };
 }
 
 /**
