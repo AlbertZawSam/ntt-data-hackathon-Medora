@@ -126,7 +126,7 @@ export default function PatientSpecialistsScreen(): React.JSX.Element {
     }
     try {
       await bookSpecialist({ specialistId: s.id, slotId: slot.id });
-      setBooked({ doctor: s.name ?? t(`specialty.${s.specialty}` as StringKey), when: whenText(t, lang, slot) });
+      setBooked({ doctor: (lang === 'th' && s.nameTh) || s.name || t(`specialty.${s.specialty}` as StringKey), when: whenText(t, lang, slot) });
       await search();
     } catch {
       setError('patient.specialists.bookError'); // includes a slot someone else just took
@@ -179,7 +179,7 @@ export default function PatientSpecialistsScreen(): React.JSX.Element {
                 <Icon name={SPECIALTY_ICON[s.specialty] ?? 'medkit'} size={26} color={theme.primary} />
               </View>
               <View style={styles.flex}>
-                <Text style={[styles.name, { color: theme.text }]}>{s.name ?? t('patient.specialists.nameHidden')}</Text>
+                <Text style={[styles.name, { color: theme.text }]}>{(lang === 'th' && s.nameTh) || s.name || t('patient.specialists.nameHidden')}</Text>
                 <Text style={[styles.meta, { color: theme.textMuted }]}>{pick(s.hospitalName, lang)}</Text>
               </View>
             </View>

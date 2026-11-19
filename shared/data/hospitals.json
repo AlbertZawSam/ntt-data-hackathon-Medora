@@ -155,7 +155,10 @@
       "demoReply": {
         "stroke": {
           "status": "accepted",
-          "note": "Can accept, but our neurologist is in surgery and free in about 40 minutes."
+          "note": {
+            "en": "Can accept, but our neurologist is in surgery and free in about 40 minutes.",
+            "th": "รับได้ แต่ประสาทแพทย์กำลังผ่าตัด ว่างในอีกประมาณ 40 นาที"
+          }
         }
       }
     },
@@ -227,12 +230,18 @@
         "injury": {
           "status": "declined",
           "reason": "equip",
-          "note": "No adult orthopaedic surgeon on duty; please send fractures to a trauma centre."
+          "note": {
+            "en": "No adult orthopaedic surgeon on duty; please send fractures to a trauma centre.",
+            "th": "ไม่มีศัลยแพทย์กระดูกสำหรับผู้ใหญ่เข้าเวร กรุณาส่งผู้ป่วยกระดูกหักไปศูนย์อุบัติเหตุ"
+          }
         },
         "*": {
           "status": "declined",
           "reason": "equip",
-          "note": "We take pregnancy, newborn and children's cases; no adult general medicine team on duty."
+          "note": {
+            "en": "We take pregnancy, newborn and children's cases; no adult general medicine team on duty.",
+            "th": "เรารับเฉพาะกรณีตั้งครรภ์ ทารกแรกเกิด และเด็ก ไม่มีทีมอายุรกรรมผู้ใหญ่เข้าเวร"
+          }
         }
       }
     },
@@ -397,7 +406,10 @@
         "*": {
           "status": "declined",
           "reason": "divert",
-          "note": "Neurology is diverting new admissions until tonight; stroke unit full."
+          "note": {
+            "en": "Neurology is diverting new admissions until tonight; stroke unit full.",
+            "th": "แผนกประสาทวิทยางดรับผู้ป่วยใหม่ถึงคืนนี้ หอผู้ป่วยโรคหลอดเลือดสมองเต็ม"
+          }
         }
       }
     },
@@ -461,7 +473,10 @@
         "*": {
           "status": "declined",
           "reason": "equip",
-          "note": "We are a clinic with no CT and only observation beds; we can't take referrals."
+          "note": {
+            "en": "We are a clinic with no CT and only observation beds; we can't take referrals.",
+            "th": "เราเป็นคลินิก ไม่มีเครื่อง CT และมีเพียงเตียงสังเกตอาการ จึงรับผู้ป่วยส่งต่อไม่ได้"
+          }
         }
       }
     },
@@ -601,7 +616,10 @@
         "*": {
           "status": "declined",
           "reason": "equip",
-          "note": "We treat children only; we can't admit adult patients."
+          "note": {
+            "en": "We treat children only; we can't admit adult patients.",
+            "th": "เรารักษาเฉพาะเด็ก ไม่สามารถรับผู้ป่วยผู้ใหญ่ได้"
+          }
         }
       }
     },
@@ -671,7 +689,10 @@
         "*": {
           "status": "declined",
           "reason": "equip",
-          "note": "We treat bone and injury cases only; no general medicine team for this case."
+          "note": {
+            "en": "We treat bone and injury cases only; no general medicine team for this case.",
+            "th": "เรารักษาเฉพาะกรณีกระดูกและอุบัติเหตุ ไม่มีทีมอายุรกรรมสำหรับกรณีนี้"
+          }
         }
       }
     }

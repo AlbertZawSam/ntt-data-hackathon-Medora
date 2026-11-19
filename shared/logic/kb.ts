@@ -83,6 +83,12 @@ export interface KbMatch {
 }
 
 /** What the agent's trace says after a knowledge base search: the matching hospitals and source documents (requirements 14.2, 14.3). */
+/** The department a source document describes ("…/rama9/neuro.md" → Neurology), so the trace reads as words, not file names. */
+function sourceDepartment(source: string): Bi {
+  const key = source.split('/').pop()?.replace(/\.md$/, '') ?? '';
+  return label(DEPARTMENTS, key);
+}
+
 export function kbTraceDetail(matches: readonly KbMatch[], nameOf: (hospitalId: string) => Bi | undefined, max = 4): Bi {
   if (matches.length === 0) return { en: 'No matching source found.', th: 'ไม่พบแหล่งข้อมูลที่ตรงกัน' };
   if (matches.every((match) => match.source === 'hospital-profile')) {
@@ -94,7 +100,7 @@ export function kbTraceDetail(matches: readonly KbMatch[], nameOf: (hospitalId: 
   const seen = new Set<string>();
   const shown = matches.filter((match) => !seen.has(match.source) && seen.add(match.source)).slice(0, max);
   const line = (lang: 'en' | 'th'): string =>
-    shown.map((match) => `${nameOf(match.hospitalId)?.[lang] ?? match.hospitalId} (${match.source.replace(/^s3:\/\/[^/]+\//, '')})`).join(', ');
+    shown.map((match) => `${nameOf(match.hospitalId)?.[lang] ?? match.hospitalId}: ${sourceDepartment(match.source)[lang]}`).join(', ');
   return {
     en: `${seen.size} source document(s): ${line('en')}${seen.size > shown.length ? ', and more' : ''}.`,
     th: `พบเอกสารอ้างอิง ${seen.size} ฉบับ: ${line('th')}${seen.size > shown.length ? ' และอื่น ๆ' : ''}`,

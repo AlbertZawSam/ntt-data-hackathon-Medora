@@ -14,10 +14,22 @@ import { useRoutePath } from '../services/routePath';
 import { fetchMapStyleUrl } from '../services/data';
 import { markerColors } from './markerColors';
 import { SchematicMap, shortLabel, type MapMarker, type MapViewProps, type MarkerKind } from './SchematicMap';
+import type { StringKey } from '../i18n/t';
+import { useT } from '../state/AppProvider';
 import { fonts, radii, useTheme } from '../ui/theme';
 
 export { shortLabel };
 export type { MapMarker, MapViewProps, MarkerKind };
+
+/** The map's own button labels (zoom, attribution) in the reader's language. */
+function mapLocale(t: (key: StringKey) => string): Record<string, string> {
+  return {
+    'NavigationControl.ZoomIn': t('map.zoomIn'),
+    'NavigationControl.ZoomOut': t('map.zoomOut'),
+    'AttributionControl.ToggleAttribution': t('map.attribution'),
+    'Marker.Title': t('map.marker'),
+  };
+}
 
 const HOSPITAL_KINDS: ReadonlySet<MarkerKind> = new Set(HOSPITAL_MARKER_KINDS);
 /** A white medical cross for hospital markers. */
@@ -51,6 +63,7 @@ export function MapView(props: MapViewProps): React.JSX.Element {
 }
 
 function TileMap({ markers, route, onPick, height = 240, accessibilityLabel, styleUrl, onFailed }: MapViewProps & { styleUrl: string; onFailed: () => void }): React.JSX.Element {
+  const t = useT();
   const theme = useTheme();
   const container = React.useRef<HTMLDivElement | null>(null);
   const mapRef = React.useRef<maplibregl.Map | null>(null);
@@ -73,7 +86,7 @@ function TileMap({ markers, route, onPick, height = 240, accessibilityLabel, sty
   React.useEffect(() => {
     if (!container.current) return undefined;
     let loaded = false;
-    const map = new maplibregl.Map({ container: container.current, style: styleUrl, center: BANGKOK, zoom: 11, attributionControl: { compact: true } });
+    const map = new maplibregl.Map({ container: container.current, style: styleUrl, center: BANGKOK, zoom: 11, attributionControl: { compact: true }, locale: mapLocale(t) });
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
     map.on('load', () => {

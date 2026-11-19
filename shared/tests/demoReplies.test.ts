@@ -37,3 +37,13 @@ describe('hasDepartmentStaff', () => {
     expect(hasDepartmentStaff('unknown')).toBe(false);
   });
 });
+
+describe('demo reply notes in the doctor\'s language', () => {
+  it('writes the note in Thai for a Thai referral, and the delay is still read', () => {
+    const th = demoReply('rama9', 'stroke', 'th');
+    expect(th.note).toContain('นาที');
+    expect(statedDelayMin(th.note)).toBe(40);
+    expect(demoReply('chatuchak', 'general', 'th').note).toContain('เด็ก');
+    expect(demoReply('chatuchak', 'general', 'en').note).toContain('children only');
+  });
+});

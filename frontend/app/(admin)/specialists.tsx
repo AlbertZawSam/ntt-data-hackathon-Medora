@@ -17,6 +17,7 @@ import { fonts, fontSizes, radii, spacing, useTheme } from '../../src/ui/theme';
 interface Row {
   id: string;
   name: string;
+  nameTh?: string | null;
   specialty: string;
   slots: unknown;
 }
@@ -34,7 +35,7 @@ const parseSlots = (text: string): Slot[] =>
 export default function AdminSpecialistsScreen(): React.JSX.Element {
   const t = useT();
   const theme = useTheme();
-  const { data, session } = useApp();
+  const { data, session, lang } = useApp();
   const rows = (data.specialists as unknown as Row[]).filter((r) => (r as unknown as { hospitalId: string }).hospitalId === session?.hospitalId);
   const [name, setName] = React.useState('');
   const [specialty, setSpecialty] = React.useState<string>(SPECIALTIES[0]);
@@ -64,7 +65,7 @@ export default function AdminSpecialistsScreen(): React.JSX.Element {
       {rows.length === 0 ? <Text style={[styles.note, { color: theme.textMuted }]}>{t('admin.specialists.empty')}</Text> : null}
       {rows.map((r) => (
         <View key={r.id} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <Text style={[styles.name, { color: theme.text }]}>{r.name}</Text>
+          <Text style={[styles.name, { color: theme.text }]}>{(lang === 'th' && r.nameTh) || r.name}</Text>
           <Text style={[styles.note, { color: theme.textMuted }]}>{t(`specialty.${r.specialty}` as StringKey)}</Text>
           <Button variant="secondary" label={t('admin.specialists.deleteButton')} onPress={() => void removeSpecialist(r.id)} />
         </View>
