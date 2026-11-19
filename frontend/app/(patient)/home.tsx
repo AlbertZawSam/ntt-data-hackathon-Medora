@@ -274,7 +274,7 @@ export default function PatientHomeScreen(): React.JSX.Element {
   );
 
   return (
-    <Page title={t('patient.home.headline')}>
+    <Page title={t('patient.home.headline')} subtitle={t('patient.home.sub')}>
       {wide ? (
         <View style={styles.columns}>
           <View style={[styles.column, styles.stack]}>

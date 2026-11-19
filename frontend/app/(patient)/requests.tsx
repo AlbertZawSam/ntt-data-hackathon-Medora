@@ -72,7 +72,7 @@ export default function PatientRequestsScreen(): React.JSX.Element {
   };
 
   return (
-    <Page title={t('patient.requests.title')} width="readable">
+    <Page title={t('patient.requests.title')} subtitle={t('patient.requests.sub')} width="readable">
       {mine.length === 0 ? (
         <Card padding="lg">
           <EmptyState icon="chatbubbles-outline" title={t('patient.requests.emptyTitle')} text={t('patient.requests.empty')} actionLabel={t('patient.requests.emptyAction')} onAction={() => router.push('/(patient)/care' as Href)} />
