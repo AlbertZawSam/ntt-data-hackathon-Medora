@@ -290,6 +290,8 @@ export interface Specialist {
   id: string;
   hospitalId: string;
   nameEn: string;
+  /** The name in Thai, shown on Thai screens when present. */
+  nameTh?: string | null;
   specialty: string;
   languages: string[];
   namePublic: boolean;

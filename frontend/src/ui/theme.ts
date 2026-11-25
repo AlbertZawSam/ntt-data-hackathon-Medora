@@ -19,6 +19,8 @@ export interface Palette {
   text: string;
   textMuted: string;
   border: string;
+  /** Outline of controls people tap or type in (fields, chips, toggles): at least 3:1 against the surface. */
+  borderStrong: string;
   success: string;
   warning: string;
   emergency: string;
@@ -45,8 +47,10 @@ export const light: Palette = {
   text: brand.ink,
   textMuted: '#4F635D',
   border: '#D5DEDA',
-  success: '#1E7F4F',
-  warning: '#A85D00',
+  borderStrong: '#7E918B',
+  // Status colours read at AA (4.5:1 or more) on their soft tints, where badges and notices put them.
+  success: '#17704A',
+  warning: '#8F4F00',
   emergency: '#C62828',
   onEmergency: '#FFFFFF',
   primarySoft: '#E2F1EB',
@@ -68,10 +72,12 @@ export const dark: Palette = {
   text: '#E8F1EE',
   textMuted: '#A3B8B1',
   border: '#24423F',
+  borderStrong: '#5A7A72',
   success: '#5BCB8C',
   warning: '#F2A33A',
-  emergency: '#EF5350',
-  onEmergency: '#FFFFFF',
+  // A lighter red with dark text: white on the old #EF5350 was 3.5:1; this pair is 7.8:1.
+  emergency: '#FF7A75',
+  onEmergency: '#1A0505',
   primarySoft: '#14382F',
   successSoft: '#143A27',
   warningSoft: '#3C2C10',
@@ -95,6 +101,7 @@ export const fonts = {
 } as const;
 
 export const spacing = {
+  xxs: 2,
   xs: 4,
   sm: 8,
   md: 16,
@@ -102,13 +109,27 @@ export const spacing = {
   xl: 32,
 } as const;
 
+/** Type sizes. Running text is md (16); sm is for secondary lines and xs only for small metadata (times, tags). */
 export const fontSizes = {
-  xs: 12,
-  sm: 14,
+  xs: 13,
+  sm: 15,
   md: 16,
   lg: 18,
   xl: 22,
   xxl: 28,
+} as const;
+
+/**
+ * Line heights for each size, about 1.4 to 1.5 times the size: enough room for Thai vowels and tone marks above and
+ * below the line, which clip or collide at tighter settings.
+ */
+export const lineHeights = {
+  xs: 19,
+  sm: 22,
+  md: 24,
+  lg: 27,
+  xl: 31,
+  xxl: 38,
 } as const;
 
 export const radii = {

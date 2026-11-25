@@ -1,7 +1,8 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Icon, type IconName } from './Icon';
-import { fonts, fontSizes, spacing, useTheme } from './theme';
+import { useT } from '../state/AppProvider';
+import { fonts, fontSizes, lineHeights, spacing, useTheme } from './theme';
 
 export interface TimelineStep {
   id: string;
@@ -18,13 +19,14 @@ const ICON: Record<TimelineStep['state'], IconName> = { done: 'checkmark', activ
 /** A vertical list of steps joined by a line, for the agent's trace and for where a request stands. */
 export function Timeline({ steps }: { steps: readonly TimelineStep[] }): React.JSX.Element {
   const theme = useTheme();
+  const t = useT();
   return (
     <View accessibilityRole="list">
       {steps.map((step, index) => {
         const color = step.state === 'done' ? theme.success : step.state === 'active' ? theme.primary : step.state === 'error' ? theme.emergency : theme.border;
         const last = index === steps.length - 1;
         return (
-          <View key={step.id} accessibilityRole="text" accessibilityLabel={`${step.title}${step.detail ? `. ${step.detail}` : ''}`} style={styles.row}>
+          <View key={step.id} accessibilityRole="text" accessibilityLabel={`${step.title}, ${t(`timeline.state.${step.state}`)}${step.detail ? `. ${step.detail}` : ''}`} style={styles.row}>
             <View style={styles.rail}>
               <View style={[styles.dot, { backgroundColor: step.state === 'pending' ? theme.surface : color, borderColor: color }]}>
                 <Icon name={ICON[step.state]} size={step.state === 'active' ? 8 : 13} color={step.state === 'pending' ? color : theme.onPrimary} />
@@ -46,13 +48,13 @@ export function Timeline({ steps }: { steps: readonly TimelineStep[] }): React.J
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: spacing.sm + 4 },
+  row: { flexDirection: 'row', gap: spacing.sm + spacing.xs },
   rail: { alignItems: 'center', width: 24 },
   dot: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   line: { flex: 1, width: 2, marginVertical: 2, minHeight: 12 },
-  body: { flex: 1, paddingBottom: spacing.md, gap: 2 },
+  body: { flex: 1, paddingBottom: spacing.md, gap: spacing.xxs },
   head: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
-  title: { flex: 1, fontSize: fontSizes.md, fontFamily: fonts.semibold },
-  time: { fontSize: fontSizes.xs, fontFamily: fonts.medium },
-  detail: { fontSize: fontSizes.sm, fontFamily: fonts.regular, lineHeight: 20 },
+  title: { flex: 1, fontSize: fontSizes.md, lineHeight: lineHeights.md, fontFamily: fonts.semibold },
+  time: { fontSize: fontSizes.xs, lineHeight: lineHeights.xs, fontFamily: fonts.medium },
+  detail: { fontSize: fontSizes.sm, fontFamily: fonts.regular, lineHeight: lineHeights.sm },
 });

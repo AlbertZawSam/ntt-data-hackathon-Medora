@@ -5,8 +5,11 @@ import { freshItemShare, referralMetrics, requestMetrics } from '@medora/shared/
 import type { HospitalStatus } from '@medora/shared/logic/types';
 import { pick } from '../i18n/t';
 import { useApp, useT } from '../state/AppProvider';
-import { Screen } from '../ui/Screen';
-import { fonts, fontSizes, radii, spacing, useTheme } from '../ui/theme';
+import { Card } from '../ui/Card';
+import { EmptyState } from '../ui/EmptyState';
+import { Page } from '../ui/Page';
+import { SectionHeader } from '../ui/SectionHeader';
+import { fonts, fontSizes, lineHeights, spacing, useTheme } from '../ui/theme';
 
 /** The schema stores the time as `at`; the shared type calls it `createdAt`. */
 const when = (a: { createdAt: string }): string => (a as { at?: string }).at ?? a.createdAt ?? '';
@@ -36,27 +39,36 @@ export function ActivityList(): React.JSX.Element {
   if (mine.fresh !== null) lines.push(t('metrics.fresh', { pct: pct(mine.fresh) }));
 
   return (
-    <Screen title={t('activity.title')}>
-      <View style={[styles.row, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-        <Text style={[styles.text, { color: theme.text }]}>{t('metrics.title')}</Text>
+    <Page title={t('activity.title')} subtitle={t('activity.sub')} width="readable">
+      <Card padding="lg">
+        <Text style={[styles.heading, { color: theme.text }]}>{t('metrics.title')}</Text>
         {lines.length === 0 ? <Text style={[styles.note, { color: theme.textMuted }]}>{t('metrics.none')}</Text> : null}
         {lines.map((line) => (
-          <Text key={line} style={[styles.note, { color: theme.textMuted }]}>{line}</Text>
+          <Text key={line} style={[styles.note, { color: theme.text }]}>{line}</Text>
         ))}
-      </View>
-      {rows.length === 0 ? <Text style={[styles.note, { color: theme.textMuted }]}>{t('activity.empty')}</Text> : null}
-      {rows.map((a) => (
-        <View key={a.id} style={[styles.row, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <Text style={[styles.text, { color: theme.text }]}>{pick(a.text, lang)}</Text>
-          <Text style={[styles.note, { color: theme.textMuted }]}>{`${pick(a.actor, lang)} · ${new Date(when(a)).toLocaleString(lang === 'th' ? 'th-TH' : 'en-GB')}`}</Text>
-        </View>
-      ))}
-    </Screen>
+      </Card>
+      <SectionHeader title={t('activity.listTitle')} />
+      {rows.length === 0 ? (
+        <Card padding="lg">
+          <EmptyState icon="list-outline" title={t('activity.empty')} />
+        </Card>
+      ) : (
+        <Card padding="none">
+          {rows.map((a, index) => (
+            <View key={a.id} style={[styles.row, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border }]}>
+              <Text style={[styles.text, { color: theme.text }]}>{pick(a.text, lang)}</Text>
+              <Text style={[styles.note, { color: theme.textMuted }]}>{`${pick(a.actor, lang)} · ${new Date(when(a)).toLocaleString(lang === 'th' ? 'th-TH' : 'en-GB')}`}</Text>
+            </View>
+          ))}
+        </Card>
+      )}
+    </Page>
   );
 }
 
 const styles = StyleSheet.create({
-  row: { borderWidth: 1, borderRadius: radii.md, padding: spacing.sm, gap: 2 },
-  text: { fontSize: fontSizes.md, fontFamily: fonts.medium },
-  note: { fontSize: fontSizes.sm, fontFamily: fonts.regular },
+  heading: { fontSize: fontSizes.lg, lineHeight: lineHeights.lg, fontFamily: fonts.semibold },
+  row: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm + spacing.xs, gap: spacing.xxs },
+  text: { fontSize: fontSizes.md, lineHeight: lineHeights.md, fontFamily: fonts.medium },
+  note: { fontSize: fontSizes.sm, lineHeight: lineHeights.sm, fontFamily: fonts.regular },
 });

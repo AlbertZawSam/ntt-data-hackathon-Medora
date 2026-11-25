@@ -16,6 +16,8 @@ import { useApp, useT } from '../../src/state/AppProvider';
 import { Badge } from '../../src/ui/Badge';
 import { Button } from '../../src/ui/Button';
 import { Card } from '../../src/ui/Card';
+import { ConfirmPanel } from '../../src/ui/ConfirmPanel';
+import { Field } from '../../src/ui/Field';
 import { EmptyState } from '../../src/ui/EmptyState';
 import { Notice } from '../../src/ui/Notice';
 import { Page } from '../../src/ui/Page';
@@ -32,15 +34,20 @@ export default function IncomingReferralScreen(): React.JSX.Element {
   const [busy, setBusy] = React.useState(false);
   const [failed, setFailed] = React.useState(false);
   const [declining, setDeclining] = React.useState(false);
+  const [arriving, setArriving] = React.useState(false);
+  const [note, setNote] = React.useState('');
   const request = data.careRequests.find((r) => r.id === id && session !== null && canAnswerRequest(session, r));
 
   const act = async (action: 'accept' | 'decline' | 'arrived', reason?: string): Promise<void> => {
+    const extra = reason ? { reason, ...(note.trim() ? { note: note.trim() } : {}) } : {};
     if (!request) return;
     setBusy(true);
     setFailed(false);
     try {
-      await answerRequest(request.id, action, reason ? { reason } : {});
+      await answerRequest(request.id, action, extra);
       setDeclining(false);
+      setArriving(false);
+      setNote('');
     } catch {
       setFailed(true);
     } finally {
@@ -107,13 +114,27 @@ export default function IncomingReferralScreen(): React.JSX.Element {
         ) : null}
         {request.status === 'waiting' && declining ? (
           <View style={styles.stack}>
+            <Field label={t('staff.inbox.noteLabel')} icon="create-outline" value={note} onChangeText={setNote} maxLength={200} />
+            <Text style={[styles.heading, { color: theme.text }]}>{t('staff.inbox.declineTitle')}</Text>
             {DECLINE_REASONS.map((reason) => (
               <Button key={reason} variant="secondary" label={t(`request.reason.${reason}` as StringKey)} busy={busy} onPress={() => void act('decline', reason)} />
             ))}
-            <Button variant="ghost" icon="chevron-back" label={t('common.back')} onPress={() => setDeclining(false)} />
+            <Button variant="ghost" icon="chevron-back" label={t('staff.inbox.keepDeciding')} onPress={() => setDeclining(false)} />
           </View>
         ) : null}
-        {request.status === 'accepted' ? <Button size="lg" icon="walk" label={t('staff.inbox.arrived')} busy={busy} onPress={() => void act('arrived')} /> : null}
+        {request.status === 'accepted' && !arriving ? <Button variant="secondary" icon="walk" label={t('staff.inbox.arrived')} onPress={() => setArriving(true)} /> : null}
+        {request.status === 'accepted' && arriving ? (
+          <ConfirmPanel
+            tone="primary"
+            title={t('staff.inbox.arrivedConfirm', { name: request.patient.name || t('doctor.patients.unnamed') })}
+            body={t('staff.inbox.arrivedBody')}
+            confirmLabel={t('staff.inbox.arrived')}
+            cancelLabel={t('common.notYet')}
+            busy={busy}
+            onConfirm={() => void act('arrived')}
+            onCancel={() => setArriving(false)}
+          />
+        ) : null}
       </Card>
       {request.status === 'waiting' || request.status === 'accepted' ? (
         <Card padding="lg">
@@ -129,7 +150,8 @@ export default function IncomingReferralScreen(): React.JSX.Element {
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   line: { flexDirection: 'row', gap: spacing.md, paddingVertical: spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth },
-  label: { width: 110, fontSize: fontSizes.sm, fontFamily: fonts.medium },
+  label: { minWidth: 110, flexShrink: 0, fontSize: fontSizes.sm, fontFamily: fonts.medium },
+  heading: { fontSize: fontSizes.md, fontFamily: fonts.semibold },
   value: { flex: 1, fontSize: fontSizes.md, fontFamily: fonts.regular },
   quote: { borderLeftWidth: 3, borderRadius: radii.md, padding: spacing.md },
   buttons: { flexDirection: 'row', gap: spacing.sm },

@@ -1,14 +1,22 @@
 import React from 'react';
 import { AccessibilityInfo, Animated, Easing, Platform, type StyleProp, type ViewStyle } from 'react-native';
 import { motion } from './theme';
+import { webPrefersReducedMotion } from './web';
+
+/** The last known answer, shared by every component so screens after the first start with the right value. */
+let knownReduced = webPrefersReducedMotion();
 
 /** True when the person asked their device for less motion; then nothing slides or fades. */
 export function useReducedMotion(): boolean {
-  const [reduced, setReduced] = React.useState(false);
+  const [reduced, setReduced] = React.useState(knownReduced);
   React.useEffect(() => {
     let alive = true;
-    void AccessibilityInfo.isReduceMotionEnabled().then((value) => alive && setReduced(value));
-    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduced);
+    const update = (value: boolean): void => {
+      knownReduced = value;
+      if (alive) setReduced(value);
+    };
+    void AccessibilityInfo.isReduceMotionEnabled().then(update);
+    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', update);
     return () => {
       alive = false;
       subscription.remove();

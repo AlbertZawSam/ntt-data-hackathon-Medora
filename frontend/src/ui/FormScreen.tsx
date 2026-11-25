@@ -4,6 +4,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BrandMark } from '../components/BrandMark';
 import { LanguageToggle } from '../components/LanguageToggle';
 import { useT } from '../state/AppProvider';
+import { call1669 } from '../services/emergency';
+import { Button } from './Button';
 import { Card } from './Card';
 import { Icon, type IconName } from './Icon';
 import { Notice } from './Notice';
@@ -15,6 +17,8 @@ interface Props {
   subtitle?: string;
   /** Error or notice shown above the form. */
   message?: { text: string; tone: 'error' | 'info' } | null;
+  /** Show the emergency call above the form: anyone signed out may be in an emergency (patient forms only). */
+  emergency?: boolean;
   children: React.ReactNode;
 }
 
@@ -28,7 +32,7 @@ const POINTS: ReadonlyArray<{ icon: IconName; key: 'brand.point1' | 'brand.point
  * The page every sign-in style form sits on. On a wide screen: a green brand panel on the left and the form on the right.
  * On a phone: the logo above the form. Scrolls and keeps clear of the keyboard.
  */
-export function FormScreen({ title, subtitle, message, children }: Props): React.JSX.Element {
+export function FormScreen({ title, subtitle, message, emergency = false, children }: Props): React.JSX.Element {
   const t = useT();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -41,6 +45,12 @@ export function FormScreen({ title, subtitle, message, children }: Props): React
           {split ? <View /> : <BrandMark size={36} />}
           <LanguageToggle />
         </View>
+        {emergency ? (
+          <View style={[styles.sos, { backgroundColor: theme.emergencySoft, borderColor: theme.emergency }]}>
+            <Text style={[styles.sosText, { color: theme.text }]}>{t('signIn.emergencyNote')}</Text>
+            <Button variant="danger" icon="call" label={t('emergency.call1669')} onPress={() => void call1669()} />
+          </View>
+        ) : null}
         <Reveal>
           <Card padding="lg" elevation={split ? 1 : 2} style={styles.formCard}>
             <View style={styles.heading}>
@@ -101,7 +111,7 @@ const styles = StyleSheet.create({
   brandLogo: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 2 },
   logoImage: { width: 56, height: 56, borderRadius: 16, borderWidth: 2 },
   brandName: { fontSize: fontSizes.xxl, fontFamily: fonts.bold, letterSpacing: -0.4 },
-  tagline: { fontSize: 40, lineHeight: 48, fontFamily: fonts.bold, letterSpacing: -0.8 },
+  tagline: { fontSize: 40, lineHeight: 56, fontFamily: fonts.bold, letterSpacing: -0.8 },
   points: { gap: spacing.md },
   point: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   pointIcon: { width: 40, height: 40, borderRadius: radii.md, alignItems: 'center', justifyContent: 'center' },
@@ -111,6 +121,8 @@ const styles = StyleSheet.create({
   column: { width: '100%', maxWidth: 460, gap: spacing.md },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   formCard: { gap: spacing.md },
+  sos: { gap: spacing.sm, padding: spacing.md, borderRadius: radii.lg, borderWidth: 1 },
+  sosText: { fontSize: fontSizes.md, fontFamily: fonts.medium, lineHeight: 22 },
   heading: { gap: 4 },
   title: { fontSize: fontSizes.xxl, fontFamily: fonts.bold, letterSpacing: -0.4 },
   subtitle: { fontSize: fontSizes.md, fontFamily: fonts.regular, lineHeight: 22 },

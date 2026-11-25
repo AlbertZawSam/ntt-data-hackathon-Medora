@@ -2,7 +2,7 @@
  * Find a specialist: a search box, specialty chips, then results nearest first. Before the person searches or
  * picks a specialty a small sample shows (the nearest of each specialty); from Find care the matching specialty
  * arrives as a route parameter and is already picked. Each specialist shows weekly clinic hours instead of
- * dates, and tapping a weekday books the next open time on that day. The doctor's name shows only if they
+ * dates. Booking takes three steps: tap a weekday, check the next open time shown on it, then confirm. The doctor's name shows only if they
  * chose to share it, or after booking. Requirements: 8.1 to 8.6
  */
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
@@ -17,6 +17,7 @@ import {
   sampleSpecialists,
   weeklySchedule,
   type PublicSpecialist,
+  type Slot,
 } from '@medora/shared/logic/specialists';
 import { looksLikeInjection, looksLikeNonsense } from '@medora/shared/logic/understand';
 import { hoursText, weekdayText, whenText } from '../../src/i18n/hours';
@@ -69,7 +70,10 @@ export default function PatientSpecialistsScreen(): React.JSX.Element {
   const [list, setList] = React.useState<PublicSpecialist[] | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<StringKey | null>(null);
-  const [booked, setBooked] = React.useState<{ doctor: string; when: string } | null>(null);
+  const [booked, setBooked] = React.useState<{ specialistId: string; doctor: string; when: string } | null>(null);
+  // The day picked on one specialist's card and the next open time on it, waiting for the person to confirm.
+  const [choice, setChoice] = React.useState<{ specialistId: string; weekday: number; slot: Slot } | null>(null);
+  const [confirming, setConfirming] = React.useState(false);
   // What the typed words told us: nonsense or an instruction ("unclear"), or real words with no exact match.
   const [hint, setHint] = React.useState<'unclear' | 'noMatch' | null>(null);
 
@@ -116,21 +120,36 @@ export default function PatientSpecialistsScreen(): React.JSX.Element {
     setQuery(text);
   };
 
-  const book = async (s: PublicSpecialist, weekday: number): Promise<void> => {
+  // Step 1: a tap on a weekday only picks it and shows the next open time there; nothing is booked yet.
+  const choose = (s: PublicSpecialist, weekday: number): void => {
     setError(null);
+    setBooked(null);
     const slot = nextSlotOnWeekday(s.slots, weekday, Date.now());
     if (!slot) {
+      setChoice(null);
       setError('patient.specialists.dayFull');
-      await search();
+      void search();
       return;
     }
+    setChoice({ specialistId: s.id, weekday, slot });
+  };
+
+  // Step 3: the person confirmed the time they saw, so book exactly that slot.
+  const confirm = async (s: PublicSpecialist): Promise<void> => {
+    if (!choice || choice.specialistId !== s.id) return;
+    setError(null);
+    setConfirming(true);
     try {
-      await bookSpecialist({ specialistId: s.id, slotId: slot.id });
-      setBooked({ doctor: s.name ?? t(`specialty.${s.specialty}` as StringKey), when: whenText(t, lang, slot) });
+      await bookSpecialist({ specialistId: s.id, slotId: choice.slot.id });
+      setBooked({ specialistId: s.id, doctor: (lang === 'th' && s.nameTh) || s.name || t(`specialty.${s.specialty}` as StringKey), when: whenText(t, lang, choice.slot) });
+      setChoice(null);
       await search();
     } catch {
       setError('patient.specialists.bookError'); // includes a slot someone else just took
+      setChoice(null);
       await search();
+    } finally {
+      setConfirming(false);
     }
   };
 
@@ -179,7 +198,7 @@ export default function PatientSpecialistsScreen(): React.JSX.Element {
                 <Icon name={SPECIALTY_ICON[s.specialty] ?? 'medkit'} size={26} color={theme.primary} />
               </View>
               <View style={styles.flex}>
-                <Text style={[styles.name, { color: theme.text }]}>{s.name ?? t('patient.specialists.nameHidden')}</Text>
+                <Text style={[styles.name, { color: theme.text }]}>{(lang === 'th' && s.nameTh) || s.name || t('patient.specialists.nameHidden')}</Text>
                 <Text style={[styles.meta, { color: theme.textMuted }]}>{pick(s.hospitalName, lang)}</Text>
               </View>
             </View>
@@ -188,21 +207,30 @@ export default function PatientSpecialistsScreen(): React.JSX.Element {
               <Badge tone="info" icon="navigate" label={t('patient.specialists.kmAway', { km: s.distanceKm })} />
             </View>
             <Text style={[styles.label, { color: theme.text }]}>{t('patient.specialists.hoursTitle')}</Text>
-            {/* Weekly hours like a clinic sign; a tap books the next open time on that weekday. */}
+            <Text style={[styles.meta, { color: theme.textMuted }]}>{t('patient.specialists.stepPickDay')}</Text>
+            {/* Weekly hours like a clinic sign; a tap picks the day and shows its next open time to confirm. */}
             <View style={styles.hours}>
               {weeklySchedule(s.slots, nowMs).map((range) => {
                 const day = weekdayText(t, range.weekday);
                 const hours = hoursText(t, lang, range);
+                const selected = choice?.specialistId === s.id && choice.weekday === range.weekday;
                 return (
                   <Pressable
                     key={`${range.weekday}-${range.start}`}
                     accessibilityRole="button"
+                    accessibilityState={{ selected }}
                     accessibilityLabel={t('patient.specialists.weekdayRow', { day, hours })}
                     accessibilityHint={t('patient.specialists.bookOnDay')}
-                    onPress={() => void book(s, range.weekday)}
+                    disabled={confirming}
+                    onPress={() => choose(s, range.weekday)}
                     style={(state) => [
                       styles.hoursRow,
-                      { borderColor: theme.border, backgroundColor: (state as { hovered?: boolean }).hovered ? theme.primarySoft : theme.surface, opacity: state.pressed ? 0.8 : 1 },
+                      {
+                        borderColor: selected ? theme.primary : theme.border,
+                        borderWidth: selected ? 2 : 1,
+                        backgroundColor: selected || (state as { hovered?: boolean }).hovered ? theme.primarySoft : theme.surface,
+                        opacity: state.pressed ? 0.8 : 1,
+                      },
                       pointer,
                       webTransition(),
                       focusRing(theme.primary, (state as { focused?: boolean }).focused === true),
@@ -210,11 +238,38 @@ export default function PatientSpecialistsScreen(): React.JSX.Element {
                   >
                     <Text style={[styles.hoursDay, { color: theme.text }]}>{day}</Text>
                     <Text style={[styles.hoursTime, { color: theme.textMuted }]}>{hours}</Text>
-                    <Icon name="chevron-forward" size={18} color={theme.primary} />
+                    {selected ? (
+                      <Badge tone="primary" icon="checkmark" label={t('patient.specialists.selectedDay')} />
+                    ) : (
+                      <Icon name="chevron-forward" size={18} color={theme.primary} />
+                    )}
                   </Pressable>
                 );
               })}
             </View>
+            {/* Steps 2 and 3: the exact time that will be booked, and an explicit confirm. */}
+            {choice?.specialistId === s.id ? (
+              <View style={[styles.confirm, { borderColor: theme.primary, backgroundColor: theme.primarySoft }]}>
+                <Text style={[styles.label, { color: theme.text }]}>{t('patient.specialists.confirmTitle')}</Text>
+                <View style={styles.confirmWhen}>
+                  <Icon name="calendar" size={20} color={theme.primary} />
+                  <Text style={[styles.when, { color: theme.text }]}>{whenText(t, lang, choice.slot)}</Text>
+                </View>
+                <Text style={[styles.meta, { color: theme.text }]}>
+                  {t('patient.specialists.confirmWhere', { specialty: t(`specialty.${s.specialty}` as StringKey), hospital: pick(s.hospitalName, lang) })}
+                </Text>
+                <Text style={[styles.meta, { color: theme.textMuted }]}>{t('patient.specialists.confirmNote')}</Text>
+                <View style={styles.row}>
+                  <Button fullWidth={false} icon="checkmark-circle" label={t('patient.specialists.confirmButton')} busy={confirming} onPress={() => void confirm(s)} />
+                  <Button fullWidth={false} variant="ghost" label={t('patient.specialists.chooseAnother')} disabled={confirming} onPress={() => setChoice(null)} />
+                </View>
+              </View>
+            ) : null}
+            {booked?.specialistId === s.id ? (
+              <Notice tone="success" actionLabel={t('patient.requests.title')} onAction={() => router.push('/(patient)/requests' as Href)}>
+                {t('patient.specialists.bookedWhen', { doctor: booked.doctor, when: booked.when })}
+              </Notice>
+            ) : null}
           </Card>
         </Reveal>
       ))}
@@ -252,17 +307,15 @@ export default function PatientSpecialistsScreen(): React.JSX.Element {
         </View>
       </Card>
       {error ? <Notice tone="danger">{t(error)}</Notice> : null}
-      {booked ? (
-        <Notice tone="success" actionLabel={t('patient.requests.title')} onAction={() => router.push('/(patient)/requests' as Href)}>
-          {t('patient.specialists.bookedWhen', booked)}
-        </Notice>
-      ) : null}
       {shown && shown.length > 0 ? (
-        browsing ? (
-          <SectionHeader title={t('patient.specialists.sampleTitle')} subtitle={t('patient.specialists.sampleHint')} />
-        ) : (
-          <SectionHeader title={t('patient.specialists.resultsTitle')} subtitle={t('patient.specialists.found', { n: shown.length })} />
-        )
+        <>
+          {browsing ? (
+            <SectionHeader title={t('patient.specialists.sampleTitle')} subtitle={t('patient.specialists.sampleHint')} />
+          ) : (
+            <SectionHeader title={t('patient.specialists.resultsTitle')} subtitle={t('patient.specialists.found', { n: shown.length })} />
+          )}
+          <Notice tone="info">{t('patient.specialists.howToBook')}</Notice>
+        </>
       ) : null}
       {wide && map ? (
         <View style={styles.columns}>
@@ -295,4 +348,7 @@ const styles = StyleSheet.create({
   hoursRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderRadius: radii.md, paddingHorizontal: spacing.md, minHeight: 44 },
   hoursDay: { fontSize: fontSizes.md, fontFamily: fonts.semibold, minWidth: 96 },
   hoursTime: { flex: 1, fontSize: fontSizes.md, fontFamily: fonts.regular },
+  confirm: { gap: spacing.sm, borderWidth: 1, borderRadius: radii.md, padding: spacing.md },
+  confirmWhen: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  when: { fontSize: fontSizes.lg, fontFamily: fonts.bold },
 });

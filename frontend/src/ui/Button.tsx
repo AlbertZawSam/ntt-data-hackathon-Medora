@@ -2,6 +2,7 @@ import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Icon, type IconName } from './Icon';
 import { fonts, fontSizes, radii, shadow, spacing, useIsDark, useTheme } from './theme';
+import { useReducedMotion } from './Reveal';
 import { focusRing, pointer, webTransition } from './web';
 
 interface Props {
@@ -19,11 +20,13 @@ interface Props {
   accessibilityHint?: string;
 }
 
-const HEIGHT = { sm: 40, md: 48, lg: 56 } as const;
+// Every size is at least 44 px tall, the smallest target people tap reliably.
+const HEIGHT = { sm: 44, md: 48, lg: 56 } as const;
 
 export function Button({ label, onPress, variant = 'primary', size = 'md', icon, iconRight, busy = false, disabled = false, fullWidth = true, accessibilityHint }: Props): React.JSX.Element {
   const theme = useTheme();
   const dark = useIsDark();
+  const reduced = useReducedMotion();
   const inactive = busy || disabled;
   const filled = variant === 'primary' || variant === 'danger';
   const base = variant === 'danger' ? theme.emergency : theme.primary;
@@ -47,7 +50,7 @@ export function Button({ label, onPress, variant = 'primary', size = 'md', icon,
           filled && { backgroundColor: base, ...(hovered && !inactive ? shadow(2, dark) : shadow(1, dark)) },
           variant === 'secondary' && { borderWidth: 1.5, borderColor: theme.primary, backgroundColor: hovered ? theme.primarySoft : theme.surface },
           variant === 'ghost' && { backgroundColor: hovered || pressed ? theme.primarySoft : 'transparent' },
-          { opacity: inactive ? 0.55 : pressed ? 0.88 : 1, transform: [{ scale: pressed && !inactive ? 0.985 : 1 }] },
+          { opacity: inactive ? 0.55 : pressed ? 0.88 : 1, transform: [{ scale: pressed && !inactive && !reduced ? 0.985 : 1 }] },
           pointer,
           webTransition(),
           focusRing(theme.primary, focused),

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Animated, Easing, Platform, StyleSheet, View, type DimensionValue } from 'react-native';
+import { useT } from '../state/AppProvider';
 import { Card } from './Card';
 import { useReducedMotion } from './Reveal';
 import { radii, spacing, useTheme } from './theme';
@@ -25,9 +26,10 @@ export function Skeleton({ width = '100%', height = 14, radius = radii.sm }: { w
 
 /** A card-shaped placeholder: a title bar and a few lines. */
 export function SkeletonCard({ lines = 2 }: { lines?: number }): React.JSX.Element {
+  const t = useT();
   return (
     <Card>
-      <View accessibilityLabel="Loading" accessibilityLiveRegion="polite" style={styles.stack}>
+      <View accessibilityLabel={t('common.loading')} accessibilityLiveRegion="polite" style={styles.stack}>
         <Skeleton width="55%" height={18} />
         {Array.from({ length: lines }, (_, i) => (
           <Skeleton key={i} width={i === lines - 1 ? '70%' : '100%'} />

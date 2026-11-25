@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Icon, type IconName } from './Icon';
-import { fonts, fontSizes, radii, spacing, useTheme } from './theme';
+import { fonts, fontSizes, lineHeights, radii, spacing, useTheme } from './theme';
 import { focusRing, pointer, webTransition } from './web';
 
 export interface SegmentOption<T extends string> {
@@ -34,7 +34,7 @@ export function Segmented<T extends string>({ options, value, onChange, accessib
             ]}
           >
             {option.icon ? <Icon name={option.icon} size={18} color={selected ? theme.primary : theme.textMuted} /> : null}
-            <Text numberOfLines={1} style={[styles.label, { color: selected ? theme.primary : theme.textMuted }]}>{option.label}</Text>
+            <Text numberOfLines={2} style={[styles.label, { color: selected ? theme.primary : theme.textMuted }]}>{option.label}</Text>
           </Pressable>
         );
       })}
@@ -44,6 +44,6 @@ export function Segmented<T extends string>({ options, value, onChange, accessib
 
 const styles = StyleSheet.create({
   track: { flexDirection: 'row', borderRadius: radii.lg, padding: 4, gap: 4 },
-  item: { flex: 1, minHeight: 44, borderRadius: radii.md, borderWidth: 1.5, borderColor: 'transparent', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: spacing.xs },
-  label: { fontSize: fontSizes.sm, fontFamily: fonts.semibold },
+  item: { flex: 1, minHeight: 48, borderRadius: radii.md, borderWidth: 1.5, borderColor: 'transparent', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs + spacing.xxs, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
+  label: { flexShrink: 1, fontSize: fontSizes.sm, lineHeight: lineHeights.sm, fontFamily: fonts.semibold, textAlign: 'center' },
 });

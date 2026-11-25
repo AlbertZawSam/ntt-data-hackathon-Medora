@@ -54,7 +54,15 @@ const INJECTION = [
   /\b(system|developer)\s+(prompt|message|instructions)\b/i,
   /\byou\s+are\s+now\b|\bact\s+as\b|\bpretend\s+(to\s+be|you)\b|\bjailbreak\b|\bdo anything now\b/i,
   /<\/?\s*(patient_description|system|instructions?)\s*>/i,
-  /(ลืม|เพิกเฉย|ไม่ต้องสนใจ).{0,20}(คำสั่ง|กฎ)/,
+  // Thai: "forget / ignore / disregard the instructions or rules", but not a doctor's orders ("ตามคำสั่งแพทย์").
+  /(ลืม|เพิกเฉย|ไม่ต้องสนใจ|ละเว้น|ไม่ต้องทำตาม).{0,20}(คำสั่ง(?!แพทย์|หมอ|ของแพทย์|ของหมอ)|กฎ)/,
+  // Mixed Thai and English, as people type it: "ignore คำสั่งทั้งหมด", "ไม่ต้องสนใจ instructions".
+  /\b(ignore|disregard|forget|override|bypass)\b.{0,20}(คำสั่ง|กฎ|ระบบ)/i,
+  /(ลืม|เพิกเฉย|ไม่ต้องสนใจ|ละเว้น).{0,20}\b(instructions?|rules|prompt|system)\b/i,
+  // Thai "system instruction / system prompt" and fake system tags: "[คำสั่งระบบ: …]".
+  /(คำสั่ง|ข้อความ)(ของ)?ระบบ|พรอมต์/,
+  // Thai role-play: "you are now…", "you are the admin / the system", "pretend that…", "no limits".
+  /(ตอนนี้|จากนี้(ไป)?)คุณ(คือ|เป็น)|คุณคือ(ผู้ดูแลระบบ|แอดมิน|ระบบ|ผู้พัฒนา|AI|เอไอ)|แกล้งทำ(เป็น)?ว่า|สวมบทบาท|ไม่มีข้อจำกัด|โหมดนักพัฒนา/i,
 ];
 
 export function looksLikeInjection(text: string): boolean {

@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { radii, shadow, spacing, useIsDark, useTheme, type Palette } from './theme';
 import { focusRing, pointer, webTransition } from './web';
+import { useReducedMotion } from './Reveal';
 
 export type Tone = 'neutral' | 'primary' | 'success' | 'warning' | 'danger' | 'info';
 
@@ -37,12 +38,13 @@ interface Props {
   style?: StyleProp<ViewStyle>;
 }
 
-const PAD = { none: 0, sm: spacing.sm + 2, md: spacing.md, lg: spacing.lg } as const;
+const PAD = { none: 0, sm: spacing.sm + spacing.xxs, md: spacing.md, lg: spacing.lg } as const;
 
 /** The basic container of the app: rounded, softly raised, and optionally pressable. */
 export function Card({ children, tone = 'neutral', onPress, elevation = 1, padding = 'md', selected = false, accessibilityLabel, style }: Props): React.JSX.Element {
   const theme = useTheme();
   const dark = useIsDark();
+  const reduced = useReducedMotion();
   const { fg, bg } = toneColors(theme, tone);
   const tinted = tone !== 'neutral';
   const look = (hovered: boolean, pressed: boolean, focused: boolean): StyleProp<ViewStyle> => [
@@ -54,7 +56,7 @@ export function Card({ children, tone = 'neutral', onPress, elevation = 1, paddi
       borderWidth: selected ? 2 : 1,
       ...shadow(onPress && hovered ? 2 : elevation, dark),
     },
-    onPress ? { transform: [{ scale: pressed ? 0.99 : 1 }, { translateY: hovered && !pressed ? -1 : 0 }] } : null,
+    onPress && !reduced ? { transform: [{ scale: pressed ? 0.99 : 1 }, { translateY: hovered && !pressed ? -1 : 0 }] } : null,
     webTransition(),
     onPress ? pointer : null,
     focusRing(theme.primary, focused),

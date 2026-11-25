@@ -30,6 +30,7 @@ import { useApp, useT } from '../../src/state/AppProvider';
 import { Badge, Chip } from '../../src/ui/Badge';
 import { Button } from '../../src/ui/Button';
 import { Card, type Tone } from '../../src/ui/Card';
+import { ConfirmPanel } from '../../src/ui/ConfirmPanel';
 import { Field } from '../../src/ui/Field';
 import { Icon, type IconName } from '../../src/ui/Icon';
 import { Notice } from '../../src/ui/Notice';
@@ -82,6 +83,8 @@ export default function DoctorReferScreen(): React.JSX.Element {
   const [activeId, setActiveId] = React.useState<string | null>(null);
   const [deciding, setDeciding] = React.useState(false);
   const [askReason, setAskReason] = React.useState(false);
+  // "Confirm transfer" sends the patient on its way, so it asks once more, naming the hospital.
+  const [confirming, setConfirming] = React.useState(false);
   const [now, setNow] = React.useState(Date.now());
   const [referringId, setReferringId] = React.useState<string | null>(null);
   const [showAi, setShowAi] = React.useState(false);
@@ -314,8 +317,21 @@ export default function DoctorReferScreen(): React.JSX.Element {
             </View>
             {referral.why ? <Text style={[styles.body, { color: theme.text }]}>{pick(referral.why, lang)}</Text> : null}
             <Notice tone="info" title={t(direct ? 'doctor.refer.decisionNoteDirect' : 'doctor.refer.decisionNote')} />
-            <Button size="lg" icon="checkmark-done" label={t('doctor.refer.confirmTransfer')} busy={deciding} onPress={() => confirm(referral)} />
-            {askReason ? (
+            {confirming ? (
+              <ConfirmPanel
+                tone="primary"
+                title={t('doctor.refer.confirmAsk', { hospital: referral.chosenName ? pick(referral.chosenName, lang) : t('doctor.refer.noHospital') })}
+                body={t('doctor.refer.confirmBody')}
+                confirmLabel={t('doctor.refer.confirmTransfer')}
+                cancelLabel={t('common.notYet')}
+                busy={deciding}
+                onConfirm={() => { setConfirming(false); confirm(referral); }}
+                onCancel={() => setConfirming(false)}
+              />
+            ) : (
+              <Button size="lg" icon="checkmark-done" label={t('doctor.refer.confirmTransfer')} busy={deciding} onPress={() => { setAskReason(false); setConfirming(true); }} />
+            )}
+            {confirming ? null : askReason ? (
               <View style={styles.stack}>
                 <Text style={[styles.label, { color: theme.text }]}>{t('doctor.refer.setAsideTitle')}</Text>
                 <View style={styles.row}>

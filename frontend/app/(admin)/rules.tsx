@@ -7,14 +7,17 @@ import React from 'react';
 import { StyleSheet, Switch, Text, View } from 'react-native';
 import { RULE_TARGETS } from '@medora/shared/logic/rules';
 import type { AutoAcceptRules, HospitalStatus, RuleTarget } from '@medora/shared/logic/types';
-import { pick, type StringKey } from '../../src/i18n/t';
+import { pick } from '../../src/i18n/t';
 import { PATHWAYS } from '@medora/shared/logic/pathways';
 import { setAutoAcceptRules } from '../../src/services/data';
 import { useApp, useT } from '../../src/state/AppProvider';
 import { Button } from '../../src/ui/Button';
 import { Field } from '../../src/ui/Field';
 import { StatusReminder } from '../../src/components/StatusReminder';
-import { Screen } from '../../src/ui/Screen';
+import { Card } from '../../src/ui/Card';
+import { Notice } from '../../src/ui/Notice';
+import { Page } from '../../src/ui/Page';
+import { SkeletonCard } from '../../src/ui/Skeleton';
 import { fonts, fontSizes, spacing, useTheme } from '../../src/ui/theme';
 
 export default function AdminRulesScreen(): React.JSX.Element {
@@ -35,9 +38,11 @@ export default function AdminRulesScreen(): React.JSX.Element {
     }
   }, [stored]);
 
-  const label = (target: RuleTarget): string => (target === 'visit' ? t('patient.care.requestButton') : pick(PATHWAYS[target].name, lang));
+  const label = (target: RuleTarget): string => (target === 'visit' ? t('staff.rules.target.visit') : pick(PATHWAYS[target].name, lang));
 
   const save = async (): Promise<void> => {
+    // Never save before the hospital's real rules have loaded: the defaults shown until then would overwrite them.
+    if (!loaded.current) return;
     const n = Number(minBeds);
     if (!Number.isInteger(n) || n < 0 || n > 100) return setState('error');
     setState('busy');
@@ -50,28 +55,43 @@ export default function AdminRulesScreen(): React.JSX.Element {
   };
 
   return (
-    <Screen title={t('staff.rules.title')}>
+    <Page title={t('staff.rules.title')} subtitle={t('staff.rules.intro')} width="readable">
       <StatusReminder audience="admin" />
-      {RULE_TARGETS.map((target) => (
-        <View key={target} style={styles.row}>
-          <Text style={[styles.label, { color: theme.text }]}>{label(target)}</Text>
-          <Switch
-            accessibilityLabel={label(target)}
-            value={rules[target] === true}
-            onValueChange={(value) => { setRules({ ...rules, [target]: value }); setState('idle'); }}
-          />
-        </View>
-      ))}
-      <Field label={t('staff.rules.minBeds')} value={minBeds} onChangeText={(v) => { setMinBeds(v); setState('idle'); }} keyboardType="number-pad" maxLength={3} />
-      {state === 'error' ? <Text style={[styles.note, { color: theme.emergency }]}>{t('staff.status.saveError' as StringKey)}</Text> : null}
-      {state === 'saved' ? <Text style={[styles.note, { color: theme.success }]}>{t('staff.rules.enabled')}</Text> : null}
-      <Button label={t('staff.status.submit')} busy={state === 'busy'} onPress={() => void save()} />
-    </Screen>
+      {!stored ? (
+        <SkeletonCard lines={4} />
+      ) : (
+        <Card padding="lg">
+          <View style={styles.list}>
+            {RULE_TARGETS.map((target) => (
+              <View key={target} style={styles.row}>
+                <Text style={[styles.label, { color: theme.text }]}>{label(target)}</Text>
+                <Switch
+                  accessibilityLabel={label(target)}
+                  value={rules[target] === true}
+                  onValueChange={(value) => { setRules({ ...rules, [target]: value }); setState('idle'); }}
+                />
+              </View>
+            ))}
+            <Field
+              label={t('staff.rules.minBeds')}
+              hint={t('staff.rules.minBedsHint')}
+              value={minBeds}
+              onChangeText={(v) => { setMinBeds(v); setState('idle'); }}
+              keyboardType="number-pad"
+              maxLength={3}
+            />
+            {state === 'error' ? <Notice tone="danger">{t('staff.rules.saveError')}</Notice> : null}
+            {state === 'saved' ? <Notice tone="success">{t('staff.rules.saved')}</Notice> : null}
+            <Button icon="save" label={t('staff.rules.save')} busy={state === 'busy'} onPress={() => void save()} />
+          </View>
+        </Card>
+      )}
+    </Page>
   );
 }
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, minHeight: 44 },
   label: { flex: 1, fontSize: fontSizes.md, fontFamily: fonts.medium },
-  note: { fontSize: fontSizes.sm, fontFamily: fonts.medium },
+  list: { gap: spacing.md },
 });

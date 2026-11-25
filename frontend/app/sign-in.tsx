@@ -198,7 +198,7 @@ export default function SignInScreen(): React.JSX.Element {
   }
 
   return (
-    <FormScreen title={t(pool === 'staff' ? 'signIn.staffTitle' : 'signIn.title')} message={message}>
+    <FormScreen title={t(pool === 'staff' ? 'signIn.staffTitle' : 'signIn.title')} message={message} emergency={pool === 'public'}>
       <Field
         label={t('signIn.emailPlaceholder')}
         value={email}

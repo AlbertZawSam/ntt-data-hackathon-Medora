@@ -17,6 +17,7 @@ import { useApp, useT } from '../../src/state/AppProvider';
 import { Badge } from '../../src/ui/Badge';
 import { Button } from '../../src/ui/Button';
 import { Card, type Tone } from '../../src/ui/Card';
+import { ConfirmPanel } from '../../src/ui/ConfirmPanel';
 import { EmptyState } from '../../src/ui/EmptyState';
 import { Field } from '../../src/ui/Field';
 import { Icon, type IconName } from '../../src/ui/Icon';
@@ -69,12 +70,16 @@ export default function StaffInboxScreen(): React.JSX.Element {
     seen.current = ids;
   }, [data.isSynced, waiting]);
 
+  // The accepted request whose "Patient arrived" was tapped, waiting for confirmation (it closes the request).
+  const [arriving, setArriving] = React.useState<string | null>(null);
+
   const act = async (id: string, action: 'accept' | 'decline' | 'undo' | 'arrived', extra: { reason?: string; note?: string } = {}): Promise<void> => {
     setBusy(id);
     setFailed(false);
     try {
       await answerRequest(id, action, extra);
       setDeclining(null);
+      setArriving(null);
       setNote('');
     } catch {
       setFailed(true);
@@ -86,12 +91,13 @@ export default function StaffInboxScreen(): React.JSX.Element {
   return (
     <Page
       title={t('staff.inbox.title')}
+      subtitle={t('staff.inbox.sub')}
       width="readable"
     >
       {waiting.length > 0 ? (
         <View accessibilityRole="alert" accessibilityLiveRegion="assertive" style={[styles.alert, { backgroundColor: theme.accent }]}>
           <Icon name="notifications" size={24} color={brand.ink} />
-          <Text style={[styles.alertText, { color: brand.ink }]}>{`${t('staff.inbox.alert')}: ${waiting.length}`}</Text>
+          <Text style={[styles.alertText, { color: brand.ink }]}>{t('staff.inbox.alertCount', { n: waiting.length })}</Text>
         </View>
       ) : null}
       {failed ? <Notice tone="danger">{t('staff.inbox.answerError')}</Notice> : null}
@@ -135,11 +141,13 @@ export default function StaffInboxScreen(): React.JSX.Element {
               {answerable ? (
                 declining === r.id ? (
                   <View style={styles.stack}>
+                    {/* The note comes first: each reason sends the decline at once, with whatever note is typed. */}
+                    <Field label={t('staff.inbox.noteLabel')} icon="create-outline" value={note} onChangeText={setNote} maxLength={200} />
+                    <Text style={[styles.label, { color: theme.text }]}>{t('staff.inbox.declineTitle')}</Text>
                     {DECLINE_REASONS.map((reason) => (
                       <Button key={reason} variant="secondary" icon={DECLINE_ICON[reason]} label={t(`request.reason.${reason}` as StringKey)} busy={busy === r.id} onPress={() => void act(r.id, 'decline', { reason, ...(note.trim() ? { note: note.trim() } : {}) })} />
                     ))}
-                    <Field label={t('staff.inbox.noteLabel')} icon="create-outline" value={note} onChangeText={setNote} maxLength={200} />
-                    <Button variant="ghost" icon="chevron-back" label={t('common.back')} onPress={() => setDeclining(null)} />
+                    <Button variant="ghost" icon="chevron-back" label={t('staff.inbox.keepDeciding')} onPress={() => setDeclining(null)} />
                   </View>
                 ) : (
                   <View style={styles.buttons}>
@@ -155,11 +163,29 @@ export default function StaffInboxScreen(): React.JSX.Element {
 
               {undoLeft > 0 ? (
                 <View style={[styles.undo, { backgroundColor: theme.infoSoft }]}>
-                  <View style={[styles.undoBar, { backgroundColor: theme.info, width: `${Math.max(4, Math.min(100, (undoLeft / UNDO_WINDOW_S) * 100))}%` }]} />
+                  <View
+                    accessibilityRole="progressbar"
+                    accessibilityValue={{ min: 0, max: UNDO_WINDOW_S, now: undoLeft }}
+                    style={[styles.undoBar, { backgroundColor: theme.info, width: `${Math.max(4, Math.min(100, (undoLeft / UNDO_WINDOW_S) * 100))}%` }]}
+                  />
                   <Button variant="secondary" icon="arrow-undo" label={t('staff.inbox.undoSeconds', { s: undoLeft })} busy={busy === r.id} onPress={() => void act(r.id, 'undo')} />
                 </View>
               ) : null}
-              {r.status === 'accepted' ? <Button size="lg" icon="walk" label={t('staff.inbox.arrived')} busy={busy === r.id} onPress={() => void act(r.id, 'arrived')} /> : null}
+              {r.status === 'accepted' && arriving !== r.id ? (
+                <Button variant="secondary" icon="walk" label={t('staff.inbox.arrived')} onPress={() => setArriving(r.id)} />
+              ) : null}
+              {r.status === 'accepted' && arriving === r.id ? (
+                <ConfirmPanel
+                  tone="primary"
+                  title={t('staff.inbox.arrivedConfirm', { name })}
+                  body={t('staff.inbox.arrivedBody')}
+                  confirmLabel={t('staff.inbox.arrived')}
+                  cancelLabel={t('common.notYet')}
+                  busy={busy === r.id}
+                  onConfirm={() => void act(r.id, 'arrived')}
+                  onCancel={() => setArriving(null)}
+                />
+              ) : null}
               {r.referralId ? (
                 <Button variant="ghost" icon="document-text-outline" label={t('staff.inbox.openReferral')} onPress={() => router.push({ pathname: '/(staff)/referral', params: { id: r.id } } as unknown as Href)} />
               ) : null}
@@ -189,6 +215,7 @@ const styles = StyleSheet.create({
   quote: { borderLeftWidth: 4, borderRadius: radii.md, padding: spacing.md },
   body: { fontSize: fontSizes.md, fontFamily: fonts.regular, lineHeight: 24 },
   stack: { gap: spacing.sm },
+  label: { fontSize: fontSizes.md, fontFamily: fonts.semibold },
   buttons: { flexDirection: 'row', gap: spacing.sm },
   undo: { borderRadius: radii.lg, padding: spacing.sm, gap: spacing.sm, overflow: 'hidden' },
   undoBar: { height: 4, borderRadius: 2 },
